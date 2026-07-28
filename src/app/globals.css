@@ -1,0 +1,150 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-slate-50 text-slate-900 antialiased;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+}
+
+@layer components {
+  /* ---- Buttons ---- */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none active:scale-[0.97];
+  }
+  .btn-primary {
+    @apply btn bg-indigo-600 text-white shadow-sm shadow-indigo-200 hover:bg-indigo-700 hover:shadow-md hover:shadow-indigo-200 focus:ring-indigo-500;
+  }
+  .btn-secondary {
+    @apply btn bg-white text-slate-700 border border-slate-200 shadow-sm hover:bg-slate-50 hover:border-slate-300 hover:shadow focus:ring-slate-400;
+  }
+  .btn-danger {
+    @apply btn bg-rose-600 text-white shadow-sm shadow-rose-200 hover:bg-rose-700 focus:ring-rose-500;
+  }
+  .btn-ghost {
+    @apply btn text-slate-500 hover:bg-slate-100 hover:text-slate-900 focus:ring-slate-400;
+  }
+  .btn-accent {
+    @apply btn bg-violet-600 text-white shadow-sm shadow-violet-200 hover:bg-violet-700 focus:ring-violet-500;
+  }
+
+  /* ---- Inputs ---- */
+  .input-field {
+    @apply block w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm shadow-sm transition-all duration-200 placeholder:text-slate-400 hover:border-slate-300 focus:border-indigo-400 focus:outline-none focus:ring-4 focus:ring-indigo-50;
+  }
+
+  /* ---- Cards ---- */
+  .card {
+    @apply rounded-2xl border border-slate-200 bg-white shadow-sm;
+  }
+  .card-hover {
+    @apply card transition-all duration-200 hover:shadow-md hover:border-slate-300 hover:-translate-y-0.5;
+  }
+  .card-accent {
+    @apply card border-l-4 border-l-indigo-500;
+  }
+
+  /* ---- Badges ---- */
+  .badge {
+    @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+  .badge-public {
+    @apply badge bg-emerald-50 text-emerald-700 border border-emerald-200;
+  }
+  .badge-private {
+    @apply badge bg-slate-100 text-slate-500 border border-slate-200;
+  }
+  .badge-count {
+    @apply badge bg-indigo-50 text-indigo-700 border border-indigo-200;
+  }
+
+  /* ---- Section Headers ---- */
+  .section-header {
+    @apply text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3;
+  }
+
+  /* ---- Empty States ---- */
+  .empty-state {
+    @apply card p-10 text-center flex flex-col items-center gap-3;
+  }
+  .empty-state-icon {
+    @apply w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-50 to-violet-50 flex items-center justify-center text-2xl mb-1;
+  }
+  .empty-state-title {
+    @apply text-sm font-semibold text-slate-700;
+  }
+  .empty-state-desc {
+    @apply text-sm text-slate-400 max-w-xs;
+  }
+
+  /* ---- Page Headers ---- */
+  .page-header {
+    @apply flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8;
+  }
+  .page-title {
+    @apply text-2xl font-bold tracking-tight text-slate-900;
+  }
+  .page-subtitle {
+    @apply text-sm text-slate-500 mt-1;
+  }
+}
+
+/* ---- Grid Builder ---- */
+.grid-cell {
+  @apply relative min-h-[40px] border-2 border-transparent rounded-lg transition-all duration-150 cursor-pointer select-none;
+}
+.grid-cell:hover {
+  @apply border-indigo-200 bg-indigo-50/30;
+}
+.grid-cell.selected {
+  @apply border-indigo-400 bg-indigo-50 ring-4 ring-indigo-100;
+}
+.grid-cell.drag-over {
+  @apply border-dashed border-indigo-300 bg-indigo-50/50;
+}
+
+/* ---- Tally Buttons ---- */
+.tally-btn {
+  @apply inline-flex items-center justify-center w-10 h-10 rounded-xl text-lg font-bold transition-all duration-150 select-none active:scale-90 shadow-sm;
+}
+.tally-btn-minus {
+  @apply tally-btn bg-rose-50 text-rose-600 hover:bg-rose-100 hover:shadow border border-rose-200;
+}
+.tally-btn-plus {
+  @apply tally-btn bg-emerald-50 text-emerald-600 hover:bg-emerald-100 hover:shadow border border-emerald-200;
+}
+
+/* ---- Animations ---- */
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in {
+  animation: fade-in 0.4s ease-out;
+}
+.animate-slide-up {
+  animation: slide-up 0.5s ease-out;
+}
+
+/* ---- Scrollbar ---- */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-slate-300 rounded-full hover:bg-slate-400;
+}
+
+/* ---- Gradient Text ---- */
+.gradient-text {
+  @apply bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-violet-600;
+}

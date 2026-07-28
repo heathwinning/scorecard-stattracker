@@ -1,0 +1,17 @@
+name = "scorecard-stattracker"
+compatibility_date = "2025-01-01"
+compatibility_flags = ["nodejs_compat"]
+pages_build_output_dir = ".vercel/output/static"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "scorecard-db"
+database_id = "b9dbe832-795a-46b2-bae5-afa52acb04e2"
+
+# ⚠️ Set real values before deploying:
+#   wrangler secret put SESSION_SECRET
+#   wrangler secret put GOOGLE_CLIENT_ID
+#   wrangler secret put GOOGLE_CLIENT_SECRET
+
+[vars]
+NEXT_PUBLIC_APP_URL = "https://scorecard-stattracker.pages.dev"
