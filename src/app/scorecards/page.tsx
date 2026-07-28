@@ -35,7 +35,7 @@ export default function ScorecardsPage() {
     <div className="max-w-4xl mx-auto px-4 py-8 page-enter">
       <div className="page-header">
         <div>
-          <h1 className="page-title">My Scorecards</h1>
+          <h1 className="page-title">My Scores</h1>
           <p className="page-subtitle">Game sessions you've tracked</p>
         </div>
         <Link href="/templates" className="btn-primary"><HiOutlineClipboardList className="w-4 h-4" /> New Scorecard</Link>

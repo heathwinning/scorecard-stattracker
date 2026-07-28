@@ -98,7 +98,8 @@ function NewScorecardPageInner() {
     );
   }
 
-  if (!user || !templateId) return null;
+  if (!isGuest && !user) return null;
+  if (!templateId) return null;
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 page-enter">
