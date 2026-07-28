@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
   }
 
   if (conditions.length > 0) {
-    sql += " WHERE " + conditions.join(" OR ");
+    sql += " WHERE " + conditions.join(" AND ");
   }
 
   sql += " ORDER BY t.updated_at DESC LIMIT 50";

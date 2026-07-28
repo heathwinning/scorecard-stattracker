@@ -25,11 +25,15 @@ function TemplatesPageInner() {
     if (filter === "mine" && (isGuest || !user)) {
       let tpls = guestGetTemplates();
       if (gameFilter) tpls = tpls.filter(t => t.game_id === gameFilter);
+      tpls.sort((a, b) => a.name.localeCompare(b.name));
       setTemplates(tpls);
       setLoading(false);
     } else {
       listTemplates({ mine: filter === "mine", game: gameFilter || undefined })
-        .then((data) => setTemplates(data.templates))
+        .then((data) => {
+          data.templates.sort((a, b) => a.name.localeCompare(b.name));
+          setTemplates(data.templates);
+        })
         .finally(() => setLoading(false));
     }
   }, [filter, gameFilter, isGuest, user]);
