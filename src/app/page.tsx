@@ -20,7 +20,7 @@ export default function Home() {
           </p>
           <div className="flex items-center justify-center gap-3">
             <Link href="/templates" className="btn-primary text-base px-6 py-3 rounded-xl shadow-lg shadow-indigo-200">
-              Browse Templates
+              Browse Scorecards
             </Link>
             <Link href="/login" className="btn-secondary text-base px-6 py-3 rounded-xl">
               Sign in with Google

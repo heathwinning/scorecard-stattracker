@@ -42,8 +42,8 @@ function TemplatesPageInner() {
     <div className="max-w-4xl mx-auto px-4 py-8 page-enter">
       <div className="page-header">
         <div>
-          <h1 className="page-title">Templates</h1>
-          <p className="page-subtitle">Browse public templates or create your own</p>
+          <h1 className="page-title">Scorecards</h1>
+          <p className="page-subtitle">Browse public scorecards or create your own</p>
         </div>
         {user && (
           <Link href="/templates/new" className="btn-primary">
