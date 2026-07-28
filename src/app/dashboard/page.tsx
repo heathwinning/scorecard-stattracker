@@ -114,10 +114,10 @@ export default function DashboardPage() {
         )}
       </section>
 
-      {/* My templates */}
+      {/* My scorecards */}
       <section>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold text-slate-900">My Templates</h2>
+          <h2 className="text-lg font-bold text-slate-900">My Scorecards</h2>
           {templates.length > 0 && (
             <Link href="/templates?mine=true" className="text-sm font-medium text-indigo-600 hover:text-indigo-700 flex items-center gap-1">
               View all <HiOutlineArrowRight className="w-3.5 h-3.5" />
@@ -127,9 +127,9 @@ export default function DashboardPage() {
         {templates.length === 0 ? (
           <div className="empty-state">
             <div className="empty-state-icon">📐</div>
-            <p className="empty-state-title">No templates yet</p>
-            <p className="empty-state-desc">Create your first scorecard template to get started.</p>
-            <Link href="/templates/new" className="btn-primary text-sm mt-2">Create Template</Link>
+            <p className="empty-state-title">No scorecards yet</p>
+            <p className="empty-state-desc">Create your first scorecard to get started.</p>
+            <Link href="/templates/new" className="btn-primary text-sm mt-2">Create Scorecard</Link>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -232,9 +232,9 @@ function GuestDashboard({ templates, scorecards }: { templates: Template[]; scor
         {templates.length === 0 ? (
           <div className="empty-state">
             <div className="empty-state-icon">📐</div>
-            <p className="empty-state-title">No templates yet</p>
+            <p className="empty-state-title">No scorecards yet</p>
             <p className="empty-state-desc">Create your first scorecard template.</p>
-            <Link href="/templates/new" className="btn-primary text-sm mt-2">Create Template</Link>
+            <Link href="/templates/new" className="btn-primary text-sm mt-2">Create Scorecard</Link>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

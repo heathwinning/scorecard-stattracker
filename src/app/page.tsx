@@ -37,8 +37,8 @@ export default function Home() {
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
           {[
-            { icon: "🎨", step: "1", title: "Build or Pick", desc: "Create a template from scratch with the drag & drop editor, or choose one from the public gallery." },
-            { icon: "🎮", step: "2", title: "Start a Game", desc: "Launch a scorecard from any template, add players, and start tracking scores as you play." },
+            { icon: "🎨", step: "1", title: "Build or Pick", desc: "Create a scorecard from scratch with the drag & drop editor, or choose one from the public gallery." },
+            { icon: "🎮", step: "2", title: "Start a Game", desc: "Launch a scorecard from any design, add players, and start tracking scores as you play." },
             { icon: "📊", step: "3", title: "Auto-Calculate", desc: "Formula cells automatically sum, average, and compute results. No mental math needed." },
           ].map((f) => (
             <div key={f.step} className="card p-6 group hover:shadow-lg hover:-translate-y-1 transition-all duration-300">

@@ -47,7 +47,7 @@ function TemplatesPageInner() {
         </div>
         {user && (
           <Link href="/templates/new" className="btn-primary">
-            <HiOutlinePlus className="w-4 h-4" /> New Template
+            <HiOutlinePlus className="w-4 h-4" /> New Scorecard
           </Link>
         )}
       </div>
@@ -100,9 +100,9 @@ function TemplatesPageInner() {
       ) : templates.length === 0 ? (
         <div className="empty-state">
           <div className="empty-state-icon">📋</div>
-          <p className="empty-state-title">{filter === "mine" ? "No templates yet" : "No public templates"}</p>
-          <p className="empty-state-desc">{filter === "mine" ? "Create your first scorecard template." : "Be the first to share a template!"}</p>
-          {user && <Link href="/templates/new" className="btn-primary text-sm mt-2"><HiOutlinePlus className="w-4 h-4" /> Create Template</Link>}
+          <p className="empty-state-title">{filter === "mine" ? "No scorecards yet" : "No public scorecards"}</p>
+          <p className="empty-state-desc">{filter === "mine" ? "Create your first scorecard." : "Be the first to share a scorecard!"}</p>
+          {user && <Link href="/templates/new" className="btn-primary text-sm mt-2"><HiOutlinePlus className="w-4 h-4" /> Create Scorecard</Link>}
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

@@ -96,7 +96,7 @@ export default function TemplateDetailPage() {
             </>
           )}
           <Link href={`/scorecards/new?template=${id}`} className="btn-primary text-sm">
-            <HiOutlinePlay className="w-4 h-4" /> Use Template
+            <HiOutlinePlay className="w-4 h-4" /> Use Scorecard
           </Link>
         </div>
       </div>

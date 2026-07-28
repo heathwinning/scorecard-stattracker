@@ -95,12 +95,12 @@ export default function TemplateNewPage({ params }: Props) {
           <Link href="/templates" className="inline-flex items-center gap-1 text-sm text-slate-400 hover:text-slate-600 mb-2 transition-colors">
             ← Templates
           </Link>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">{isEdit ? "Edit Template" : "New Template"}</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">{isEdit ? "Edit Scorecard" : "New Scorecard"}</h1>
         </div>
         <div className="flex gap-2">
           <Link href={isEdit ? `/templates/${templateId}` : "/templates"} className="btn-secondary text-sm">Cancel</Link>
           <button onClick={handleSave} disabled={saving} className="btn-primary text-sm">
-            {saving ? "Saving..." : isEdit ? "Save Changes" : "Create Template"}
+            {saving ? "Saving..." : isEdit ? "Save Changes" : "Create Scorecard"}
           </button>
         </div>
       </div>
@@ -109,7 +109,7 @@ export default function TemplateNewPage({ params }: Props) {
       <div className="card p-5 mb-6">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="sm:col-span-2">
-            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1.5">Template Name</label>
+            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1.5">Scorecard Name</label>
             <input type="text" value={name} onChange={(e) => setName(e.target.value)}
               className="input-field font-medium" placeholder="e.g. Poker Night, Team Match, Scrabble" />
           </div>
