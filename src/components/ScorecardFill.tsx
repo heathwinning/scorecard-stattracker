@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback } from "react";
 import type { TemplateCell, ScorecardPlayer, CellValue } from "@/lib/api-client";
 import { evaluateFormula, type CellContext } from "@/lib/formula";
 
@@ -11,7 +11,6 @@ interface ScorecardFillProps {
   onPlayersChange: (players: ScorecardPlayer[]) => void;
   onValuesChange: (values: CellValue[]) => void;
   readOnly?: boolean;
-  // Multiplayer
   myPlayerSlotId?: string | null;
   isOwner?: boolean;
   onCellUpdate?: (cellId: string, playerId: string, value: string, isHidden: number) => void;
@@ -28,18 +27,15 @@ export default function ScorecardFill({
   isOwner = false,
   onCellUpdate,
 }: ScorecardFillProps) {
-  // Get max grid dimensions
-  const maxRow = Math.max(...cells.map((c) => c.row_pos), 0);
-  const maxCol = Math.max(...cells.map((c) => c.col_pos), 0);
-
-  // Separate per-player cells from static cells
-  const staticCells = cells.filter((c) => !c.per_player);
-  const perPlayerCells = cells.filter((c) => c.per_player);
-
   const isMultiplayer = !!myPlayerSlotId;
   const canEditAny = isOwner || !isMultiplayer;
 
-  // Get value for a cell+player combination
+  // Sort cells by sort_order
+  const sortedCells = useMemo(
+    () => [...cells].sort((a, b) => a.sort_order - b.sort_order),
+    [cells]
+  );
+
   const getValue = useCallback(
     (cellId: string, playerId: string | null): string => {
       const v = values.find(
@@ -50,7 +46,6 @@ export default function ScorecardFill({
     [values]
   );
 
-  // Get hidden status
   const isHidden = useCallback(
     (cellId: string, playerId: string | null): boolean => {
       if (!isMultiplayer) return false;
@@ -62,19 +57,16 @@ export default function ScorecardFill({
     [values, isMultiplayer]
   );
 
-  // Can the current user edit this cell?
   const canEdit = useCallback(
     (playerId: string | null): boolean => {
       if (readOnly) return false;
       if (!isMultiplayer) return true;
       if (canEditAny) return true;
-      // Player can only edit their own slot
       return playerId === myPlayerSlotId;
     },
     [readOnly, isMultiplayer, canEditAny, myPlayerSlotId]
   );
 
-  // Set value for a cell+player combination
   const setValue = useCallback(
     (cellId: string, playerId: string | null, value: string, hidden?: number) => {
       if (isMultiplayer && onCellUpdate) {
@@ -100,7 +92,6 @@ export default function ScorecardFill({
     [values, onValuesChange, isMultiplayer, onCellUpdate]
   );
 
-  // Tally increment/decrement
   const tallyValue = useCallback(
     (cellId: string, playerId: string | null, delta: number) => {
       const current = parseInt(getValue(cellId, playerId)) || 0;
@@ -114,35 +105,28 @@ export default function ScorecardFill({
     [cells, getValue, setValue]
   );
 
-  // Compute formula cells with chaining (formulas can reference other formulas)
+  // Formula computation
   const computedFormulas = useMemo(() => {
     const formulaCells = cells.filter((c) => c.cell_type === "formula" && c.formula_expr);
     if (formulaCells.length === 0) return {} as Record<string, number>;
 
-    const formulas: Record<string, number> = {};
+    const results: Record<string, number> = {};
     const MAX_PASSES = 10;
+    const perPlayerCells = cells.filter((c) => c.per_player);
+    const staticCells = cells.filter((c) => !c.per_player);
 
-    // Helper: build cell contexts including previously computed formulas
     function buildContexts(includeFormulas: Record<string, number>): CellContext[] {
       const ctx: CellContext[] = [];
 
-      // Non-formula per-player cells
       perPlayerCells.filter((c) => c.cell_type !== "formula").forEach((cell) => {
         players.forEach((player) => {
           ctx.push({ key: `${cell.cell_key}_${player.id}`, value: parseFloat(getValue(cell.id!, player.id!)) || 0 });
         });
-      });
-
-      // Aggregate keys for SUM() wildcards (sum across all players)
-      perPlayerCells.filter((c) => c.cell_type !== "formula").forEach((cell) => {
         const total = players.reduce((sum, p) => sum + (parseFloat(getValue(cell.id!, p.id!)) || 0), 0);
         ctx.push({ key: cell.cell_key, value: total });
       });
 
-      // Include previously computed formula results
       for (const [key, val] of Object.entries(includeFormulas)) {
-        // key format: "cellId:playerId" or "cellId"
-        // We also register by cell_key for referencing
         const cellId = key.includes(":") ? key.split(":")[0] : key;
         const formulaCell = formulaCells.find((c) => c.id === cellId);
         if (formulaCell) {
@@ -153,46 +137,32 @@ export default function ScorecardFill({
         }
       }
 
-      // Non-formula static cells
       staticCells.filter((c) => c.cell_type !== "formula").forEach((cell) => {
-        const val = parseFloat(getValue(cell.id!, null)) || 0;
-        ctx.push({ key: cell.cell_key, value: val });
+        ctx.push({ key: cell.cell_key, value: parseFloat(getValue(cell.id!, null)) || 0 });
       });
 
       return ctx;
     }
 
-    // Iterative evaluation: each pass may pick up results from previous pass
     for (let pass = 0; pass < MAX_PASSES; pass++) {
       let changed = false;
-
       formulaCells.forEach((cell) => {
         if (cell.per_player) {
           players.forEach((player) => {
             const key = `${cell.id}:${player.id}`;
-            const cellContexts = buildContexts(formulas);
-            const result = evaluateFormula(cell.formula_expr!, cellContexts);
-            if (formulas[key] !== result) {
-              formulas[key] = result;
-              changed = true;
-            }
+            const r = evaluateFormula(cell.formula_expr!, buildContexts(results));
+            if (results[key] !== r) { results[key] = r; changed = true; }
           });
         } else {
           const key = cell.id!;
-          const cellContexts = buildContexts(formulas);
-          const result = evaluateFormula(cell.formula_expr!, cellContexts);
-          if (formulas[key] !== result) {
-            formulas[key] = result;
-            changed = true;
-          }
+          const r = evaluateFormula(cell.formula_expr!, buildContexts(results));
+          if (results[key] !== r) { results[key] = r; changed = true; }
         }
       });
-
       if (!changed) break;
     }
-
-    return formulas;
-  }, [cells, players, perPlayerCells, staticCells, getValue]);
+    return results;
+  }, [cells, players, getValue]);
 
   const addPlayer = () => {
     onPlayersChange([
@@ -206,10 +176,10 @@ export default function ScorecardFill({
   };
 
   const updatePlayerName = (index: number, name: string) => {
-    onPlayersChange(
-      players.map((p, i) => (i === index ? { ...p, player_name: name } : p))
-    );
+    onPlayersChange(players.map((p, i) => (i === index ? { ...p, player_name: name } : p)));
   };
+
+  const hasPlayers = players.length > 0;
 
   return (
     <div className="space-y-6">
@@ -244,71 +214,156 @@ export default function ScorecardFill({
         </div>
       </div>
 
-      {/* The Scorecard Grid */}
-      <div className="card p-4 overflow-x-auto">
-        <div
-          className="grid gap-1 min-w-[600px]"
-          style={{
-            gridTemplateColumns: `repeat(${maxCol + 1}, 1fr)`,
-          }}
-        >
-          {/* Static cells */}
-          {staticCells.map((cell) => (
-            <div
-              key={cell.id || cell.cell_key}
-              style={{
-                gridRow: `${cell.row_pos + 1} / span ${cell.row_span}`,
-                gridColumn: `${cell.col_pos + 1} / span ${cell.col_span}`,
-              }}
-              className="p-2"
-            >
-              <StaticCellRenderer
+      {/* Table-based Scorecard */}
+      <div className="card overflow-x-auto">
+        <table className="w-full min-w-[400px] border-collapse">
+          <thead>
+            <tr className="border-b-2 border-slate-200">
+              <th className="text-xs font-semibold text-slate-500 uppercase tracking-wider px-4 py-3 text-left w-[200px]">
+                Category
+              </th>
+              {hasPlayers ? players.map((player, i) => (
+                <th key={player.id || i} className="text-xs font-semibold text-slate-500 uppercase tracking-wider px-3 py-3 text-center min-w-[100px]">
+                  {player.player_name}
+                </th>
+              )) : (
+                <th className="text-xs font-semibold text-slate-500 uppercase tracking-wider px-3 py-3 text-center">
+                  Value
+                </th>
+              )}
+            </tr>
+          </thead>
+          <tbody>
+            {sortedCells.map((cell, idx) => (
+              <ScoreRow
+                key={cell.id || cell.cell_key}
                 cell={cell}
-                value={getValue(cell.id!, null)}
-                formulaResult={computedFormulas[cell.id!]}
-                onChange={(v) => setValue(cell.id!, null, v)}
-                readOnly={!canEdit(null)}
-                isHidden={isHidden(cell.id!, null)}
+                players={players}
+                hasPlayers={hasPlayers}
+                getValue={getValue}
+                formulaResult={cell.cell_type === "formula" ? computedFormulas : undefined}
+                setValue={setValue}
+                tallyValue={tallyValue}
+                canEdit={canEdit}
+                isHidden={isHidden}
+                isEven={idx % 2 === 0}
               />
-            </div>
-          ))}
-
-          {/* Per-player cells: repeat for each player */}
-          {players.map((player, playerIdx) => {
-            // Offset per-player rows after static rows
-            const playerRowOffset = maxRow + 1 + playerIdx * (Math.max(...perPlayerCells.map(c => c.row_pos), 0) + 1);
-
-            return perPlayerCells.map((cell) => (
-              <div
-                key={`${cell.id || cell.cell_key}-${player.id || playerIdx}`}
-                style={{
-                  gridRow: `${playerRowOffset + cell.row_pos + 1} / span ${cell.row_span}`,
-                  gridColumn: `${cell.col_pos + 1} / span ${cell.col_span}`,
-                }}
-                className="p-1"
-              >
-                <StaticCellRenderer
-                  cell={cell}
-                  value={getValue(cell.id!, player.id!)}
-                  formulaResult={computedFormulas[`${cell.id}:${player.id}`]}
-                  onChange={(v) => setValue(cell.id!, player.id!, v)}
-                  onTally={(delta) => tallyValue(cell.id!, player.id!, delta)}
-                  readOnly={!canEdit(player.id!)}
-                  isHidden={isHidden(cell.id!, player.id!)}
-                  onReveal={canEdit(player.id!) && isHidden(cell.id!, player.id!) ? () => setValue(cell.id!, player.id!, getValue(cell.id!, player.id!), 0) : undefined}
-                />
-              </div>
-            ));
-          })}
-        </div>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );
 }
 
-// ---- Cell Renderer ----
+// ---- Score Row Component ----
 
-function StaticCellRenderer({
+function ScoreRow({
+  cell,
+  players,
+  hasPlayers,
+  getValue,
+  formulaResult,
+  setValue,
+  tallyValue,
+  canEdit,
+  isHidden,
+  isEven,
+}: {
+  cell: TemplateCell;
+  players: ScorecardPlayer[];
+  hasPlayers: boolean;
+  getValue: (cellId: string, playerId: string | null) => string;
+  formulaResult?: Record<string, number>;
+  setValue: (cellId: string, playerId: string | null, value: string, hidden?: number) => void;
+  tallyValue: (cellId: string, playerId: string | null, delta: number) => void;
+  canEdit: (playerId: string | null) => boolean;
+  isHidden: (cellId: string, playerId: string | null) => boolean;
+  isEven: boolean;
+}) {
+  const isHeading = cell.cell_type === "heading";
+  const colSpan = hasPlayers ? players.length : 1;
+
+  if (isHeading) {
+    return (
+      <tr className={`border-b border-slate-100 ${isEven ? "bg-indigo-50/30" : ""}`}>
+        <td colSpan={colSpan + 1} className="px-4 py-2.5 font-bold text-sm text-indigo-800">
+          {cell.label || cell.cell_key}
+        </td>
+      </tr>
+    );
+  }
+
+  const editCell = canEdit(null);
+
+  if (!cell.per_player) {
+    // Static cell: one value for all
+    const val = getValue(cell.id!, null);
+    const hidden = isHidden(cell.id!, null);
+    return (
+      <tr className={`border-b border-slate-100 hover:bg-slate-50/50 transition-colors ${isEven ? "bg-slate-50/30" : ""}`}>
+        <td className="px-4 py-2.5">
+          <span className="text-sm font-medium text-slate-700">{cell.label || cell.cell_key}</span>
+          {cell.cell_type === "formula" && cell.formula_expr && (
+            <code className="text-[10px] bg-amber-100 text-amber-600 px-1.5 py-0.5 rounded ml-2 align-middle">={cell.formula_expr}</code>
+          )}
+        </td>
+        <td colSpan={colSpan} className="px-3 py-2.5">
+          <CellInput
+            cell={cell}
+            value={val}
+            formulaResult={formulaResult?.[cell.id!]}
+            onChange={(v) => setValue(cell.id!, null, v)}
+            onTally={(d) => tallyValue(cell.id!, null, d)}
+            readOnly={!editCell}
+            isHidden={hidden}
+            onReveal={editCell && hidden ? () => setValue(cell.id!, null, getValue(cell.id!, null), 0) : undefined}
+          />
+        </td>
+      </tr>
+    );
+  }
+
+  // Per-player cell: one column per player
+  return (
+    <tr className={`border-b border-slate-100 hover:bg-slate-50/50 transition-colors ${isEven ? "bg-slate-50/30" : ""}`}>
+      <td className="px-4 py-2.5">
+        <span className="text-sm font-medium text-slate-700">{cell.label || cell.cell_key}</span>
+        {cell.cell_type === "formula" && cell.formula_expr && (
+          <code className="text-[10px] bg-amber-100 text-amber-600 px-1.5 py-0.5 rounded ml-2 align-middle">={cell.formula_expr}</code>
+        )}
+      </td>
+      {players.map((player) => {
+        const val = getValue(cell.id!, player.id!);
+        const hidden = isHidden(cell.id!, player.id!);
+        const edit = canEdit(player.id!);
+        return (
+          <td key={player.id || player.player_name} className="px-3 py-2.5">
+            <CellInput
+              cell={cell}
+              value={val}
+              formulaResult={formulaResult?.[`${cell.id}:${player.id}`]}
+              onChange={(v) => setValue(cell.id!, player.id!, v)}
+              onTally={(d) => tallyValue(cell.id!, player.id!, d)}
+              readOnly={!edit}
+              isHidden={hidden}
+              onReveal={edit && hidden ? () => setValue(cell.id!, player.id!, getValue(cell.id!, player.id!), 0) : undefined}
+            />
+          </td>
+        );
+      })}
+      {!hasPlayers && (
+        <td className="px-3 py-2.5">
+          <span className="text-xs text-slate-300">+ players</span>
+        </td>
+      )}
+    </tr>
+  );
+}
+
+// ---- Cell Input ----
+
+function CellInput({
   cell,
   value,
   formulaResult,
@@ -327,61 +382,56 @@ function StaticCellRenderer({
   isHidden?: boolean;
   onReveal?: () => void;
 }) {
-  // Hidden cells show a lock
   if (isHidden) {
     if (onReveal) {
       return (
         <button onClick={onReveal}
-          className="flex items-center gap-1.5 h-10 px-3 rounded-xl bg-slate-100 border border-dashed border-slate-300 hover:border-indigo-400 hover:bg-indigo-50 transition-all text-xs text-slate-400 hover:text-indigo-600">
-          🔒 Tap to reveal
+          className="flex items-center gap-1.5 h-9 px-3 rounded-lg bg-slate-100 border border-dashed border-slate-300 hover:border-indigo-400 hover:bg-indigo-50 transition-all text-xs text-slate-400 hover:text-indigo-600">
+          🔒 Reveal
         </button>
       );
     }
-    return (
-      <div className="flex items-center h-10 px-3">
-        <span className="text-sm text-slate-300">🔒 Hidden</span>
-      </div>
-    );
+    return <span className="text-sm text-slate-300">🔒 Hidden</span>;
   }
+
   switch (cell.cell_type) {
     case "heading":
-      return (
-        <h3 className="text-base font-bold text-indigo-800 py-1.5">{cell.label || "Heading"}</h3>
-      );
-    case "label":
-      return (
-        <span className="text-sm font-semibold text-slate-500 py-1.5 block">{cell.label || cell.cell_key}</span>
-      );
+      return <span className="text-sm font-bold text-indigo-800">{cell.label}</span>;
+
     case "input:text":
       return readOnly ? (
-        <span className="text-sm font-medium text-slate-900 py-1.5 block">{value || "—"}</span>
+        <span className="text-sm font-medium text-slate-900 block py-1">{value || "—"}</span>
       ) : (
         <input type="text" value={value} onChange={(e) => onChange(e.target.value)}
-          className="input-field text-sm h-10" placeholder={(cell.config_json as Record<string, unknown>)?.placeholder as string || ""} />
+          className="input-field text-sm h-9 w-full" placeholder="—" />
       );
+
     case "input:number":
       return readOnly ? (
-        <span className="text-lg font-bold font-mono text-slate-900 py-1.5 block">{value || "—"}</span>
+        <span className="text-base font-bold font-mono text-slate-900 block py-1">{value || "—"}</span>
       ) : (
         <input type="number" value={value} onChange={(e) => onChange(e.target.value)}
-          className="input-field text-sm h-10 font-mono text-center" placeholder="0" />
+          className="input-field text-sm h-9 w-full font-mono text-center" placeholder="0" />
       );
+
     case "tally":
       return readOnly ? (
-        <span className="text-lg font-bold font-mono text-slate-900 py-1.5 block">{value || "0"}</span>
+        <span className="text-base font-bold font-mono text-slate-900 block py-1">{value || "0"}</span>
       ) : (
-        <div className="flex items-center gap-2 h-10">
-          <button onClick={() => onTally?.(-1)} className="tally-btn-minus">−</button>
-          <span className="text-lg font-bold font-mono w-10 text-center select-none text-slate-900">{value || "0"}</span>
-          <button onClick={() => onTally?.(1)} className="tally-btn-plus">+</button>
+        <div className="flex items-center justify-center gap-1.5 h-9">
+          <button onClick={() => onTally?.(-1)}
+            className="w-7 h-7 rounded-lg bg-rose-50 text-rose-500 hover:bg-rose-100 font-bold text-sm transition-colors">−</button>
+          <span className="text-base font-bold font-mono w-10 text-center select-none text-slate-900">{value || "0"}</span>
+          <button onClick={() => onTally?.(1)}
+            className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-500 hover:bg-emerald-100 font-bold text-sm transition-colors">+</button>
         </div>
       );
+
     case "formula":
-      const result = formulaResult ?? 0;
       return (
-        <div className="flex items-center h-10">
-          <span className="text-lg font-bold font-mono text-amber-700 bg-amber-50 px-3 py-1 rounded-lg">{result}</span>
-        </div>
+        <span className="text-base font-bold font-mono text-amber-700 bg-amber-50 px-3 py-1 rounded-lg inline-block">
+          {formulaResult ?? "—"}
+        </span>
       );
 
     default:
