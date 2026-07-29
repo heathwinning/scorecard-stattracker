@@ -54,7 +54,7 @@ export default function TemplateDetailPage() {
     setStarting(true);
     try {
       const result = await createScorecard({ template_id: id });
-      const shareRes = await fetch(`/api/scorecards/${result.scorecard.id}/share`, { method: "POST" }).then(r => r.json());
+      const shareRes = await fetch(`/api/scores/${result.scorecard.id}/share`, { method: "POST" }).then(r => r.json());
       await updateScorecard(result.scorecard.id, {
         players: [{ id: crypto.randomUUID(), player_name: "P1", sort_order: 0 }],
       });
