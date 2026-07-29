@@ -101,7 +101,7 @@ export default function TemplateDetailPage() {
               <HiOutlinePencil className="w-4 h-4" /> Copy & Edit
             </Link>
           )}
-          <Link href={`/scorecards/new?template=${id}`} className="btn-primary text-sm">
+          <Link href={`/history/new?template=${id}`} className="btn-primary text-sm">
             <HiOutlinePlay className="w-4 h-4" /> Use Scorecard
           </Link>
         </div>
