@@ -47,7 +47,6 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: d1 execute scorecard-db --file=./database/seed.sql --remote
-        continue-on-error: true # OK if already seeded
 
       - name: Run seed migration updates (production)
         if: github.ref == 'refs/heads/main'
