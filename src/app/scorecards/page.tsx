@@ -22,6 +22,21 @@ export default function ScorecardsPage() {
     }
   }, [user, authLoading]);
 
+  const formatDate = (d?: string) => {
+    if (!d) return "";
+    const date = new Date(d);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    if (diffMins < 1) return "Just now";
+    if (diffMins < 60) return `${diffMins}m ago`;
+    const diffHours = Math.floor(diffMins / 60);
+    if (diffHours < 24) return `${diffHours}h ago`;
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  };
+
   if (authLoading || loading) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-8 animate-pulse space-y-3">
@@ -57,7 +72,7 @@ export default function ScorecardsPage() {
                 <div className="w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center text-sm group-hover:bg-violet-50 transition-colors">🎲</div>
                 <div>
                   <div className="font-semibold text-slate-900 text-sm">{sc.title || "Untitled Game"}</div>
-                  <div className="text-xs text-slate-400">{sc.template_name} · {sc.game_date}</div>
+                  <div className="text-xs text-slate-400">{sc.template_name} · {formatDate(sc.game_date)}</div>
                 </div>
               </div>
               <HiOutlineArrowRight className="w-4 h-4 text-slate-300 group-hover:text-violet-500 transition-colors" />

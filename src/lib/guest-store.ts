@@ -103,7 +103,8 @@ export function guestGetTemplate(id: string): Template | null {
 // ---- Scorecards ----
 
 export function guestGetScorecards(): Scorecard[] {
-  return read<Scorecard>(KEYS.scorecards);
+  const all = read<Scorecard>(KEYS.scorecards);
+  return all.sort((a, b) => new Date(b.game_date || "").getTime() - new Date(a.game_date || "").getTime());
 }
 
 export function guestCreateScorecard(data: {
@@ -124,7 +125,7 @@ export function guestCreateScorecard(data: {
     template_name: templateName,
     created_by: "guest",
     title: data.title || "",
-    game_date: data.game_date || new Date().toISOString().split("T")[0],
+    game_date: data.game_date || new Date().toISOString(),
     notes: "",
     share_code: null,
     created_at: new Date().toISOString(),

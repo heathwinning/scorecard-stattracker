@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
       template_id,
       user.id,
       (title || "").trim(),
-      game_date || new Date().toISOString().split("T")[0],
+      game_date || new Date().toISOString(),
       (notes || "").trim()
     )
     .run();
