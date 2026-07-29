@@ -46,8 +46,8 @@ UPDATE template_cells SET cell_type = 'input:number', config_json = '{"default":
 UPDATE template_cells SET cell_type = 'input:number', config_json = '{"default":0}' WHERE id = 'ws-ft2';
 UPDATE template_cells SET cell_type = 'input:number', config_json = '{"default":0}' WHERE id = 'ws-tt';
 
--- Hide all template title heading rows (redundant with page title)
-UPDATE template_cells SET sort_order = -1 WHERE id IN ('y-h', 'uno-h', 'cat-h', 'sp-h', 'sc-h', 'ch-h', 'pk-h', 'p10-h', 'gf-h', 'ttr-h', 'ws-h');
+-- Remove all template title heading rows (redundant with page title)
+DELETE FROM template_cells WHERE id IN ('y-h', 'uno-h', 'cat-h', 'sp-h', 'sc-h', 'ch-h', 'pk-h', 'p10-h', 'gf-h', 'ttr-h', 'ws-h');
 
 -- Update Wingspan cells to new sort order (flat list, no section headings)
 UPDATE template_cells SET sort_order = 1 WHERE id = 'ws-bi';
