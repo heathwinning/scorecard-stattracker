@@ -4,41 +4,60 @@ import { getDB, queryFirst, queryAll, execute, uuid } from "@/lib/db";
 
 export const runtime = "edge";
 
-// GET /api/scorecards/[id] - get scorecard with all values
+interface TemplateCell {
+  id: string;
+  template_id: string;
+  row_pos: number;
+  col_pos: number;
+  row_span: number;
+  col_span: number;
+  cell_type: string;
+  cell_key: string;
+  label: string;
+  formula_expr: string | null;
+  per_player: number;
+  config_json: string;
+  sort_order: number;
+}
+
+// GET /api/templates/[id] - get template with cells
 export async function GET(
   _request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   const db = getDB();
-  const scorecard = await queryFirst(
+  const template = await queryFirst(
     db,
-    `SELECT s.*, t.name as template_name
-     FROM scorecards s
-     JOIN templates t ON s.template_id = t.id
-     WHERE s.id = ?1`,
+    `SELECT t.*, u.name as creator_name, g.name as game_name, g.icon as game_icon
+     FROM templates t
+     JOIN users u ON t.created_by = u.id
+     LEFT JOIN games g ON t.game_id = g.id
+     WHERE t.id = ?1`,
     [params.id]
   );
 
-  if (!scorecard) {
-    return NextResponse.json({ error: "Scorecard not found" }, { status: 404 });
+  if (!template) {
+    return NextResponse.json({ error: "Template not found" }, { status: 404 });
   }
 
-  const players = await queryAll(
+  const cells = await queryAll<TemplateCell>(
     db,
-    "SELECT * FROM scorecard_players WHERE scorecard_id = ?1 ORDER BY sort_order",
+    "SELECT * FROM template_cells WHERE template_id = ?1 ORDER BY sort_order",
     [params.id]
   );
 
-  const values = await queryAll(
-    db,
-    "SELECT * FROM cell_values WHERE scorecard_id = ?1",
-    [params.id]
-  );
-
-  return NextResponse.json({ scorecard, players, values });
+  return NextResponse.json({
+    template: {
+      ...template,
+      cells: cells.map((c) => ({
+        ...c,
+        config_json: JSON.parse(c.config_json || "{}"),
+      })),
+    },
+  });
 }
 
-// PUT /api/scorecards/[id] - update scorecard (save values)
+// PUT /api/templates/[id] - update template
 export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -50,50 +69,59 @@ export async function PUT(
   }
 
   const db = getDB();
+  const existing = await queryFirst(
+    db,
+    "SELECT * FROM templates WHERE id = ?1 AND created_by = ?2",
+    [params.id, user.id]
+  );
+
+  if (!existing) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
   const body = await request.json();
-  const { title, game_date, notes, players, values } = body;
+  const { name, description, game_id, is_public, cells } = body;
 
   await execute(
     db,
-    `UPDATE scorecards SET title = ?1, game_date = ?2, notes = ?3, updated_at = datetime('now') WHERE id = ?4 AND created_by = ?5`,
-    [(title || "").trim(), game_date || "", (notes || "").trim(), params.id, user.id]
+    `UPDATE templates SET name = ?1, description = ?2, game_id = ?3, is_public = ?4, updated_at = datetime('now') WHERE id = ?5`,
+    [name?.trim() || existing.name, (description || "").trim(), game_id || null, is_public ? 1 : 0, params.id]
   );
 
-  // Replace players
-  if (players && Array.isArray(players)) {
-    await execute(db, "DELETE FROM scorecard_players WHERE scorecard_id = ?1", [params.id]);
+  if (cells && Array.isArray(cells)) {
+    // Delete existing cells and re-insert
+    await execute(db, "DELETE FROM template_cells WHERE template_id = ?1", [params.id]);
 
-    const playerStmt = db.prepare(
-      "INSERT INTO scorecard_players (id, scorecard_id, player_name, sort_order) VALUES (?1, ?2, ?3, ?4)"
+    const stmt = db.prepare(
+      `INSERT INTO template_cells (id, template_id, row_pos, col_pos, row_span, col_span, cell_type, cell_key, label, formula_expr, per_player, config_json, sort_order)
+       VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)`
     );
-    const playerBatch = players.map((p: Record<string, unknown>, i: number) =>
-      playerStmt.bind(uuid(), params.id, (p.player_name as string) || `Player ${i + 1}`, i)
-    );
-    await db.batch(playerBatch);
-  }
 
-  // Upsert cell values
-  if (values && Array.isArray(values)) {
-    const valStmt = db.prepare(
-      `INSERT OR REPLACE INTO cell_values (id, scorecard_id, template_cell_id, player_id, value, updated_at)
-       VALUES (?1, ?2, ?3, ?4, ?5, datetime('now'))`
-    );
-    const valBatch = values.map((v: Record<string, unknown>) =>
-      valStmt.bind(
+    const batch = cells.map((cell: Record<string, unknown>, i: number) =>
+      stmt.bind(
         uuid(),
         params.id,
-        v.template_cell_id as string,
-        (v.player_id as string) || null,
-        String(v.value ?? "")
+        (cell.row_pos as number) ?? i,
+        (cell.col_pos as number) ?? 0,
+        (cell.row_span as number) ?? 1,
+        (cell.col_span as number) ?? 1,
+        (cell.cell_type as string) ?? "input:number",
+        (cell.cell_key as string) ?? `cell_${i}`,
+        (cell.label as string) ?? "",
+        (cell.formula_expr as string) ?? null,
+        (cell.per_player as number) ?? 0,
+        JSON.stringify(cell.config_json || {}),
+        (cell.sort_order as number) ?? i
       )
     );
-    await db.batch(valBatch);
+
+    await db.batch(batch);
   }
 
   return NextResponse.json({ success: true });
 }
 
-// DELETE /api/scorecards/[id]
+// DELETE /api/templates/[id]
 export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -107,7 +135,7 @@ export async function DELETE(
   const db = getDB();
   await execute(
     db,
-    "DELETE FROM scorecards WHERE id = ?1 AND created_by = ?2",
+    "DELETE FROM templates WHERE id = ?1 AND created_by = ?2",
     [params.id, user.id]
   );
 

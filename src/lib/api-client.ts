@@ -80,7 +80,7 @@ export async function listTemplates(params?: { public?: boolean; mine?: boolean;
   if (params?.mine) search.set("mine", "true");
   if (params?.game) search.set("game", params.game);
   const qs = search.toString();
-  return api<{ templates: Template[] }>(`/api/templates${qs ? `?${qs}` : ""}`);
+  return api<{ templates: Template[] }>(`/api/scorecards${qs ? `?${qs}` : ""}`);
 }
 
 // Games catalog
@@ -89,7 +89,7 @@ export async function listGames() {
 }
 
 export async function getTemplate(id: string) {
-  return api<{ template: Template }>(`/api/templates/${id}`);
+  return api<{ template: Template }>(`/api/scorecards/${id}`);
 }
 
 export async function createTemplate(data: {
@@ -99,7 +99,7 @@ export async function createTemplate(data: {
   is_public?: boolean;
   cells?: TemplateCell[];
 }) {
-  return api<{ template: { id: string } }>("/api/templates", {
+  return api<{ template: { id: string } }>("/api/scorecards", {
     method: "POST",
     body: JSON.stringify(data),
   });
@@ -112,14 +112,14 @@ export async function updateTemplate(id: string, data: {
   is_public?: boolean;
   cells?: TemplateCell[];
 }) {
-  return api<{ success: boolean }>(`/api/templates/${id}`, {
+  return api<{ success: boolean }>(`/api/scorecards/${id}`, {
     method: "PUT",
     body: JSON.stringify(data),
   });
 }
 
 export async function deleteTemplate(id: string) {
-  return api<{ success: boolean }>(`/api/templates/${id}`, { method: "DELETE" });
+  return api<{ success: boolean }>(`/api/scorecards/${id}`, { method: "DELETE" });
 }
 
 // Scorecards
@@ -164,7 +164,7 @@ export interface ScorecardParticipant {
 }
 
 export async function listScorecards() {
-  return api<{ scorecards: Scorecard[] }>("/api/scorecards");
+  return api<{ scorecards: Scorecard[] }>("/api/history");
 }
 
 export async function getScorecard(id: string) {
@@ -172,7 +172,7 @@ export async function getScorecard(id: string) {
     scorecard: Scorecard;
     players: ScorecardPlayer[];
     values: CellValue[];
-  }>(`/api/templates/${id}`);
+  }>(`/api/history/${id}`);
 }
 
 export async function createScorecard(data: {
@@ -181,7 +181,7 @@ export async function createScorecard(data: {
   game_date?: string;
   notes?: string;
 }) {
-  return api<{ scorecard: { id: string } }>("/api/scorecards", {
+  return api<{ scorecard: { id: string } }>("/api/history", {
     method: "POST",
     body: JSON.stringify(data),
   });
@@ -194,24 +194,24 @@ export async function updateScorecard(id: string, data: {
   players?: ScorecardPlayer[];
   values?: CellValue[];
 }) {
-  return api<{ success: boolean }>(`/api/templates/${id}`, {
+  return api<{ success: boolean }>(`/api/history/${id}`, {
     method: "PUT",
     body: JSON.stringify(data),
   });
 }
 
 export async function deleteScorecard(id: string) {
-  return api<{ success: boolean }>(`/api/templates/${id}`, { method: "DELETE" });
+  return api<{ success: boolean }>(`/api/history/${id}`, { method: "DELETE" });
 }
 
 // Multiplayer: sharing & live sync
 export async function shareScorecard(id: string) {
-  return api<{ share_code: string }>(`/api/templates/${id}/share`, { method: "POST" });
+  return api<{ share_code: string }>(`/api/history/${id}/share`, { method: "POST" });
 }
 
 export async function joinScorecard(shareCode: string) {
   return api<{ scorecard_id: string; player_slot_id: string | null; player_name: string | null }>(
-    "/api/scorecards/join",
+    "/api/history/join",
     { method: "POST", body: JSON.stringify({ share_code: shareCode }) }
   );
 }
@@ -224,21 +224,21 @@ export async function getLiveScorecard(id: string, since?: string) {
     values: CellValue[];
     participants: ScorecardParticipant[];
     last_updated: string;
-  }>(`/api/templates/${id}/live${qs}`);
+  }>(`/api/history/${id}/live${qs}`);
 }
 
 export async function updateMyCells(
   scorecardId: string,
   cells: { template_cell_id: string; player_id: string; value: string; entry_key?: string; is_hidden?: number }[]
 ) {
-  return api<{ success: boolean }>(`/api/scorecards/${scorecardId}/cells`, {
+  return api<{ success: boolean }>(`/api/history/${scorecardId}/cells`, {
     method: "PUT",
     body: JSON.stringify({ cells }),
   });
 }
 
 export async function assignSlot(scorecardId: string, playerSlotId: string) {
-  return api<{ success: boolean }>(`/api/scorecards/${scorecardId}/assign`, {
+  return api<{ success: boolean }>(`/api/history/${scorecardId}/assign`, {
     method: "POST",
     body: JSON.stringify({ player_slot_id: playerSlotId }),
   });
