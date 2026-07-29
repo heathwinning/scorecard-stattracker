@@ -8,21 +8,17 @@ function QuickPickTemplates() {
   const [templates, setTemplates] = useState<Template[]>([]);
 
   useEffect(() => {
-    listTemplates().then(d => setTemplates(d.templates?.slice(0, 6) || [])).catch(() => {});
+    listTemplates().then(d => setTemplates(d.templates?.slice(0, 8) || [])).catch(() => {});
   }, []);
 
   if (templates.length === 0) return null;
 
   return (
-    <div className="space-y-1.5">
+    <div className="flex flex-wrap gap-1.5">
       {templates.map(tpl => (
         <Link key={tpl.id} href={`/scorecards/${tpl.id}`}
-          className="card-hover p-3 group flex items-center gap-2.5">
-          <span className="text-lg shrink-0">{tpl.game_icon || "🎲"}</span>
-          <div className="min-w-0">
-            <div className="text-[13px] font-semibold text-slate-800 truncate">{tpl.name}</div>
-            <div className="text-[11px] text-slate-400">{tpl.cells?.length || 0} categories</div>
-          </div>
+          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-100 border border-slate-200 text-xs font-medium text-slate-600 hover:bg-indigo-50 hover:border-indigo-200 hover:text-indigo-700 transition-colors">
+          {tpl.game_icon || "🎲"} {tpl.name}
         </Link>
       ))}
     </div>
