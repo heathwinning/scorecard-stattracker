@@ -64,7 +64,7 @@ export default function DashboardPage() {
             <p className="text-indigo-200 text-sm mt-2">Ready to track some scores?</p>
           </div>
           <Link href="/templates/new" className="btn-secondary !bg-white/20 !text-white !border-white/30 hover:!bg-white/30 !shadow-none text-sm">
-            <HiOutlinePlus className="w-4 h-4" />New Template
+            <HiOutlinePlus className="w-4 h-4" />New Scorecard
           </Link>
         </div>
       </div>
@@ -77,7 +77,7 @@ export default function DashboardPage() {
           </div>
           <div>
             <div className="text-2xl font-bold text-slate-900">{templates.length}</div>
-            <div className="text-sm text-slate-500">My Templates</div>
+            <div className="text-sm text-slate-500">My Scorecards</div>
           </div>
         </Link>
         <Link href="/scorecards" className="card-hover p-5 flex items-center gap-4 group">
@@ -198,7 +198,7 @@ function GuestDashboard({ templates, scorecards }: { templates: Template[]; scor
             <p className="text-indigo-200 text-sm mt-2">Sign in to save your data permanently.</p>
           </div>
           <Link href="/templates/new" className="btn-secondary !bg-white/20 !text-white !border-white/30 hover:!bg-white/30 !shadow-none text-sm">
-            <HiOutlinePlus className="w-4 h-4" />New Template
+            <HiOutlinePlus className="w-4 h-4" />New Scorecard
           </Link>
         </div>
       </div>

@@ -6,7 +6,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: {
-    default: "Scorecard StatTracker — Free Online Scorecard Templates for Any Game",
+    default: "Scorecard StatTracker — Free Online Scorecards for Any Game",
     template: "%s | Scorecard StatTracker",
   },
   description:

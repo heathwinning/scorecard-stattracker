@@ -93,7 +93,7 @@ export default function TemplateNewPage({ params }: Props) {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>
           <Link href="/templates" className="inline-flex items-center gap-1 text-sm text-slate-400 hover:text-slate-600 mb-2 transition-colors">
-            ← Templates
+            ← Scorecards
           </Link>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900">{isEdit ? "Edit Scorecard" : "New Scorecard"}</h1>
         </div>

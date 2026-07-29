@@ -65,7 +65,7 @@ export default function TemplateDetailPage() {
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 page-enter">
       <Link href="/templates" className="inline-flex items-center gap-1 text-sm text-slate-400 hover:text-slate-600 mb-4 transition-colors">
-        <HiOutlineArrowLeft className="w-4 h-4" /> Templates
+        <HiOutlineArrowLeft className="w-4 h-4" /> Scorecards
       </Link>
 
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">

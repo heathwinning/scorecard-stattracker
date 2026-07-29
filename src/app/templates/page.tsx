@@ -59,7 +59,7 @@ function TemplatesPageInner() {
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
               filter === f ? "bg-white shadow text-slate-900" : "text-slate-500 hover:text-slate-700"
             }`}>
-            {f === "all" ? "Public Gallery" : "My Templates"}
+            {f === "all" ? "Public Gallery" : "My Scorecards"}
           </button>
         ))}
       </div>
