@@ -330,7 +330,7 @@ INSERT OR IGNORE INTO templates (id, name, description, game_id, is_public, crea
 
 INSERT OR IGNORE INTO template_cells (id, template_id, row_pos, col_pos, row_span, col_span, cell_type, cell_key, label, formula_expr, per_player, config_json, sort_order) VALUES
 -- Header
-('ws-h', 'tpl-wingspan', 0, 0, 1, 2, 'heading', 'h_main', '🐦 Wingspan', NULL, 0, '{}', 0),
+('ws-h', 'tpl-wingspan', 0, 0, 1, 2, 'heading', 'h_main', '🐦 Wingspan', NULL, 0, '{}', -1),
 -- Categories (no redundant section headings)
 ('ws-bi', 'tpl-wingspan', 4, 0, 1, 1, 'input:number', 'bird_points', 'Bird Points', NULL, 1, '{"default":0}', 1),
 ('ws-bi2', 'tpl-wingspan', 6, 0, 1, 1, 'input:number', 'bonus', 'Bonus Cards', NULL, 1, '{"default":0,"allow_multiple":true}', 2),
@@ -340,16 +340,6 @@ INSERT OR IGNORE INTO template_cells (id, template_id, row_pos, col_pos, row_spa
 ('ws-r4i', 'tpl-wingspan', 11, 0, 1, 1, 'input:number', 'round_4', 'Round 4 Goal', NULL, 1, '{"default":0}', 6),
 ('ws-et', 'tpl-wingspan', 13, 0, 1, 1, 'input:number', 'eggs', '🥚 Eggs', NULL, 1, '{"default":0}', 7),
 ('ws-ft2', 'tpl-wingspan', 14, 0, 1, 1, 'input:number', 'cached_food', '🍒 Cached Food', NULL, 1, '{"default":0}', 8),
-('ws-tt', 'tpl-wingspan', 15, 0, 1, 1, 'input:number', 'tucked_cards', '🃏 Tucked Cards', NULL, 1, '{"default":0}', 9),
--- Total (always last)
-('ws-ft', 'tpl-wingspan', 2, 1, 1, 1, 'formula', 'grand_total', 'Total', 'bird_points + SUM(bonus_*) + round_1 + round_2 + round_3 + round_4 + eggs + cached_food + tucked_cards', 1, '{}', 10);
-
-
--- ============================================================
--- Seed template updates (idempotent)
--- ============================================================
--- Migration: Update Wingspan template (remove old bonus_1-4, add allow_multiple bonus)
--- Also: remove player_name cells, fix labels, move totals
 -- Migration: Update Wingspan template (remove old bonus_1-4, add allow_multiple bonus)
 -- Also: remove player_name cells, fix labels, move totals
 
@@ -398,8 +388,8 @@ UPDATE template_cells SET cell_type = 'input:number', config_json = '{"default":
 UPDATE template_cells SET cell_type = 'input:number', config_json = '{"default":0}' WHERE id = 'ws-ft2';
 UPDATE template_cells SET cell_type = 'input:number', config_json = '{"default":0}' WHERE id = 'ws-tt';
 
--- Hide redundant Wingspan section headings and label cells
-UPDATE template_cells SET sort_order = -1 WHERE id IN ('ws-bh', 'ws-boh', 'ws-rh', 'ws-oh', 'ws-ln', 'ws-lt');
+-- Hide redundant section headings and title rows
+UPDATE template_cells SET sort_order = -1 WHERE id IN ('ws-bh', 'ws-boh', 'ws-rh', 'ws-oh', 'ws-ln', 'ws-lt', 'ws-h');
 
 -- Update Wingspan cells to new sort order (flat list, no section headings)
 UPDATE template_cells SET sort_order = 1 WHERE id = 'ws-bi';

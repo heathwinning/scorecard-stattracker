@@ -46,8 +46,8 @@ UPDATE template_cells SET cell_type = 'input:number', config_json = '{"default":
 UPDATE template_cells SET cell_type = 'input:number', config_json = '{"default":0}' WHERE id = 'ws-ft2';
 UPDATE template_cells SET cell_type = 'input:number', config_json = '{"default":0}' WHERE id = 'ws-tt';
 
--- Hide redundant Wingspan section headings and label cells
-UPDATE template_cells SET sort_order = -1 WHERE id IN ('ws-bh', 'ws-boh', 'ws-rh', 'ws-oh', 'ws-ln', 'ws-lt');
+-- Hide redundant section headings and title rows
+UPDATE template_cells SET sort_order = -1 WHERE id IN ('ws-bh', 'ws-boh', 'ws-rh', 'ws-oh', 'ws-ln', 'ws-lt', 'ws-h');
 
 -- Update Wingspan cells to new sort order (flat list, no section headings)
 UPDATE template_cells SET sort_order = 1 WHERE id = 'ws-bi';
