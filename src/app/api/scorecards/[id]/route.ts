@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getUserFromRequest } from "@/lib/auth";
+import { getUserFromCookies } from "@/lib/auth";
 import { getDB, queryFirst, queryAll, execute, uuid } from "@/lib/db";
 
 export const runtime = "edge";
@@ -62,7 +62,8 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const user = await getUserFromRequest(request);
+  const cookieHeader = request.headers.get("cookie");
+  const user = await getUserFromCookies(cookieHeader);
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -125,7 +126,8 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const user = await getUserFromRequest(request);
+  const cookieHeader = request.headers.get("cookie");
+  const user = await getUserFromCookies(cookieHeader);
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

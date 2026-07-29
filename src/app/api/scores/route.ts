@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getUserFromRequest } from "@/lib/auth";
+import { getUserFromCookies } from "@/lib/auth";
 import { getDB, queryAll, uuid } from "@/lib/db";
 
 export const runtime = "edge";
 
 // GET /api/scorecards - list user's scorecards
 export async function GET(request: NextRequest) {
-  const user = await getUserFromRequest(request);
+  const cookieHeader = request.headers.get("cookie");
+  const user = await getUserFromCookies(cookieHeader);
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -26,12 +27,10 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({ scorecards });
 }
 
-// POST /api/scorecards - create a new scorecard
+// POST /api/scores - create a new scorecard (open to all — guests and signed-in)
 export async function POST(request: NextRequest) {
-  const user = await getUserFromRequest(request);
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const cookieHeader = request.headers.get("cookie");
+  const user = await getUserFromCookies(cookieHeader);
 
   const db = getDB();
   const body = await request.json();
@@ -40,12 +39,6 @@ export async function POST(request: NextRequest) {
   if (!template_id) {
     return NextResponse.json({ error: "template_id is required" }, { status: 400 });
   }
-
-  // Ensure user exists (for guests)
-  await db
-    .prepare("INSERT OR IGNORE INTO users (id, email, name) VALUES (?1, ?2, ?3)")
-    .bind(user.id, user.email, user.name)
-    .run();
 
   const scorecardId = uuid();
 
@@ -57,7 +50,7 @@ export async function POST(request: NextRequest) {
     .bind(
       scorecardId,
       template_id,
-      user.id,
+      user?.id || null,
       (title || "").trim(),
       game_date || new Date().toISOString(),
       (notes || "").trim()

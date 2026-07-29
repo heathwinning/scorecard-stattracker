@@ -82,25 +82,6 @@ export async function getUserFromCookies(
   return verifySessionToken(token);
 }
 
-/** Get user from request — checks session cookie first, then X-Guest-Id header for guests. */
-export async function getUserFromRequest(request: Request): Promise<SessionUser | null> {
-  const cookieHeader = request.headers.get("cookie");
-  const user = await getUserFromCookies(cookieHeader);
-  if (user) return user;
-
-  const guestId = request.headers.get("X-Guest-Id");
-  if (guestId) {
-    return {
-      id: guestId,
-      email: `${guestId}@guest.local`,
-      name: "Guest",
-      avatar_url: null,
-    };
-  }
-
-  return null;
-}
-
 function parseCookies(header: string): Record<string, string> {
   const result: Record<string, string> = {};
   header.split(";").forEach((cookie) => {

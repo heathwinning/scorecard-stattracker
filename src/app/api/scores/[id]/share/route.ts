@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getUserFromRequest } from "@/lib/auth";
+import { getUserFromCookies } from "@/lib/auth";
 import { getDB, queryFirst, execute } from "@/lib/db";
 
 export const runtime = "edge";
@@ -18,7 +18,8 @@ export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const user = await getUserFromRequest(request);
+  const cookieHeader = request.headers.get("cookie");
+  const user = await getUserFromCookies(cookieHeader);
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

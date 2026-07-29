@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getUserFromRequest } from "@/lib/auth";
+import { getUserFromCookies } from "@/lib/auth";
 
 export const runtime = "edge";
 
 export async function GET(request: NextRequest) {
-  const user = await getUserFromRequest(request);
+  const cookieHeader = request.headers.get("cookie");
+  const user = await getUserFromCookies(cookieHeader);
 
   if (!user) {
     return NextResponse.json({ user: null }, { status: 401 });

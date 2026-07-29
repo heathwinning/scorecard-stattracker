@@ -1,22 +1,11 @@
 // Client-side API helpers — thin wrappers around fetch
 
-import { getGuestId } from "@/lib/guest-id";
-
 const BASE = "";
 
 async function api<T>(path: string, options?: RequestInit): Promise<T> {
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-    ...(options?.headers as Record<string, string> || {}),
-  };
-  // Include guest ID for unauthenticated requests
-  if (typeof window !== "undefined") {
-    const gid = getGuestId();
-    if (gid) headers["X-Guest-Id"] = gid;
-  }
   const res = await fetch(`${BASE}${path}`, {
     credentials: "include",
-    headers,
+    headers: { "Content-Type": "application/json", ...options?.headers },
     ...options,
   });
   if (!res.ok) {
