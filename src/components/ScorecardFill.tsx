@@ -212,23 +212,26 @@ export default function ScorecardFill({
           if (allowMultiple) {
             const entries = getEntryValues(c.id!, player.id!);
             return (
-              <div className="space-y-0.5 py-0.5">
-                {entries.map(e => {
-                  const ek = e.entry_key || '0';
-                  return (
-                    <div key={ek} className="flex items-center gap-0.5 justify-center">
-                      <input type="text" value={e.value || ''}
-                        onChange={ev => setValue(c.id!, player.id!, ev.target.value, ek)}
-                        className="w-12 text-[12px] font-mono text-center px-1 py-0.5 border border-slate-200 rounded focus:outline-none focus:border-indigo-400 bg-white"
-                        placeholder="0" disabled={!edit} />
-                      {!readOnly && entries.length > 1 && (
-                        <button onClick={() => removeEntry(c.id!, player.id!, ek)}
-                          className="text-[10px] text-slate-400 hover:text-rose-500">×</button>
-                      )}
-                    </div>
-                  );
-                })}
-                {!readOnly && <button onClick={() => addEntry(c.id!, player.id!)} className="text-[10px] text-indigo-500 hover:text-indigo-700">+ entry</button>}
+              <div className="py-0.5">
+                <div className="flex flex-wrap items-center gap-1 justify-center">
+                  {entries.map(e => {
+                    const ek = e.entry_key || '0';
+                    return (
+                      <span key={ek} className="inline-flex items-center gap-0.5 bg-slate-100 rounded-full px-2 py-0.5 text-[11px] tabular-nums text-slate-600">
+                        <input type="text" value={e.value || ''}
+                          onChange={ev => setValue(c.id!, player.id!, ev.target.value, ek)}
+                          onBlur={() => onPersist?.()}
+                          className="w-8 text-center bg-transparent outline-none"
+                          placeholder="0" disabled={!edit} />
+                        {!readOnly && entries.length > 1 && (
+                          <button onClick={() => removeEntry(c.id!, player.id!, ek)}
+                            className="text-[10px] text-slate-400 hover:text-slate-600 ml-0.5">×</button>
+                        )}
+                      </span>
+                    );
+                  })}
+                </div>
+                {!readOnly && <button onClick={() => addEntry(c.id!, player.id!)} className="text-[10px] text-indigo-500 hover:text-indigo-700 mt-0.5">+ entry</button>}
               </div>
             );
           }
@@ -312,7 +315,7 @@ export default function ScorecardFill({
                     {row.getVisibleCells().slice(1).map(vc => (
                       <td key={vc.id} className="px-2 py-1 text-center">
                         {hasFormula && c.per_player ? (
-                          <span className="text-[13px] font-mono font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded">
+                          <span className="text-[13px] font-bold text-slate-700 tabular-nums">
                             {computedFormulas?.[`${c.id}:${displayPlayers.find(p => p.id === vc.column.id)?.id}`] ?? "—"}
                           </span>
                         ) : null}
@@ -349,15 +352,15 @@ function CellInput({ cell, value, formulaResult, onChange, onTally, onPersist, r
   switch (cell.cell_type) {
     case "input:text":
       return readOnly ? <span className="text-[13px] text-slate-900">{value || "—"}</span>
-        : <input type="text" value={value} onChange={e => onChange(e.target.value)} onBlur={() => onPersist?.()} className="w-full text-[13px] px-1.5 py-1 border border-slate-200 rounded focus:outline-none focus:border-indigo-400 bg-white" placeholder="—" />;
+        : <input type="text" value={value} onChange={e => onChange(e.target.value)} onBlur={() => onPersist?.()} className="w-full text-[13px] px-1.5 py-1 bg-transparent focus:outline-none focus:bg-indigo-50/30 rounded" placeholder="—" />;
     case "input:number":
-      return readOnly ? <span className="text-[13px] font-mono font-semibold text-slate-900">{value || "—"}</span>
-        : <input type="number" value={value} onChange={e => onChange(e.target.value)} onBlur={() => onPersist?.()} className="w-16 text-[13px] font-mono text-center px-1 py-1 border border-slate-200 rounded focus:outline-none focus:border-indigo-400 bg-white" placeholder="0" />;
+      return readOnly ? <span className="text-[13px] tabular-nums font-medium text-slate-900">{value || "—"}</span>
+        : <input type="number" value={value} onChange={e => onChange(e.target.value)} onBlur={() => onPersist?.()} className="w-16 text-[13px] tabular-nums text-center px-1 py-1 bg-transparent focus:outline-none focus:bg-indigo-50/30 rounded" placeholder="0" />;
     case "tally":
-      return readOnly ? <span className="text-[13px] font-mono font-semibold text-slate-900">{value || "0"}</span>
-        : <div className="inline-flex items-center gap-0.5"><button onClick={() => { onTally?.(-1); onPersist?.(); }} className="w-6 h-6 rounded bg-rose-50 text-rose-500 hover:bg-rose-100 text-xs font-bold">−</button><span className="text-[13px] font-mono font-semibold w-8 text-center tabular-nums">{value || "0"}</span><button onClick={() => { onTally?.(1); onPersist?.(); }} className="w-6 h-6 rounded bg-emerald-50 text-emerald-500 hover:bg-emerald-100 text-xs font-bold">+</button></div>;
+      return readOnly ? <span className="text-[13px] tabular-nums font-medium text-slate-900">{value || "0"}</span>
+        : <div className="inline-flex items-center gap-0.5"><button onClick={() => { onTally?.(-1); onPersist?.(); }} className="w-6 h-6 rounded text-slate-400 hover:text-slate-600 hover:bg-slate-100 text-xs font-bold">−</button><span className="text-[13px] tabular-nums font-medium w-8 text-center">{value || "0"}</span><button onClick={() => { onTally?.(1); onPersist?.(); }} className="w-6 h-6 rounded text-slate-400 hover:text-slate-600 hover:bg-slate-100 text-xs font-bold">+</button></div>;
     case "formula":
-      return <span className="text-[13px] font-mono font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded">{formulaResult ?? "—"}</span>;
+      return <span className="text-[13px] font-bold text-slate-700 tabular-nums">{formulaResult ?? "—"}</span>;
     default: return null;
   }
 }
