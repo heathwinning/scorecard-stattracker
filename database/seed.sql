@@ -61,7 +61,7 @@ INSERT OR IGNORE INTO templates (id, name, description, game_id, is_public, crea
 
 INSERT OR IGNORE INTO template_cells (id, template_id, row_pos, col_pos, row_span, col_span, cell_type, cell_key, label, formula_expr, per_player, config_json, sort_order) VALUES
 -- Header
-('y-h', 'tpl-yahtzee', 0, 0, 1, 2, 'heading', 'h_main', 'Yahtzee', NULL, 0, '{}', 0),
+('y-h', 'tpl-yahtzee', 0, 0, 1, 2, 'heading', 'h_main', 'Yahtzee', NULL, 0, '{}', -1),
 -- Upper Section
 ('y-us-h', 'tpl-yahtzee', 1, 0, 1, 2, 'heading', 'h_upper', 'Upper Section', NULL, 0, '{}', 1),
 ('y-us-l1', 'tpl-yahtzee', 2, 0, 1, 1, 'label', 'lbl_ones', 'Ones', NULL, 0, '{}', 2),
@@ -113,7 +113,7 @@ INSERT OR IGNORE INTO templates (id, name, description, game_id, is_public, crea
   ('tpl-uno', 'Uno', 'Track rounds of Uno. Record remaining cards per player per round. Lowest running total wins.', 'game-uno', 1, 'system');
 
 INSERT OR IGNORE INTO template_cells (id, template_id, row_pos, col_pos, row_span, col_span, cell_type, cell_key, label, formula_expr, per_player, config_json, sort_order) VALUES
-('uno-h', 'tpl-uno', 0, 0, 1, 2, 'heading', 'h_main', 'Uno Scorecard', NULL, 0, '{}', 0),
+('uno-h', 'tpl-uno', 0, 0, 1, 2, 'heading', 'h_main', 'Uno Scorecard', NULL, 0, '{}', -1),
 ('uno-ln', 'tpl-uno', 1, 0, 1, 1, 'label', 'lbl_name', 'Player', NULL, 0, '{}', 1),
 ('uno-lt', 'tpl-uno', 1, 1, 1, 1, 'label', 'lbl_total', 'Total', NULL, 0, '{}', 2),
 ('uno-ft', 'tpl-uno', 2, 1, 1, 1, 'formula', 'player_total', 'Total', 'SUM(round_*)', 1, '{}', 14),
@@ -134,7 +134,7 @@ INSERT OR IGNORE INTO templates (id, name, description, game_id, is_public, crea
   ('tpl-catan', 'Catan', 'Track Victory Points. Count settlements, cities, longest road, largest army, and VP development cards. Auto-calculates totals with conditional bonuses.', 'game-catan', 1, 'system');
 
 INSERT OR IGNORE INTO template_cells (id, template_id, row_pos, col_pos, row_span, col_span, cell_type, cell_key, label, formula_expr, per_player, config_json, sort_order) VALUES
-('cat-h', 'tpl-catan', 0, 0, 1, 3, 'heading', 'h_main', 'Catan Victory Points', NULL, 0, '{}', 0),
+('cat-h', 'tpl-catan', 0, 0, 1, 3, 'heading', 'h_main', 'Catan Victory Points', NULL, 0, '{}', -1),
 ('cat-ln', 'tpl-catan', 1, 0, 1, 1, 'label', 'lbl_name', 'Player', NULL, 0, '{}', 1),
 ('cat-lvp', 'tpl-catan', 1, 2, 1, 1, 'label', 'lbl_vp', 'Total VP', NULL, 0, '{}', 2),
 -- Route length for longest road
@@ -164,7 +164,7 @@ INSERT OR IGNORE INTO templates (id, name, description, game_id, is_public, crea
   ('tpl-spades', 'Spades', 'Track bids and tricks in Spades. Calculates scores: 10 pts per trick bid, 1 pt per overtrick (bag). -10 pts per undertrick per bid missed.', 'game-spades', 1, 'system');
 
 INSERT OR IGNORE INTO template_cells (id, template_id, row_pos, col_pos, row_span, col_span, cell_type, cell_key, label, formula_expr, per_player, config_json, sort_order) VALUES
-('sp-h', 'tpl-spades', 0, 0, 1, 5, 'heading', 'h_main', 'Spades Scorecard', NULL, 0, '{}', 0),
+('sp-h', 'tpl-spades', 0, 0, 1, 5, 'heading', 'h_main', 'Spades Scorecard', NULL, 0, '{}', -1),
 ('sp-lp', 'tpl-spades', 1, 0, 1, 1, 'label', 'lbl_player', 'Player', NULL, 0, '{}', 1),
 ('sp-lb', 'tpl-spades', 1, 1, 1, 1, 'label', 'lbl_bid', 'Bid', NULL, 0, '{}', 2),
 ('sp-lt', 'tpl-spades', 1, 2, 1, 1, 'label', 'lbl_tricks', 'Tricks', NULL, 0, '{}', 3),
@@ -182,7 +182,7 @@ INSERT OR IGNORE INTO templates (id, name, description, game_id, is_public, crea
   ('tpl-scrabble', 'Scrabble', 'Track Scrabble word scores. Enter each word played and its score. Auto-calculates running total per player.', 'game-scrabble', 1, 'system');
 
 INSERT OR IGNORE INTO template_cells (id, template_id, row_pos, col_pos, row_span, col_span, cell_type, cell_key, label, formula_expr, per_player, config_json, sort_order) VALUES
-('sc-h', 'tpl-scrabble', 0, 0, 1, 3, 'heading', 'h_main', 'Scrabble Scores', NULL, 0, '{}', 0),
+('sc-h', 'tpl-scrabble', 0, 0, 1, 3, 'heading', 'h_main', 'Scrabble Scores', NULL, 0, '{}', -1),
 ('sc-ln', 'tpl-scrabble', 1, 0, 1, 1, 'label', 'lbl_name', 'Player', NULL, 0, '{}', 1),
 ('sc-lt', 'tpl-scrabble', 1, 2, 1, 1, 'label', 'lbl_total', 'Total', NULL, 0, '{}', 2),
 ('sc-ft', 'tpl-scrabble', 2, 2, 1, 1, 'formula', 'player_total', 'Total', 'SUM(word_*)', 1, '{}', 21),
@@ -210,7 +210,7 @@ INSERT OR IGNORE INTO templates (id, name, description, game_id, is_public, crea
   ('tpl-cornhole', 'Cornhole / Bags', 'Track cornhole rounds. Enter bags in the hole (3 pts) and on the board (1 pt) per team per round. Auto-calculates totals.', 'game-cornhole', 1, 'system');
 
 INSERT OR IGNORE INTO template_cells (id, template_id, row_pos, col_pos, row_span, col_span, cell_type, cell_key, label, formula_expr, per_player, config_json, sort_order) VALUES
-('ch-h', 'tpl-cornhole', 0, 0, 1, 2, 'heading', 'h_main', 'Cornhole Scorecard', NULL, 0, '{}', 0),
+('ch-h', 'tpl-cornhole', 0, 0, 1, 2, 'heading', 'h_main', 'Cornhole Scorecard', NULL, 0, '{}', -1),
 ('ch-ln', 'tpl-cornhole', 1, 0, 1, 1, 'label', 'lbl_team', 'Team', NULL, 0, '{}', 1),
 ('ch-ls', 'tpl-cornhole', 1, 1, 1, 1, 'label', 'lbl_score', 'Total Score', NULL, 0, '{}', 2),
 ('ch-fs', 'tpl-cornhole', 2, 1, 1, 1, 'formula', 'total_score', 'Score', 'SUM(hole_*) * 3 + SUM(board_*)', 1, '{}', 18),
@@ -235,7 +235,7 @@ INSERT OR IGNORE INTO templates (id, name, description, game_id, is_public, crea
   ('tpl-poker', 'Poker Night', 'Track buy-ins, cash-outs, and net profit/loss. Shows house balance for cash games with friends.', 'game-poker', 1, 'system');
 
 INSERT OR IGNORE INTO template_cells (id, template_id, row_pos, col_pos, row_span, col_span, cell_type, cell_key, label, formula_expr, per_player, config_json, sort_order) VALUES
-('pk-h', 'tpl-poker', 0, 0, 1, 4, 'heading', 'h_main', 'Poker Night', NULL, 0, '{}', 0),
+('pk-h', 'tpl-poker', 0, 0, 1, 4, 'heading', 'h_main', 'Poker Night', NULL, 0, '{}', -1),
 ('pk-ln', 'tpl-poker', 1, 0, 1, 1, 'label', 'lbl_name', 'Player', NULL, 0, '{}', 1),
 ('pk-lb', 'tpl-poker', 1, 1, 1, 1, 'label', 'lbl_buyin', 'Buy-in', NULL, 0, '{}', 2),
 ('pk-lc', 'tpl-poker', 1, 2, 1, 1, 'label', 'lbl_cashout', 'Cash-out', NULL, 0, '{}', 3),
@@ -258,7 +258,7 @@ INSERT OR IGNORE INTO templates (id, name, description, game_id, is_public, crea
   ('tpl-phase10', 'Phase 10', 'Track phases completed and round scores. Lowest total score wins. Players complete 10 phases in order.', 'game-phase10', 1, 'system');
 
 INSERT OR IGNORE INTO template_cells (id, template_id, row_pos, col_pos, row_span, col_span, cell_type, cell_key, label, formula_expr, per_player, config_json, sort_order) VALUES
-('p10-h', 'tpl-phase10', 0, 0, 1, 3, 'heading', 'h_main', 'Phase 10', NULL, 0, '{}', 0),
+('p10-h', 'tpl-phase10', 0, 0, 1, 3, 'heading', 'h_main', 'Phase 10', NULL, 0, '{}', -1),
 ('p10-ln', 'tpl-phase10', 1, 0, 1, 1, 'label', 'lbl_name', 'Player', NULL, 0, '{}', 1),
 ('p10-lp', 'tpl-phase10', 1, 1, 1, 1, 'label', 'lbl_phase', 'Current Phase', NULL, 0, '{}', 2),
 ('p10-lt', 'tpl-phase10', 1, 2, 1, 1, 'label', 'lbl_total', 'Total Score', NULL, 0, '{}', 3),
@@ -283,7 +283,7 @@ INSERT OR IGNORE INTO templates (id, name, description, game_id, is_public, crea
   ('tpl-golf', 'Golf (Card Game)', 'Track 9-hole Golf card game. Lower score wins. Each hole: reveal cards, lowest total wins.', 'game-golf-card', 1, 'system');
 
 INSERT OR IGNORE INTO template_cells (id, template_id, row_pos, col_pos, row_span, col_span, cell_type, cell_key, label, formula_expr, per_player, config_json, sort_order) VALUES
-('gf-h', 'tpl-golf', 0, 0, 1, 6, 'heading', 'h_main', 'Golf Card Game', NULL, 0, '{}', 0),
+('gf-h', 'tpl-golf', 0, 0, 1, 6, 'heading', 'h_main', 'Golf Card Game', NULL, 0, '{}', -1),
 ('gf-ln', 'tpl-golf', 1, 0, 1, 1, 'label', 'lbl_name', 'Player', NULL, 0, '{}', 1),
 ('gf-lt', 'tpl-golf', 1, 1, 1, 1, 'label', 'lbl_total', 'Total', NULL, 0, '{}', 2),
 ('gf-ft', 'tpl-golf', 2, 1, 1, 1, 'formula', 'total_score', 'Total', 'SUM(hole_*)', 1, '{}', 15),
@@ -305,7 +305,7 @@ INSERT OR IGNORE INTO templates (id, name, description, game_id, is_public, crea
   ('tpl-ticket', 'Ticket to Ride', 'Track Ticket to Ride scores. Route points, destination tickets (completed & unfinished), longest path bonus, and trains remaining.', 'game-ticket-to-ride', 1, 'system');
 
 INSERT OR IGNORE INTO template_cells (id, template_id, row_pos, col_pos, row_span, col_span, cell_type, cell_key, label, formula_expr, per_player, config_json, sort_order) VALUES
-('ttr-h', 'tpl-ticket', 0, 0, 1, 3, 'heading', 'h_main', 'Ticket to Ride', NULL, 0, '{}', 0),
+('ttr-h', 'tpl-ticket', 0, 0, 1, 3, 'heading', 'h_main', 'Ticket to Ride', NULL, 0, '{}', -1),
 ('ttr-ln', 'tpl-ticket', 1, 0, 1, 1, 'label', 'lbl_name', 'Player', NULL, 0, '{}', 1),
 ('ttr-lt', 'tpl-ticket', 1, 2, 1, 1, 'label', 'lbl_total', 'Total Score', NULL, 0, '{}', 2),
 ('ttr-lr', 'tpl-ticket', 2, 1, 1, 1, 'label', 'lbl_routes', 'Route Points', NULL, 1, '{}', 4),
@@ -388,8 +388,8 @@ UPDATE template_cells SET cell_type = 'input:number', config_json = '{"default":
 UPDATE template_cells SET cell_type = 'input:number', config_json = '{"default":0}' WHERE id = 'ws-ft2';
 UPDATE template_cells SET cell_type = 'input:number', config_json = '{"default":0}' WHERE id = 'ws-tt';
 
--- Hide redundant section headings and title rows
-UPDATE template_cells SET sort_order = -1 WHERE id IN ('ws-bh', 'ws-boh', 'ws-rh', 'ws-oh', 'ws-ln', 'ws-lt', 'ws-h');
+-- Hide all template title heading rows (redundant with page title)
+UPDATE template_cells SET sort_order = -1 WHERE id IN ('y-h', 'uno-h', 'cat-h', 'sp-h', 'sc-h', 'ch-h', 'pk-h', 'p10-h', 'gf-h', 'ttr-h', 'ws-h');
 
 -- Update Wingspan cells to new sort order (flat list, no section headings)
 UPDATE template_cells SET sort_order = 1 WHERE id = 'ws-bi';
