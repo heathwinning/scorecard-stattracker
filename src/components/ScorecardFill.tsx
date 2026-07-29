@@ -29,6 +29,13 @@ export default function ScorecardFill({
 }: ScorecardFillProps) {
   const isMultiplayer = !!myPlayerSlotId;
   const canEditAny = isOwner || !isMultiplayer;
+  const [myViewOnly, setMyViewOnly] = useState(false);
+
+  // When in "My Scores" view, show only the current player
+  const visiblePlayers = useMemo(() => {
+    if (!myViewOnly || !myPlayerSlotId) return players;
+    return players.filter(p => p.id === myPlayerSlotId);
+  }, [myViewOnly, myPlayerSlotId, players]);
 
   // Sort cells by sort_order
   const sortedCells = useMemo(
@@ -216,13 +223,41 @@ export default function ScorecardFill({
 
       {/* Table-based Scorecard */}
       <div className="card overflow-x-auto">
+        {/* View toggle - only show in multiplayer */}
+        {isMultiplayer && players.length > 1 && (
+          <div className="px-4 pt-4 flex items-center justify-between">
+            <div className="flex items-center bg-slate-100 rounded-lg p-0.5">
+              <button
+                onClick={() => setMyViewOnly(false)}
+                className={`text-xs font-medium px-3 py-1.5 rounded-md transition-all ${
+                  !myViewOnly ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"
+                }`}
+              >
+                Full Scorecard
+              </button>
+              <button
+                onClick={() => setMyViewOnly(true)}
+                className={`text-xs font-medium px-3 py-1.5 rounded-md transition-all ${
+                  myViewOnly ? "bg-white text-indigo-700 shadow-sm" : "text-slate-500 hover:text-slate-700"
+                }`}
+              >
+                My Scores
+              </button>
+            </div>
+            {myViewOnly && (
+              <span className="text-xs text-indigo-500 font-medium">
+                Showing only {players.find(p => p.id === myPlayerSlotId)?.player_name || "your"} scores
+              </span>
+            )}
+          </div>
+        )}
         <table className="w-full min-w-[400px] border-collapse">
           <thead>
             <tr className="border-b-2 border-slate-200">
               <th className="text-xs font-semibold text-slate-500 uppercase tracking-wider px-4 py-3 text-left w-[200px]">
                 Category
               </th>
-              {hasPlayers ? players.map((player, i) => (
+              {visiblePlayers.length > 0 ? visiblePlayers.map((player, i) => (
                 <th key={player.id || i} className="text-xs font-semibold text-slate-500 uppercase tracking-wider px-3 py-3 text-center min-w-[100px]">
                   {player.player_name}
                 </th>
@@ -238,8 +273,8 @@ export default function ScorecardFill({
               <ScoreRow
                 key={cell.id || cell.cell_key}
                 cell={cell}
-                players={players}
-                hasPlayers={hasPlayers}
+                players={visiblePlayers}
+                hasPlayers={visiblePlayers.length > 0}
                 getValue={getValue}
                 formulaResult={cell.cell_type === "formula" ? computedFormulas : undefined}
                 setValue={setValue}
