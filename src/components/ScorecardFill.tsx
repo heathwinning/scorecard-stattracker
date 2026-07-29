@@ -171,7 +171,8 @@ export default function ScorecardFill({
         const tooltip = [c.label || c.cell_key.replace(/_/g, ' ')];
         if (c.formula_expr) tooltip.push(`Formula: ${c.formula_expr}`);
         if (!!(c.config_json as Record<string, unknown>)?.allow_multiple) tooltip.push('Players can add multiple entries');
-        return <span className={`text-[13px] ${isTotal ? "font-bold" : isSection ? "font-semibold text-indigo-700" : "font-medium pl-4"} text-slate-700`} title={tooltip.join('\n')}>{c.label || c.cell_key.replace(/_/g, ' ')}</span>;
+        const isChild = !!(c.config_json as Record<string, unknown>)?.child;
+        return <span className={`text-[13px] ${isTotal ? "font-bold" : isSection ? "font-semibold text-indigo-700" : "font-medium"} text-slate-700 ${isChild ? "pl-4" : ""}`} title={tooltip.join('\n')}>{c.label || c.cell_key.replace(/_/g, ' ')}</span>;
       },
     })];
     displayPlayers.forEach((player, pi) => {
