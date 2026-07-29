@@ -261,12 +261,12 @@ export default function ScorecardFill({
       )}
 
       <div className="card overflow-x-auto">
-        <table className="w-full border-collapse table-auto">
+        <table className="w-full border-collapse table-fixed">
           <thead>
             {table.getHeaderGroups().map(hg => (
               <tr key={hg.id} className="border-b border-slate-200">
                 {hg.headers.map(h => (
-                  <th key={h.id} className={`text-[11px] font-semibold text-slate-400 uppercase tracking-wider px-2 py-1.5 ${h.column.id === "category" ? "text-left whitespace-nowrap" : "text-center w-0"}`}>
+                  <th key={h.id} className={`text-[11px] font-semibold text-slate-400 uppercase tracking-wider px-2 py-1.5 ${h.column.id === "category" ? "text-left w-full" : "text-center w-0"}`}>
                     {flexRender(h.column.columnDef.header, h.getContext())}
                   </th>
                 ))}
