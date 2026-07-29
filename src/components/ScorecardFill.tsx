@@ -25,6 +25,7 @@ export default function ScorecardFill({
   const isMultiplayer = !!myPlayerSlotId;
   const canEditAny = isOwner || !isMultiplayer;
   const [myViewOnly, setMyViewOnly] = useState(false);
+  const [playersLocked, setPlayersLocked] = useState(true);
 
   const sortedCells = useMemo(() =>
     [...cells]
@@ -159,6 +160,8 @@ export default function ScorecardFill({
     ];
   }, [players, myViewOnly, myPlayerSlotId]);
 
+  const isPreviewMode = players.length === 0;
+
   const columnHelper = createColumnHelper<TemplateCell>();
   const columns = useMemo(() => {
     const cols = [columnHelper.display({
@@ -178,13 +181,12 @@ export default function ScorecardFill({
     })];
     displayPlayers.forEach((player, pi) => {
       const isPreview = (player.id || '').startsWith("preview-");
+      const canManagePlayers = !playersLocked && !isPreview;
       cols.push(columnHelper.display({
         id: player.id || `p${pi}`,
         header: () => isPreview ? (
           <span className="text-[11px] font-semibold text-slate-400">{player.player_name}</span>
-        ) : readOnly ? (
-          <span className="text-xs font-semibold text-slate-700">{player.player_name}</span>
-        ) : (
+        ) : canManagePlayers ? (
           <div className="flex items-center gap-1 justify-center">
             <input type="text" value={player.player_name}
               onChange={e => updatePlayerName(players.findIndex(p => p.id === player.id), e.target.value)}
@@ -193,6 +195,8 @@ export default function ScorecardFill({
               <button onClick={() => removePlayer(players.findIndex(p => p.id === player.id))} className="text-slate-400 hover:text-rose-500 text-[10px] leading-none">×</button>
             )}
           </div>
+        ) : (
+          <span className="text-xs font-semibold text-slate-700">{player.player_name}</span>
         ),
         cell: ({ row }) => {
           const c = row.original;
@@ -239,18 +243,36 @@ export default function ScorecardFill({
         },
       }));
     });
+    // "+" column to add players when unlocked
+    if (!playersLocked && !isPreviewMode) {
+      cols.push(columnHelper.display({
+        id: "__add_player__",
+        header: () => (
+          <button onClick={addPlayer} className="text-slate-400 hover:text-indigo-500 text-lg leading-none font-bold" title="Add player">+</button>
+        ),
+        cell: () => null,
+      }));
+    }
     return cols;
-  }, [columnHelper, displayPlayers, players, readOnly, myViewOnly, myPlayerSlotId, getValue, isHidden, canEdit, setValue, tallyValue, computedFormulas, getEntryValues, addEntry, removeEntry, updatePlayerName, removePlayer]);
+  }, [columnHelper, displayPlayers, players, readOnly, myViewOnly, myPlayerSlotId, playersLocked, isPreviewMode, getValue, isHidden, canEdit, setValue, tallyValue, computedFormulas, getEntryValues, addEntry, removeEntry, updatePlayerName, removePlayer, addPlayer]);
 
   const table = useReactTable({ data: sortedCells, columns, getCoreRowModel: getCoreRowModel() });
-  const isPreviewMode = players.length === 0;
 
   return (
     <div className="space-y-3">
-      {/* Add player button (only when not readOnly and not preview) */}
+      {/* Player lock toggle */}
       {!readOnly && !isPreviewMode && (
         <div className="flex flex-wrap items-center gap-2">
-          <button onClick={addPlayer} className="text-xs text-indigo-600 hover:text-indigo-700 font-medium">+ Add Player</button>
+          <button
+            onClick={() => setPlayersLocked(!playersLocked)}
+            className={`text-xs font-medium px-2.5 py-1 rounded-md transition-all ${
+              playersLocked
+                ? "bg-slate-100 text-slate-500 hover:text-slate-700"
+                : "bg-indigo-100 text-indigo-700"
+            }`}
+          >
+            {playersLocked ? "🔒 Players" : "🔓 Players"}
+          </button>
           {isMultiplayer && players.length > 1 && (
             <div className="ml-auto flex items-center bg-slate-100 rounded-lg p-0.5">
               <button onClick={() => setMyViewOnly(false)}
