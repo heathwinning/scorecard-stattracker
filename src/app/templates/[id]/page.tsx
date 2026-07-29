@@ -60,8 +60,7 @@ export default function TemplateDetailPage() {
     return <div className="max-w-4xl mx-auto px-4 py-20 text-center text-slate-400">Template not found.</div>;
   }
 
-  const maxRow = Math.max(...template.cells.map((c) => c.row_pos), 0);
-  const maxCol = Math.max(...template.cells.map((c) => c.col_pos), 0);
+  const sortedCells = [...template.cells].sort((a, b) => a.sort_order - b.sort_order);
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 page-enter">
@@ -101,36 +100,58 @@ export default function TemplateDetailPage() {
         </div>
       </div>
 
-      {/* Grid Preview */}
+      {/* Table Preview */}
       <div className="card p-6 overflow-x-auto">
         <h3 className="section-header">Layout Preview</h3>
-        <div className="grid gap-1.5 min-w-[500px]" style={{
-          gridTemplateColumns: `repeat(${maxCol + 1}, minmax(100px, 1fr))`,
-        }}>
-          {Array.from({ length: maxRow + 1 }, (_, r) =>
-            Array.from({ length: maxCol + 1 }, (_, c) => {
-              const cell = template.cells.find((cell) => cell.row_pos === r && cell.col_pos === c);
-              if (!cell) return <div key={`${r}-${c}`} className="border border-dashed border-slate-200 rounded-lg min-h-[48px]" style={{ gridRow: r + 1, gridColumn: c + 1 }} />;
-              return (
-                <div key={`${r}-${c}`} className={`rounded-lg p-2.5 min-h-[48px] text-xs border ${
-                  cell.cell_type === "heading" ? "bg-indigo-50 border-indigo-200 text-indigo-800 font-bold" :
-                  cell.cell_type === "label" ? "bg-slate-50 border-slate-200 text-slate-500 font-medium" :
-                  cell.cell_type === "formula" ? "bg-amber-50 border-amber-200 text-amber-800" :
-                  cell.cell_type === "tally" ? "bg-violet-50 border-violet-200 text-violet-800" :
-                  "bg-white border-slate-200"
-                }`} style={{
-                  gridRow: `span ${cell.row_span}`,
-                  gridColumn: `span ${cell.col_span}`,
-                }}>
-                  <div className="font-medium truncate">{cell.label || cell.cell_key}</div>
-                  <div className="text-[10px] opacity-50 mt-0.5 uppercase tracking-wider">{cell.cell_type}</div>
-                  {cell.formula_expr && <div className="text-[10px] font-mono opacity-50 truncate mt-0.5">={cell.formula_expr}</div>}
-                  {cell.per_player ? <div className="text-[10px] text-indigo-500 mt-0.5">👤 per player</div> : null}
-                </div>
-              );
-            })
-          )}
-        </div>
+        <table className="w-full min-w-[400px] border-collapse">
+          <thead>
+            <tr className="border-b-2 border-slate-200">
+              <th className="text-xs font-semibold text-slate-500 uppercase tracking-wider px-4 py-2.5 text-left">Score Category</th>
+              <th className="text-xs font-semibold text-slate-500 uppercase tracking-wider px-3 py-2.5 text-center">Player 1</th>
+              <th className="text-xs font-semibold text-slate-500 uppercase tracking-wider px-3 py-2.5 text-center">Player 2</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sortedCells.map((cell, idx) => (
+              <tr key={cell.id || cell.cell_key} className={`border-b border-slate-100 ${idx % 2 === 0 ? "bg-slate-50/30" : ""}`}>
+                {cell.cell_type === "heading" ? (
+                  <td colSpan={3} className="px-4 py-2.5 font-bold text-sm text-indigo-800 bg-indigo-50/30">
+                    {cell.label || cell.cell_key}
+                  </td>
+                ) : (
+                  <>
+                    <td className="px-4 py-2.5">
+                      <div className="text-sm font-medium text-slate-700">{cell.label || cell.cell_key}</div>
+                      {cell.formula_expr && <div className="text-[10px] font-mono text-amber-600 mt-0.5">={cell.formula_expr}</div>}
+                    </td>
+                    <td className="px-3 py-2.5 text-center">
+                      <span className={`text-xs ${
+                        cell.cell_type === "formula" ? "font-mono text-amber-400" :
+                        cell.cell_type === "tally" ? "text-slate-300" :
+                        cell.cell_type === "input:text" ? "text-slate-300" : "text-slate-300"
+                      }`}>
+                        {cell.cell_type === "tally" ? "− 0 +" :
+                         cell.cell_type === "formula" ? "0" :
+                         cell.cell_type === "input:text" ? "text" : "0"}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2.5 text-center">
+                      <span className={`text-xs ${
+                        cell.cell_type === "formula" ? "font-mono text-amber-400" :
+                        cell.cell_type === "tally" ? "text-slate-300" :
+                        cell.cell_type === "input:text" ? "text-slate-300" : "text-slate-300"
+                      }`}>
+                        {cell.cell_type === "tally" ? "− 0 +" :
+                         cell.cell_type === "formula" ? "0" :
+                         cell.cell_type === "input:text" ? "text" : "0"}
+                      </span>
+                    </td>
+                  </>
+                )}
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );
