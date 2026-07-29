@@ -9,11 +9,13 @@ import {
   getScorecard, getTemplate, updateScorecard, deleteScorecard,
   getLiveScorecard, updateMyCells,
   type TemplateCell, type ScorecardPlayer, type CellValue, type ScorecardParticipant,
-} from "@/lib/api-client";import { guestGetScorecard, guestUpdateScorecard, guestDeleteScorecard, guestGetTemplate } from "@/lib/guest-store";import ScorecardFill from "@/components/ScorecardFill";
-import ShareModal from "@/components/ShareModal";
+} from "@/lib/api-client";
+import { guestGetScorecard, guestUpdateScorecard, guestDeleteScorecard, guestGetTemplate } from "@/lib/guest-store";
+import ScorecardFill from "@/components/ScorecardFill";
+import Modal from "@/components/Modal";
 import Link from "next/link";
 import toast from "react-hot-toast";
-import { HiOutlineShare, HiOutlineUsers } from "react-icons/hi";
+import { HiOutlineCog, HiOutlineClipboardCopy, HiOutlineShare, HiOutlineTrash } from "react-icons/hi";
 
 export default function ScorecardDetailPage() {
   const params = useParams();
@@ -24,19 +26,15 @@ export default function ScorecardDetailPage() {
   const [cells, setCells] = useState<TemplateCell[]>([]);
   const [players, setPlayers] = useState<ScorecardPlayer[]>([]);
   const [values, setValues] = useState<CellValue[]>([]);
-  const [title, setTitle] = useState("");
-  const [gameDate, setGameDate] = useState("");
   const [templateName, setTemplateName] = useState("");
   const [shareCode, setShareCode] = useState<string | null>(null);
   const [isOwner, setIsOwner] = useState(false);
-  const [isParticipant, setIsParticipant] = useState(false);
   const [myPlayerSlotId, setMyPlayerSlotId] = useState<string | null>(null);
   const [participants, setParticipants] = useState<ScorecardParticipant[]>([]);
-  const [editing, setEditing] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [showShare, setShowShare] = useState(false);
   const [liveMode, setLiveMode] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
   const lastUpdatedRef = useRef<string>("");
   const pollRef = useRef<ReturnType<typeof setInterval>>();
 
@@ -47,11 +45,9 @@ export default function ScorecardDetailPage() {
       if (!data) { toast.error("Scorecard not found"); setLoading(false); return; }
       setPlayers(data.players || []);
       setValues(data.values || []);
-      setTitle(data.scorecard.title || "");
-      setGameDate(data.scorecard.game_date || "");
-      setTemplateName(data.scorecard.template_name || "");
-      setIsOwner(true); // Guest owns their own data
-      // Load template cells
+      setTemplateName(data.scorecard.template_name || "Game");
+      setShareCode(data.scorecard.share_code || null);
+      setIsOwner(true);
       if (data.scorecard.template_id.startsWith("guest-")) {
         const tpl = guestGetTemplate(data.scorecard.template_id);
         if (tpl) setCells(tpl.cells || []);
@@ -69,17 +65,13 @@ export default function ScorecardDetailPage() {
       .then(async (data) => {
         setPlayers(data.players || []);
         setValues(data.values || []);
-        setTitle(data.scorecard.title || "");
-        setGameDate(data.scorecard.game_date || "");
-        setTemplateName(data.scorecard.template_name);
+        setTemplateName(data.scorecard.template_name || "Game");
         setShareCode(data.scorecard.share_code || null);
-        const isOwnerCheck = user?.id === data.scorecard.created_by || (isGuest && data.scorecard.created_by === "guest");
-        setIsOwner(isOwnerCheck);
+        setIsOwner(user?.id === data.scorecard.created_by);
 
         const tplData = await getTemplate(data.scorecard.template_id);
         setCells(tplData.template.cells || []);
 
-        // If shared, try live endpoint to check participation
         if (data.scorecard.share_code && user) {
           try {
             const live = await getLiveScorecard(id);
@@ -87,10 +79,8 @@ export default function ScorecardDetailPage() {
             lastUpdatedRef.current = live.last_updated;
             const me = live.participants.find((p: ScorecardParticipant) => p.user_id === user.id);
             if (me) {
-              setIsParticipant(true);
               setMyPlayerSlotId(me.player_slot_id);
               setLiveMode(true);
-              // Merge live values
               if (live.values?.length) setValues(live.values);
             }
           } catch { /* not a participant */ }
@@ -134,20 +124,36 @@ export default function ScorecardDetailPage() {
       return [...prev, { template_cell_id: cellId, player_id: playerId, entry_key: ek, value, is_hidden: isHidden }];
     });
     if (id.startsWith("guest-")) {
-      guestUpdateScorecard(id, { values: [{ template_cell_id: cellId, player_id: playerId, entry_key: ek, value, is_hidden: isHidden }] });
+      guestUpdateScorecard(id, { values: [{ template_cell_id: cellId, player_id: playerId, entry_key: ek, value, is_hidden: isHidden }] } as any);
     } else {
       try { await updateMyCells(id, [{ template_cell_id: cellId, player_id: playerId, entry_key: ek, value, is_hidden: isHidden }]); }
       catch { toast.error("Failed to save"); }
     }
   }, [id]);
 
+  const persist = useCallback(async () => {
+    if (id.startsWith("guest-")) {
+      guestUpdateScorecard(id, { players, values } as any);
+    } else {
+      try { await updateScorecard(id, { players, values }); } catch { /* silent */ }
+    }
+  }, [id, players, values]);
+
   const handleDelete = async () => {
-    if (!confirm("Delete this scorecard?")) return;
+    if (!confirm("Delete this scorecard permanently?")) return;
     try {
       if (id.startsWith("guest-")) { guestDeleteScorecard(id); }
       else { await deleteScorecard(id); }
       toast.success("Deleted"); router.push("/scores");
     } catch { toast.error("Failed to delete"); }
+  };
+
+  const copyLink = async () => {
+    const joinUrl = `${window.location.origin}/join/${shareCode}`;
+    await navigator.clipboard.writeText(joinUrl);
+    setCopied(true);
+    toast.success("Link copied!");
+    setTimeout(() => setCopied(false), 2000);
   };
 
   if (loading) {
@@ -160,95 +166,34 @@ export default function ScorecardDetailPage() {
     );
   }
 
-  const canEditScorecard = isOwner && !liveMode;
-
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8 page-enter">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-        <div>
-          <Link href="/scores" className="inline-flex items-center gap-1 text-sm text-slate-400 hover:text-slate-600 mb-1 transition-colors">
-            ← Scorecards
+    <div className="max-w-4xl mx-auto px-4 py-6 page-enter">
+      {/* Top bar: game name + share code + settings */}
+      <div className="flex flex-wrap items-center gap-3 mb-4">
+        <div className="flex-1 min-w-0">
+          <Link href="/scores" className="inline-flex items-center gap-1 text-xs text-slate-400 hover:text-slate-600 mb-0.5 transition-colors">
+            ← My Scores
           </Link>
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900">{title || "Untitled Game"}</h1>
-            {liveMode && (
-              <span className="badge bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                Live
-              </span>
-            )}
-          </div>
-          <p className="text-sm text-slate-400 mt-1">Template: {templateName} · {gameDate}</p>
+          <h1 className="text-lg font-bold tracking-tight text-slate-900 truncate">{templateName}</h1>
         </div>
-
-        <div className="flex items-center gap-2">
-          {/* Share button */}
-          {isOwner && (
-            <button onClick={() => setShowShare(true)} className="btn-secondary text-sm">
-              <HiOutlineShare className="w-4 h-4" />
-              {shareCode ? "Shared" : "Share"}
-            </button>
-          )}
-
-          {/* Participants */}
-          {participants.length > 0 && (
-            <div className="flex items-center -space-x-2">
-              {participants.slice(0, 4).map((p) => (
-                <div key={p.id} title={p.user_name || p.user_id}
-                  className="w-7 h-7 rounded-full bg-gradient-to-br from-indigo-400 to-violet-500 text-white flex items-center justify-center text-[10px] font-bold ring-2 ring-white">
-                  {(p.user_name || "?")[0].toUpperCase()}
-                </div>
-              ))}
-              {participants.length > 4 && (
-                <div className="w-7 h-7 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center text-[10px] font-bold ring-2 ring-white">
-                  +{participants.length - 4}
-                </div>
-              )}
+        <div className="flex items-center gap-2 shrink-0">
+          {shareCode && (
+            <div className="flex items-center gap-1.5 bg-indigo-50 border border-indigo-200 rounded-lg px-3 py-1.5">
+              <HiOutlineShare className="w-3.5 h-3.5 text-indigo-500" />
+              <span className="text-xs font-mono font-bold text-indigo-700 tracking-wider">{shareCode}</span>
+              <button onClick={copyLink} className="text-indigo-400 hover:text-indigo-600 transition-colors" title="Copy share link">
+                <HiOutlineClipboardCopy className="w-3.5 h-3.5" />
+              </button>
+              {copied && <span className="text-[10px] text-indigo-500">Copied!</span>}
             </div>
           )}
-
-          {/* Edit/Delete for owner in non-live mode */}
-          {canEditScorecard && !editing && (
-            <>
-              <button onClick={() => setEditing(true)} className="btn-secondary text-sm">Edit</button>
-              <button onClick={handleDelete} className="btn-danger text-sm">Delete</button>
-            </>
-          )}
-          {editing && (
-            <>
-              <button onClick={() => setEditing(false)} className="btn-secondary text-sm">Cancel</button>
-              <button onClick={async () => {
-                setSaving(true);
-                try {
-                  if (id.startsWith("guest-")) {
-                    guestUpdateScorecard(id, { title, game_date: gameDate, players, values });
-                  } else {
-                    await updateScorecard(id, { title, game_date: gameDate, players, values });
-                  }
-                  toast.success("Saved!"); setEditing(false);
-                } catch { toast.error("Failed"); }
-                finally { setSaving(false); }
-              }} disabled={saving} className="btn-primary text-sm">
-                {saving ? "Saving..." : "Save"}
-              </button>
-            </>
-          )}
+          <button onClick={() => setSettingsOpen(true)} className="btn-secondary text-xs px-2.5 py-1.5">
+            <HiOutlineCog className="w-3.5 h-3.5" />
+          </button>
         </div>
       </div>
 
-      {editing && (
-        <div className="card p-5 mb-6 grid grid-cols-2 gap-4">
-          <div>
-            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1.5">Title</label>
-            <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} className="input-field" />
-          </div>
-          <div>
-            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1.5">Date</label>
-            <input type="date" value={gameDate} onChange={(e) => setGameDate(e.target.value)} className="input-field" />
-          </div>
-        </div>
-      )}
-
+      {/* Scorecard table */}
       {cells.length > 0 && (
         <ScorecardFill
           cells={cells}
@@ -256,22 +201,33 @@ export default function ScorecardDetailPage() {
           values={values}
           onPlayersChange={setPlayers}
           onValuesChange={setValues}
-          readOnly={!editing && !liveMode}
+          readOnly={!(isOwner || !!myPlayerSlotId)}
           myPlayerSlotId={liveMode ? myPlayerSlotId : undefined}
           isOwner={isOwner}
           onCellUpdate={liveMode ? handleCellUpdate : undefined}
+          onPersist={!liveMode ? persist : undefined}
         />
       )}
 
-      {showShare && (
-        <ShareModal
-          scorecardId={id}
-          shareCode={shareCode}
-          isGuest={isGuest}
-          onClose={() => setShowShare(false)}
-          onShared={(code) => setShareCode(code)}
-        />
+      {/* Timestamp */}
+      {!loading && (
+        <p className="text-[11px] text-slate-400 text-right mt-4">
+          {new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+        </p>
       )}
+
+      {/* Settings Modal */}
+      <Modal open={settingsOpen} onClose={() => setSettingsOpen(false)} title="Game Settings">
+        <div className="space-y-4">
+          {isOwner && (
+            <button onClick={() => { setSettingsOpen(false); handleDelete(); }}
+              className="w-full flex items-center justify-center gap-2 text-sm font-medium text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-lg px-4 py-2.5 transition-colors">
+              <HiOutlineTrash className="w-4 h-4" />
+              Delete Scorecard
+            </button>
+          )}
+        </div>
+      </Modal>
     </div>
   );
 }
