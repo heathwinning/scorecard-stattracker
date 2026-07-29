@@ -25,7 +25,6 @@ function NewScorecardPageInner() {
   const [scorecardId, setScorecardId] = useState<string | null>(null);
   const [shareCode, setShareCode] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const [copied, setCopied] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [editMode, setEditMode] = useState<"own" | "all">("own");
@@ -64,6 +63,7 @@ function NewScorecardPageInner() {
         const code = generateCode();
         guestUpdateScorecard(sc.id, { share_code: code } as any);
         setShareCode(code);
+        setPlayers([{ id: crypto.randomUUID(), player_name: "Player 1", sort_order: 0 }]);
       } else {
         try {
           const result = await createScorecard({ template_id: templateId });
@@ -71,24 +71,26 @@ function NewScorecardPageInner() {
           // Auto-share
           const shareResult = await fetch(`/api/scorecards/${result.scorecard.id}/share`, { method: "POST" }).then(r => r.json());
           if (shareResult.share_code) setShareCode(shareResult.share_code);
+          setPlayers([{ id: crypto.randomUUID(), player_name: "Player 1", sort_order: 0 }]);
         } catch { toast.error("Failed to create game"); }
       }
     };
     create();
   }, [templateId, cells.length, loading, isGuest]);
 
-  const handleSave = useCallback(async () => {
-    setSaving(true);
-    try {
-      if (isGuest && scorecardId) {
-        guestUpdateScorecard(scorecardId, { title, players, values });
-        toast.success("Saved locally!");
-      } else if (scorecardId) {
-        await updateScorecard(scorecardId, { title, players, values });
-        toast.success("Scorecard saved!");
-      }
-    } catch { toast.error("Failed to save"); }
-    finally { setSaving(false); }
+  // Auto-save on changes (debounced 1.5s)
+  useEffect(() => {
+    if (!scorecardId || players.length === 0) return;
+    const timer = setTimeout(async () => {
+      try {
+        if (isGuest) {
+          guestUpdateScorecard(scorecardId, { title, players, values });
+        } else {
+          await updateScorecard(scorecardId, { title, players, values });
+        }
+      } catch { /* silent */ }
+    }, 1500);
+    return () => clearTimeout(timer);
   }, [scorecardId, title, players, values, isGuest]);
 
   const copyLink = async () => {
@@ -151,13 +153,6 @@ function NewScorecardPageInner() {
           readOnly={false}
         />
       )}
-
-      {/* Save button */}
-      <div className="flex justify-end mt-4">
-        <button onClick={handleSave} disabled={saving} className="btn-primary text-sm">
-          {saving ? "Saving..." : "Save"}
-        </button>
-      </div>
 
       {/* Settings Modal */}
       <Modal open={settingsOpen} onClose={() => setSettingsOpen(false)} title="Game Settings">
