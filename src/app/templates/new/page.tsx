@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState, useCallback, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 import { createTemplate, updateTemplate, getTemplate, listGames, type TemplateCell, type Game } from "@/lib/api-client";
 import { guestSaveTemplate, guestUpdateTemplate, guestGetTemplate } from "@/lib/guest-store";
@@ -12,8 +12,19 @@ import toast from "react-hot-toast";
 interface Props { params?: { id?: string }; }
 
 export default function TemplateNewPage({ params }: Props) {
+  return (
+    <Suspense fallback={<div className="max-w-6xl mx-auto px-4 py-8 animate-pulse"><div className="h-96 bg-slate-100 rounded-2xl" /></div>}>
+      <TemplateNewPageInner params={params} />
+    </Suspense>
+  );
+}
+
+function TemplateNewPageInner({ params }: Props) {
   const templateId = params?.id;
+  const searchParams = useSearchParams();
+  const forkId = searchParams.get("fork");
   const isEdit = !!templateId;
+  const isFork = !!forkId;
   const router = useRouter();
   const { user, loading: authLoading, isGuest } = useAuth();
   const [name, setName] = useState("");
@@ -23,7 +34,7 @@ export default function TemplateNewPage({ params }: Props) {
   const [isPublic, setIsPublic] = useState(false);
   const [cells, setCells] = useState<TemplateCell[]>([]);
   const [saving, setSaving] = useState(false);
-  const [loading, setLoading] = useState(isEdit);
+  const [loading, setLoading] = useState(isEdit || isFork);
 
   useEffect(() => { listGames().then(d => setGames(d.games || [])).catch(() => {}); }, []);
 
@@ -31,26 +42,27 @@ export default function TemplateNewPage({ params }: Props) {
     if (authLoading) return;
     if (!user && !isGuest) { return; }
 
-    if (isEdit && templateId) {
-      if (isGuest && templateId.startsWith("guest-")) {
-        const tpl = guestGetTemplate(templateId);
-        if (tpl) { setName(tpl.name); setDescription(tpl.description); setGameId(tpl.game_id || ""); setCells(tpl.cells || []); }
-        setLoading(false);
-      } else {
-        getTemplate(templateId)
-          .then((data) => {
-            const tpl = data.template;
-            setName(tpl.name);
-            setDescription(tpl.description || "");
-            setGameId(tpl.game_id || "");
-            setIsPublic(!!tpl.is_public);
-            setCells(tpl.cells || []);
-          })
-          .catch(() => toast.error("Template not found"))
-          .finally(() => setLoading(false));
-      }
+    const loadId = templateId || forkId;
+    if (!loadId) return;
+
+    if (isGuest && loadId.startsWith("guest-")) {
+      const tpl = guestGetTemplate(loadId);
+      if (tpl) { setName(isFork ? `${tpl.name} (copy)` : tpl.name); setDescription(tpl.description); setGameId(tpl.game_id || ""); setCells(tpl.cells || []); }
+      setLoading(false);
+    } else {
+      getTemplate(loadId)
+        .then((data) => {
+          const tpl = data.template;
+          setName(isFork ? `${tpl.name} (copy)` : tpl.name);
+          setDescription(tpl.description || "");
+          setGameId(tpl.game_id || "");
+          setIsPublic(!!tpl.is_public);
+          setCells(tpl.cells || []);
+        })
+        .catch(() => toast.error("Template not found"))
+        .finally(() => setLoading(false));
     }
-  }, [user, authLoading, isGuest, isEdit, templateId, router]);
+  }, [user, authLoading, isGuest, isEdit, isFork, templateId, forkId, router]);
 
   const handleSave = useCallback(async () => {
     if (!name.trim()) { toast.error("Please enter a template name"); return; }

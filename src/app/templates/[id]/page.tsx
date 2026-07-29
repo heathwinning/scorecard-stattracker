@@ -60,7 +60,9 @@ export default function TemplateDetailPage() {
     return <div className="max-w-4xl mx-auto px-4 py-20 text-center text-slate-400">Template not found.</div>;
   }
 
-  const sortedCells = [...template.cells].sort((a, b) => a.sort_order - b.sort_order);
+  const sortedCells = [...template.cells]
+    .filter(c => (c.cell_type as string) !== "label") // skip legacy grid labels
+    .sort((a, b) => a.sort_order - b.sort_order);
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 page-enter">
@@ -84,7 +86,7 @@ export default function TemplateDetailPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {isOwner && (
+          {isOwner ? (
             <>
               <Link href={`/templates/${id}/edit`} className="btn-secondary text-sm">
                 <HiOutlinePencil className="w-4 h-4" /> Edit
@@ -93,6 +95,10 @@ export default function TemplateDetailPage() {
                 <HiOutlineTrash className="w-4 h-4" /> Delete
               </button>
             </>
+          ) : (
+            <Link href={`/templates/new?fork=${id}`} className="btn-secondary text-sm">
+              <HiOutlinePencil className="w-4 h-4" /> Copy & Edit
+            </Link>
           )}
           <Link href={`/scorecards/new?template=${id}`} className="btn-primary text-sm">
             <HiOutlinePlay className="w-4 h-4" /> Use Scorecard
