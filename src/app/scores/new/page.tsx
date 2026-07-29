@@ -62,18 +62,19 @@ function NewScorecardPageInner() {
         if (cancelled) return;
         const code = generateCode();
         guestUpdateScorecard(sc.id, { share_code: code, players: [{ id: crypto.randomUUID(), player_name: "Player 1", sort_order: 0 }] } as any);
-        if (!cancelled) router.replace(`/scores/${sc.id}`);
+        if (!cancelled) router.replace(`/scores/${code}`);
       } else {
         try {
           const result = await createScorecard({ template_id: templateId });
           if (cancelled) return;
           // Auto-share (creates share code)
-          await fetch(`/api/scorecards/${result.scorecard.id}/share`, { method: "POST" });
+          const shareRes = await fetch(`/api/scorecards/${result.scorecard.id}/share`, { method: "POST" }).then(r => r.json());
+          const code = shareRes.share_code;
           // Add first player
           await updateScorecard(result.scorecard.id, {
             players: [{ id: crypto.randomUUID(), player_name: "Player 1", sort_order: 0 }],
           });
-          if (!cancelled) router.replace(`/scores/${result.scorecard.id}`);
+          if (!cancelled && code) router.replace(`/scores/${code}`);
         } catch { toast.error("Failed to create game"); }
       }
     };

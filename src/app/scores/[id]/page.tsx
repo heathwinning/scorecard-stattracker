@@ -10,7 +10,7 @@ import {
   getLiveScorecard, updateMyCells,
   type TemplateCell, type ScorecardPlayer, type CellValue, type ScorecardParticipant,
 } from "@/lib/api-client";
-import { guestGetScorecard, guestUpdateScorecard, guestDeleteScorecard, guestGetTemplate } from "@/lib/guest-store";
+import { guestGetScorecard, guestUpdateScorecard, guestDeleteScorecard, guestGetTemplate, guestFindByShareCode } from "@/lib/guest-store";
 import ScorecardFill from "@/components/ScorecardFill";
 import Modal from "@/components/Modal";
 import Link from "next/link";
@@ -23,6 +23,7 @@ export default function ScorecardDetailPage() {
   const { user, isGuest } = useAuth();
   const id = params.id as string;
 
+  const [scorecardId, setScorecardId] = useState<string>(id);
   const [cells, setCells] = useState<TemplateCell[]>([]);
   const [players, setPlayers] = useState<ScorecardPlayer[]>([]);
   const [values, setValues] = useState<CellValue[]>([]);
@@ -40,8 +41,19 @@ export default function ScorecardDetailPage() {
 
   // Initial load
   useEffect(() => {
+    // Resolve share code to guest scorecard ID
+    let resolvedId = id;
     if (id.startsWith("guest-")) {
-      const data = guestGetScorecard(id);
+      // Direct guest ID
+    } else if (id.length <= 10 && !id.includes("-")) {
+      // Looks like a share code — try guest store
+      const guestSc = guestFindByShareCode(id);
+      if (guestSc) resolvedId = guestSc.id;
+    }
+
+    if (resolvedId.startsWith("guest-")) {
+      setScorecardId(resolvedId);
+      const data = guestGetScorecard(resolvedId);
       if (!data) { toast.error("Scorecard not found"); setLoading(false); return; }
       setPlayers(data.players || []);
       setValues(data.values || []);
@@ -61,8 +73,9 @@ export default function ScorecardDetailPage() {
       return;
     }
 
-    getScorecard(id)
+    getScorecard(resolvedId)
       .then(async (data) => {
+        setScorecardId(data.scorecard.id);
         setPlayers(data.players || []);
         setValues(data.values || []);
         setTemplateName(data.scorecard.template_name || "Game");
@@ -74,7 +87,7 @@ export default function ScorecardDetailPage() {
 
         if (data.scorecard.share_code && user) {
           try {
-            const live = await getLiveScorecard(id);
+            const live = await getLiveScorecard(scorecardId);
             setParticipants(live.participants || []);
             lastUpdatedRef.current = live.last_updated;
             const me = live.participants.find((p: ScorecardParticipant) => p.user_id === user.id);
@@ -88,7 +101,7 @@ export default function ScorecardDetailPage() {
       })
       .catch(() => toast.error("Scorecard not found"))
       .finally(() => setLoading(false));
-  }, [id, user]);
+  }, [id, user, scorecardId]);
 
   // Live polling
   useEffect(() => {
@@ -96,7 +109,7 @@ export default function ScorecardDetailPage() {
 
     pollRef.current = setInterval(async () => {
       try {
-        const live = await getLiveScorecard(id, lastUpdatedRef.current);
+        const live = await getLiveScorecard(scorecardId, lastUpdatedRef.current);
         if (live.values?.length) {
           setValues((prev) => {
             const map = new Map(prev.map(v => [`${v.template_cell_id}:${v.player_id}`, v]));
@@ -112,7 +125,7 @@ export default function ScorecardDetailPage() {
     }, 3000);
 
     return () => clearInterval(pollRef.current);
-  }, [liveMode, id]);
+  }, [liveMode, scorecardId]);
 
   const handleCellUpdate = useCallback(async (
     cellId: string, playerId: string, value: string, isHidden: number, entryKey?: string
@@ -123,27 +136,27 @@ export default function ScorecardDetailPage() {
       if (existing) return prev.map(v => v.template_cell_id === cellId && v.player_id === playerId && (v.entry_key || '') === ek ? { ...v, value, is_hidden: isHidden } : v);
       return [...prev, { template_cell_id: cellId, player_id: playerId, entry_key: ek, value, is_hidden: isHidden }];
     });
-    if (id.startsWith("guest-")) {
-      guestUpdateScorecard(id, { values: [{ template_cell_id: cellId, player_id: playerId, entry_key: ek, value, is_hidden: isHidden }] } as any);
+    if (scorecardId.startsWith("guest-")) {
+      guestUpdateScorecard(scorecardId, { values: [{ template_cell_id: cellId, player_id: playerId, entry_key: ek, value, is_hidden: isHidden }] } as any);
     } else {
-      try { await updateMyCells(id, [{ template_cell_id: cellId, player_id: playerId, entry_key: ek, value, is_hidden: isHidden }]); }
+      try { await updateMyCells(scorecardId, [{ template_cell_id: cellId, player_id: playerId, entry_key: ek, value, is_hidden: isHidden }]); }
       catch { toast.error("Failed to save"); }
     }
-  }, [id]);
+  }, [scorecardId]);
 
   const persist = useCallback(async () => {
-    if (id.startsWith("guest-")) {
-      guestUpdateScorecard(id, { players, values } as any);
+    if (scorecardId.startsWith("guest-")) {
+      guestUpdateScorecard(scorecardId, { players, values } as any);
     } else {
-      try { await updateScorecard(id, { players, values }); } catch { /* silent */ }
+      try { await updateScorecard(scorecardId, { players, values }); } catch { /* silent */ }
     }
-  }, [id, players, values]);
+  }, [scorecardId, players, values]);
 
   const handleDelete = async () => {
     if (!confirm("Delete this scorecard permanently?")) return;
     try {
-      if (id.startsWith("guest-")) { guestDeleteScorecard(id); }
-      else { await deleteScorecard(id); }
+      if (scorecardId.startsWith("guest-")) { guestDeleteScorecard(scorecardId); }
+      else { await deleteScorecard(scorecardId); }
       toast.success("Deleted"); router.push("/scores");
     } catch { toast.error("Failed to delete"); }
   };

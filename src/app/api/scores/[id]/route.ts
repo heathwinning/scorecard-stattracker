@@ -4,35 +4,50 @@ import { getDB, queryFirst, queryAll, execute, uuid } from "@/lib/db";
 
 export const runtime = "edge";
 
-// GET /api/scorecards/[id] - get scorecard with all values
+// GET /api/scores/[id] - get scorecard with all values (by id or share code)
 export async function GET(
   _request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   const db = getDB();
-  const scorecard = await queryFirst(
+  const lookupId = params.id;
+
+  // Try direct ID first, then fall back to share code lookup
+  let scorecard = await queryFirst(
     db,
     `SELECT s.*, t.name as template_name
      FROM scorecards s
      JOIN templates t ON s.template_id = t.id
      WHERE s.id = ?1`,
-    [params.id]
+    [lookupId]
   );
+
+  if (!scorecard && lookupId.length <= 10) {
+    scorecard = await queryFirst(
+      db,
+      `SELECT s.*, t.name as template_name
+       FROM scorecards s
+       JOIN templates t ON s.template_id = t.id
+       WHERE s.share_code = ?1`,
+      [lookupId.toUpperCase()]
+    );
+  }
 
   if (!scorecard) {
     return NextResponse.json({ error: "Scorecard not found" }, { status: 404 });
   }
 
+  const id = scorecard.id as string;
   const players = await queryAll(
     db,
     "SELECT * FROM scorecard_players WHERE scorecard_id = ?1 ORDER BY sort_order",
-    [params.id]
+    [id]
   );
 
   const values = await queryAll(
     db,
     "SELECT * FROM cell_values WHERE scorecard_id = ?1",
-    [params.id]
+    [id]
   );
 
   return NextResponse.json({ scorecard, players, values });
