@@ -61,7 +61,7 @@ export default function TemplateDetailPage() {
   }
 
   const sortedCells = [...template.cells]
-    .filter(c => (c.cell_type as string) !== "label") // skip legacy grid labels
+    .filter(c => (c.cell_type as string) !== "label" && c.sort_order >= 0) // skip legacy labels and hidden cells
     .sort((a, b) => a.sort_order - b.sort_order);
 
   return (
