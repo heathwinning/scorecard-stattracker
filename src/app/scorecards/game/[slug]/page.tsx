@@ -58,7 +58,7 @@ export default function GameTemplatesPage() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 page-enter">
-      <Link href="/templates" className="text-sm text-slate-400 hover:text-slate-600 mb-4 inline-block">
+      <Link href="/scorecards" className="text-sm text-slate-400 hover:text-slate-600 mb-4 inline-block">
         ← All Templates
       </Link>
 
@@ -77,7 +77,7 @@ export default function GameTemplatesPage() {
           <div className="empty-state-icon">📋</div>
           <p className="empty-state-title">No templates yet for {game?.name || slug}</p>
           <p className="empty-state-desc">Be the first to create one!</p>
-          <Link href="/templates/new" className="btn-primary text-sm mt-2">Create Template</Link>
+          <Link href="/scorecards/new" className="btn-primary text-sm mt-2">Create Scorecard</Link>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

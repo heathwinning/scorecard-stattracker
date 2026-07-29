@@ -19,7 +19,7 @@ export const metadata: Metadata = {
     "free scorecard template", "online scorecard",
   ],
   openGraph: {
-    title: "Scorecard StatTracker — Free Online Scorecard Templates",
+    title: "Scorecard StatTracker — Free Online Scorecard Scorecards",
     description:
       "Create customizable scorecards for any game. Drag & drop builder, auto-calculation, multiplayer sharing. Free and no sign-up required.",
     url: "https://scorecard-stattracker.pages.dev",
@@ -28,7 +28,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Scorecard StatTracker — Free Online Scorecard Templates",
+    title: "Scorecard StatTracker — Free Online Scorecard Scorecards",
   },
   robots: {
     index: true,

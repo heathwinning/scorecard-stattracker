@@ -6,12 +6,12 @@ const TEMPLATE_SEO: Record<
   { title: string; description: string }
 > = {
   "tpl-yahtzee": {
-    title: "Yahtzee Scorecard Template — Free Online Score Keeper",
+    title: "Yahtzee Scorecard Scorecard — Free Online Score Keeper",
     description:
       "Free printable Yahtzee scorecard with auto-calculation. Track upper section, lower section, 63-point bonus, and grand total. Works on any device.",
   },
   "tpl-uno": {
-    title: "Uno Scorecard Template — Track Rounds & Scores",
+    title: "Uno Scorecard Scorecard — Track Rounds & Scores",
     description:
       "Free Uno scorecard to track remaining cards per player across multiple rounds. Auto-calculates running totals. Perfect for Uno game nights.",
   },
@@ -80,13 +80,13 @@ export async function generateMetadata({
   }
 
   return {
-    title: "Scorecard Template",
+    title: "Scorecard Scorecard",
     description:
       "View and use this custom scorecard template. Track scores for any game with auto-calculation.",
   };
 }
 
-export default function TemplateLayout({
+export default function ScorecardLayout({
   children,
 }: {
   children: React.ReactNode;

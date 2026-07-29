@@ -63,7 +63,7 @@ export default function DashboardPage() {
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{user.name.split(" ")[0]}</h1>
             <p className="text-indigo-200 text-sm mt-2">Ready to track some scores?</p>
           </div>
-          <Link href="/templates/new" className="btn-secondary !bg-white/20 !text-white !border-white/30 hover:!bg-white/30 !shadow-none text-sm">
+          <Link href="/scorecards/new" className="btn-secondary !bg-white/20 !text-white !border-white/30 hover:!bg-white/30 !shadow-none text-sm">
             <HiOutlinePlus className="w-4 h-4" />New Scorecard
           </Link>
         </div>
@@ -71,7 +71,7 @@ export default function DashboardPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 gap-4 mb-8">
-        <Link href="/templates?mine=true" className="card-hover p-5 flex items-center gap-4 group">
+        <Link href="/scorecards?mine=true" className="card-hover p-5 flex items-center gap-4 group">
           <div className="w-12 h-12 rounded-xl bg-indigo-50 flex items-center justify-center text-xl group-hover:scale-110 transition-transform">
             <HiOutlineTemplate className="w-6 h-6 text-indigo-600" />
           </div>
@@ -80,7 +80,7 @@ export default function DashboardPage() {
             <div className="text-sm text-slate-500">My Scorecards</div>
           </div>
         </Link>
-        <Link href="/scorecards" className="card-hover p-5 flex items-center gap-4 group">
+        <Link href="/history" className="card-hover p-5 flex items-center gap-4 group">
           <div className="w-12 h-12 rounded-xl bg-violet-50 flex items-center justify-center text-xl group-hover:scale-110 transition-transform">
             <HiOutlineClipboardList className="w-6 h-6 text-violet-600" />
           </div>
@@ -96,7 +96,7 @@ export default function DashboardPage() {
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-lg font-bold text-slate-900">Recent Games</h2>
           {scorecards.length > 0 && (
-            <Link href="/scorecards" className="text-sm font-medium text-indigo-600 hover:text-indigo-700 flex items-center gap-1">
+            <Link href="/history" className="text-sm font-medium text-indigo-600 hover:text-indigo-700 flex items-center gap-1">
               View all <HiOutlineArrowRight className="w-3.5 h-3.5" />
             </Link>
           )}
@@ -106,7 +106,7 @@ export default function DashboardPage() {
             <div className="empty-state-icon">🎮</div>
             <p className="empty-state-title">No scorecards yet</p>
             <p className="empty-state-desc">Pick a template and start tracking your first game.</p>
-            <Link href="/templates" className="btn-primary text-sm mt-2">Browse Templates</Link>
+            <Link href="/scorecards" className="btn-primary text-sm mt-2">Browse Scorecards</Link>
           </div>
         ) : (
           <div className="space-y-2">
@@ -134,7 +134,7 @@ export default function DashboardPage() {
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-bold text-slate-900">My Scorecards</h2>
           {templates.length > 0 && (
-            <Link href="/templates?mine=true" className="text-sm font-medium text-indigo-600 hover:text-indigo-700 flex items-center gap-1">
+            <Link href="/scorecards?mine=true" className="text-sm font-medium text-indigo-600 hover:text-indigo-700 flex items-center gap-1">
               View all <HiOutlineArrowRight className="w-3.5 h-3.5" />
             </Link>
           )}
@@ -144,7 +144,7 @@ export default function DashboardPage() {
             <div className="empty-state-icon">📐</div>
             <p className="empty-state-title">No scorecards yet</p>
             <p className="empty-state-desc">Create your first scorecard to get started.</p>
-            <Link href="/templates/new" className="btn-primary text-sm mt-2">Create Scorecard</Link>
+            <Link href="/scorecards/new" className="btn-primary text-sm mt-2">Create Scorecard</Link>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -197,7 +197,7 @@ function GuestDashboard({ templates, scorecards }: { templates: Template[]; scor
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Guest</h1>
             <p className="text-indigo-200 text-sm mt-2">Sign in to save your data permanently.</p>
           </div>
-          <Link href="/templates/new" className="btn-secondary !bg-white/20 !text-white !border-white/30 hover:!bg-white/30 !shadow-none text-sm">
+          <Link href="/scorecards/new" className="btn-secondary !bg-white/20 !text-white !border-white/30 hover:!bg-white/30 !shadow-none text-sm">
             <HiOutlinePlus className="w-4 h-4" />New Scorecard
           </Link>
         </div>
@@ -215,13 +215,13 @@ function GuestDashboard({ templates, scorecards }: { templates: Template[]; scor
       </div>
 
       <div className="grid grid-cols-2 gap-4 mb-8">
-        <Link href="/templates?mine=true" className="card-hover p-5 flex items-center gap-4 group">
+        <Link href="/scorecards?mine=true" className="card-hover p-5 flex items-center gap-4 group">
           <div className="w-12 h-12 rounded-xl bg-indigo-50 flex items-center justify-center text-xl group-hover:scale-110 transition-transform">
             <HiOutlineTemplate className="w-6 h-6 text-indigo-600" />
           </div>
-          <div><div className="text-2xl font-bold text-slate-900">{templates.length}</div><div className="text-sm text-slate-500">My Templates</div></div>
+          <div><div className="text-2xl font-bold text-slate-900">{templates.length}</div><div className="text-sm text-slate-500">My Scorecards</div></div>
         </Link>
-        <Link href="/scorecards" className="card-hover p-5 flex items-center gap-4 group">
+        <Link href="/history" className="card-hover p-5 flex items-center gap-4 group">
           <div className="w-12 h-12 rounded-xl bg-violet-50 flex items-center justify-center text-xl group-hover:scale-110 transition-transform">
             <HiOutlineClipboardList className="w-6 h-6 text-violet-600" />
           </div>
@@ -236,7 +236,7 @@ function GuestDashboard({ templates, scorecards }: { templates: Template[]; scor
             <div className="empty-state-icon">🎮</div>
             <p className="empty-state-title">No scorecards yet</p>
             <p className="empty-state-desc">Pick a template and start tracking your first game.</p>
-            <Link href="/templates" className="btn-primary text-sm mt-2">Browse Templates</Link>
+            <Link href="/scorecards" className="btn-primary text-sm mt-2">Browse Scorecards</Link>
           </div>
         ) : (
           <div className="space-y-2">
@@ -263,7 +263,7 @@ function GuestDashboard({ templates, scorecards }: { templates: Template[]; scor
             <div className="empty-state-icon">📐</div>
             <p className="empty-state-title">No scorecards yet</p>
             <p className="empty-state-desc">Create your first scorecard template.</p>
-            <Link href="/templates/new" className="btn-primary text-sm mt-2">Create Scorecard</Link>
+            <Link href="/scorecards/new" className="btn-primary text-sm mt-2">Create Scorecard</Link>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

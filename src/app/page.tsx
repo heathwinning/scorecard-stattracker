@@ -15,7 +15,7 @@ export default function Home() {
             Design custom scorecards with drag & drop. Track scores, tally points, and auto-calculate results for every game you play with friends.
           </p>
           <div className="flex items-center justify-center gap-3">
-            <Link href="/templates" className="btn-primary text-base px-6 py-3 rounded-xl shadow-lg shadow-indigo-200">
+            <Link href="/scorecards" className="btn-primary text-base px-6 py-3 rounded-xl shadow-lg shadow-indigo-200">
               Browse Scorecards
             </Link>
             <Link href="/login" className="btn-secondary text-base px-6 py-3 rounded-xl">

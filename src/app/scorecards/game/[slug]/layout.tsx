@@ -76,20 +76,20 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const seo = GAME_SEO[params.slug];
   if (!seo) {
-    return { title: "Game Templates" };
+    return { title: "Game Scorecards" };
   }
   return {
-    title: `${seo.name} Scorecard Templates — Free Online Score Keeper`,
+    title: `${seo.name} Scorecard Scorecards — Free Online Score Keeper`,
     description: seo.description,
     keywords: seo.keywords,
     openGraph: {
-      title: `Free ${seo.name} Scorecard Templates`,
+      title: `Free ${seo.name} Scorecard Scorecards`,
       description: seo.description,
     },
   };
 }
 
-export default function GameTemplatesLayout({
+export default function GameScorecardsLayout({
   children,
 }: {
   children: React.ReactNode;

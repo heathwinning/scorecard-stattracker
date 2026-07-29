@@ -8,8 +8,8 @@ import { HiOutlineTemplate, HiOutlineClipboardList, HiOutlineViewGrid, HiOutline
 
 const navLinks = [
   { href: "/dashboard", label: "Dashboard", icon: HiOutlineViewGrid },
-  { href: "/templates", label: "Scorecards", icon: HiOutlineTemplate },
-  { href: "/scorecards", label: "My Scores", icon: HiOutlineClipboardList },
+  { href: "/scorecards", label: "Scorecards", icon: HiOutlineTemplate },
+  { href: "/history", label: "My Scores", icon: HiOutlineClipboardList },
 ];
 
 export default function Navbar() {

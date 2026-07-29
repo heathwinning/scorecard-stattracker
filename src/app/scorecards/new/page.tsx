@@ -3,139 +3,155 @@
 import { useEffect, useState, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
-import { getTemplate, createScorecard, updateScorecard, type TemplateCell, type ScorecardPlayer, type CellValue } from "@/lib/api-client";
-import { guestGetTemplate, guestCreateScorecard, guestUpdateScorecard, guestGetScorecard } from "@/lib/guest-store";
-import ScorecardFill from "@/components/ScorecardFill";
+import { createTemplate, updateTemplate, getTemplate, listGames, type TemplateCell, type Game } from "@/lib/api-client";
+import { guestSaveTemplate, guestUpdateTemplate, guestGetTemplate } from "@/lib/guest-store";
+import GridBuilder from "@/components/GridBuilder";
 import Link from "next/link";
 import toast from "react-hot-toast";
 
-function NewScorecardPageInner() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const templateId = searchParams.get("template");
-  const { user, loading: authLoading, isGuest } = useAuth();
+interface Props { params?: { id?: string }; }
 
+export default function TemplateNewPage({ params }: Props) {
+  return (
+    <Suspense fallback={<div className="max-w-6xl mx-auto px-4 py-8 animate-pulse"><div className="h-96 bg-slate-100 rounded-2xl" /></div>}>
+      <TemplateNewPageInner params={params} />
+    </Suspense>
+  );
+}
+
+function TemplateNewPageInner({ params }: Props) {
+  const templateId = params?.id;
+  const searchParams = useSearchParams();
+  const forkId = searchParams.get("fork");
+  const isEdit = !!templateId;
+  const isFork = !!forkId;
+  const router = useRouter();
+  const { user, loading: authLoading, isGuest } = useAuth();
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [gameId, setGameId] = useState("");
+  const [games, setGames] = useState<Game[]>([]);
+  const [isPublic, setIsPublic] = useState(false);
   const [cells, setCells] = useState<TemplateCell[]>([]);
-  const [templateName, setTemplateName] = useState("");
-  const [players, setPlayers] = useState<ScorecardPlayer[]>([]);
-  const [values, setValues] = useState<CellValue[]>([]);
-  const [title, setTitle] = useState("");
-  const [scorecardId, setScorecardId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(isEdit || isFork);
+
+  useEffect(() => { listGames().then(d => setGames(d.games || [])).catch(() => {}); }, []);
 
   useEffect(() => {
     if (authLoading) return;
-    if (!user && !isGuest) { router.push("/login"); return; }
-    if (!templateId) { router.push("/templates"); return; }
+    if (!user && !isGuest) { return; }
 
-    const loadTemplate = async () => {
-      // Try guest store first for guest- prefixed templates
-      if (templateId.startsWith("guest-")) {
-        const tpl = guestGetTemplate(templateId);
-        if (tpl) { setCells(tpl.cells || []); setTemplateName(tpl.name); }
-        setLoading(false);
-        return;
-      }
-      // Otherwise from API
-      try {
-        const data = await getTemplate(templateId);
-        setCells(data.template.cells || []);
-        setTemplateName(data.template.name);
-      } catch { toast.error("Template not found"); }
+    const loadId = templateId || forkId;
+    if (!loadId) return;
+
+    if (isGuest && loadId.startsWith("guest-")) {
+      const tpl = guestGetTemplate(loadId);
+      if (tpl) { setName(isFork ? `${tpl.name} (copy)` : tpl.name); setDescription(tpl.description); setGameId(tpl.game_id || ""); setCells(tpl.cells || []); }
       setLoading(false);
-    };
-    loadTemplate();
-  }, [user, isGuest, authLoading, templateId, router]);
-
-  // Auto-create scorecard when template is loaded (for server-side)
-  useEffect(() => {
-    if (!templateId || loading || isGuest) return;
-    if (cells.length === 0) return;
-    createScorecard({ template_id: templateId })
-      .then((result) => setScorecardId(result.scorecard.id))
-      .catch(() => toast.error("Failed to create scorecard"));
-  }, [templateId, cells.length, loading, isGuest]);
-
-  useEffect(() => {
-    if (!templateId || !isGuest || loading) return;
-    if (cells.length === 0) return;
-    // For guest, create locally
-    const sc = guestCreateScorecard({ template_id: templateId, title: "" });
-    setScorecardId(sc.id);
-  }, [templateId, cells.length, loading, isGuest]);
+    } else {
+      getTemplate(loadId)
+        .then((data) => {
+          const tpl = data.template;
+          setName(isFork ? `${tpl.name} (copy)` : tpl.name);
+          setDescription(tpl.description || "");
+          setGameId(tpl.game_id || "");
+          setIsPublic(!!tpl.is_public);
+          setCells(tpl.cells || []);
+        })
+        .catch(() => toast.error("Template not found"))
+        .finally(() => setLoading(false));
+    }
+  }, [user, authLoading, isGuest, isEdit, isFork, templateId, forkId, router]);
 
   const handleSave = useCallback(async () => {
+    if (!name.trim()) { toast.error("Please enter a template name"); return; }
     setSaving(true);
     try {
       if (isGuest) {
-        if (scorecardId) {
-          guestUpdateScorecard(scorecardId, { title, players, values });
-          toast.success("Saved locally! Sign in to keep forever.");
-          router.push(`/scorecards/${scorecardId}`);
+        if (isEdit && templateId) {
+          guestUpdateTemplate(templateId, { name, description, cells });
+          toast.success("Template updated! (saved locally)");
         } else {
-          const sc = guestCreateScorecard({ template_id: templateId!, title });
-          guestUpdateScorecard(sc.id, { players, values });
-          toast.success("Game started! Sign in to save permanently.");
-          router.push(`/scorecards/${sc.id}`);
+          const tpl = guestSaveTemplate({ name, description, is_public: false, cells });
+          // Set game_id after creation
+          if (gameId) guestUpdateTemplate(tpl.id, { name, description, cells });
+          toast.success("Template created! Sign in to save permanently.");
+          router.push(`/templates/${tpl.id}`);
         }
-      } else if (scorecardId) {
-        await updateScorecard(scorecardId, { title, players, values });
-        toast.success("Scorecard saved!");
-        router.push(`/scorecards/${scorecardId}`);
+      } else if (isEdit && templateId) {
+        await updateTemplate(templateId, { name, description, game_id: gameId || undefined, is_public: isPublic, cells });
+        toast.success("Template updated!");
+      } else {
+        const result = await createTemplate({ name, description, game_id: gameId || undefined, is_public: isPublic, cells });
+        toast.success("Template created!");
+        router.push(`/templates/${result.template.id}`);
       }
-    } catch { toast.error("Failed to save"); }
+    } catch { toast.error("Failed to save template"); }
     finally { setSaving(false); }
-  }, [scorecardId, title, players, values, router, isGuest, templateId]);
+  }, [name, description, isPublic, cells, isEdit, templateId, router, isGuest]);
 
   if (authLoading || loading) {
     return (
-      <div className="max-w-4xl mx-auto px-4 py-8 animate-pulse space-y-4">
-        <div className="h-6 w-24 bg-slate-200 rounded" />
-        <div className="h-8 w-48 bg-slate-200 rounded" />
+      <div className="max-w-6xl mx-auto px-4 py-8 animate-pulse space-y-4">
+        <div className="h-8 w-48 bg-slate-200 rounded mb-4" />
         <div className="h-96 bg-slate-100 rounded-2xl" />
       </div>
     );
   }
 
-  if (!isGuest && !user) return null;
-  if (!templateId) return null;
-
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8 page-enter">
-      <div className="flex items-center justify-between mb-6">
+    <div className="max-w-6xl mx-auto px-4 py-8 page-enter">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>
-          <Link href="/templates" className="inline-flex items-center gap-1 text-sm text-slate-400 hover:text-slate-600 mb-1 transition-colors">
-            ← Templates
+          <Link href="/scorecards" className="inline-flex items-center gap-1 text-sm text-slate-400 hover:text-slate-600 mb-2 transition-colors">
+            ← Scorecards
           </Link>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">New Game: {templateName}</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">{isEdit ? "Edit Scorecard" : "New Scorecard"}</h1>
         </div>
         <div className="flex gap-2">
-          <input type="text" value={title} onChange={(e) => setTitle(e.target.value)}
-            placeholder="Game title" className="input-field text-sm w-44" />
+          <Link href={isEdit ? `/templates/${templateId}` : "/scorecards"} className="btn-secondary text-sm">Cancel</Link>
           <button onClick={handleSave} disabled={saving} className="btn-primary text-sm">
-            {saving ? "Saving..." : "Save & Finish"}
+            {saving ? "Saving..." : isEdit ? "Save Changes" : "Create Scorecard"}
           </button>
         </div>
       </div>
 
-      {cells.length > 0 && (
-        <ScorecardFill
-          cells={cells}
-          players={players}
-          values={values}
-          onPlayersChange={setPlayers}
-          onValuesChange={setValues}
-        />
-      )}
-    </div>
-  );
-}
+      {/* Template metadata */}
+      <div className="card p-5 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="sm:col-span-2">
+            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1.5">Scorecard Name</label>
+            <input type="text" value={name} onChange={(e) => setName(e.target.value)}
+              className="input-field font-medium" placeholder="e.g. Poker Night, Team Match, Scrabble" />
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1.5">Game (optional)</label>
+            <select value={gameId} onChange={(e) => setGameId(e.target.value)}
+              className="input-field text-sm">
+              <option value="">No game linked</option>
+              {games.map((g) => (
+                <option key={g.id} value={g.id}>{g.icon} {g.name}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+        <div className="mt-3 flex items-center gap-4">
+          <label className="flex items-center gap-2.5 cursor-pointer">
+            <input type="checkbox" checked={isPublic} onChange={(e) => setIsPublic(e.target.checked)}
+              className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" />
+            <span className="text-sm font-medium text-slate-700">Public in gallery</span>
+          </label>
+        </div>
+        <div className="mt-3">
+          <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1.5">Description (optional)</label>
+          <input type="text" value={description} onChange={(e) => setDescription(e.target.value)}
+            className="input-field" placeholder="Brief description of this scorecard layout" />
+        </div>
+      </div>
 
-export default function NewScorecardPage() {
-  return (
-    <Suspense fallback={<div className="max-w-4xl mx-auto px-4 py-8"><div className="animate-pulse h-64 bg-slate-100 rounded-xl" /></div>}>
-      <NewScorecardPageInner />
-    </Suspense>
+      {/* Grid Builder */}
+      <GridBuilder cells={cells} onChange={setCells} />
+    </div>
   );
 }
