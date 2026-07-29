@@ -16,7 +16,7 @@ function QuickPickTemplates() {
   return (
     <div className="flex flex-wrap gap-1.5">
       {templates.map(tpl => (
-        <Link key={tpl.id} href={`/scorecards/${tpl.id}`}
+        <Link key={tpl.id} href={`/scorecards/${tpl.id.replace(/^tpl-/, '')}`}
           className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-100 border border-slate-200 text-xs font-medium text-slate-600 hover:bg-indigo-50 hover:border-indigo-200 hover:text-indigo-700 transition-colors">
           {tpl.game_icon || "🎲"} {tpl.name}
         </Link>
