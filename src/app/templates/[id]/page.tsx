@@ -4,7 +4,7 @@ export const runtime = 'edge';
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { getTemplate, Template, deleteTemplate } from "@/lib/api-client";
+import { getTemplate, Template, deleteTemplate, type TemplateCell } from "@/lib/api-client";
 import { guestGetTemplate, guestDeleteTemplate } from "@/lib/guest-store";
 import { useAuth } from "@/components/AuthProvider";
 import Link from "next/link";
@@ -128,17 +128,17 @@ export default function TemplateDetailPage() {
                   <>
                     <td className="px-2 py-1">
                       <span className="text-[13px] font-medium text-slate-700 truncate block max-w-[220px]"
-                        title={(cell.label || cell.cell_key) + (cell.formula_expr ? `  (=${cell.formula_expr})` : '')}>
-                        {cell.label || cell.cell_key}
+                        title={(cell.label || cell.cell_key.replace(/_/g, ' ')) + (cell.formula_expr ? `  (=${cell.formula_expr})` : '')}>
+                        {cell.label || cell.cell_key.replace(/_/g, ' ')}
                       </span>
                       {cell.formula_expr && <span className="text-[10px] font-mono text-amber-500 ml-1" title={`=${cell.formula_expr}`}>ƒ</span>}
                       {!!(cell.config_json as Record<string, unknown>)?.allow_multiple && <span className="text-[10px] text-indigo-400 ml-1" title="Multiple entries allowed">+</span>}
                     </td>
                     <td className="px-2 py-1 text-center">
-                      <span className="text-[11px] text-slate-300">{cell.cell_type === "formula" ? "0" : cell.cell_type === "tally" ? "−0+" : cell.cell_type === "input:text" ? "abc" : "0"}</span>
+                      <PreviewValue cell={cell} />
                     </td>
                     <td className="px-2 py-1 text-center">
-                      <span className="text-[11px] text-slate-300">{cell.cell_type === "formula" ? "0" : cell.cell_type === "tally" ? "−0+" : cell.cell_type === "input:text" ? "abc" : "0"}</span>
+                      <PreviewValue cell={cell} />
                     </td>
                   </>
                 )}
@@ -149,4 +149,13 @@ export default function TemplateDetailPage() {
       </div>
     </div>
   );
+}
+
+function PreviewValue({ cell }: { cell: TemplateCell }) {
+  const allowMultiple = !!(cell.config_json as Record<string, unknown>)?.allow_multiple;
+  if (allowMultiple) return <span className="text-[11px] text-slate-300" title="Variable entries">…</span>;
+  if (cell.cell_type === "formula") return <span className="text-[11px] text-slate-300">0</span>;
+  if (cell.cell_type === "tally") return <span className="text-[11px] text-slate-300">−0+</span>;
+  if (cell.cell_type === "input:text") return <span className="text-[11px] text-slate-300">abc</span>;
+  return <span className="text-[11px] text-slate-300">0</span>;
 }
