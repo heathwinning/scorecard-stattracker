@@ -49,21 +49,28 @@ UPDATE template_cells SET cell_type = 'input:number', config_json = '{"default":
 -- Remove all template title heading rows (redundant with page title)
 DELETE FROM template_cells WHERE id IN ('y-h', 'uno-h', 'cat-h', 'sp-h', 'sc-h', 'ch-h', 'pk-h', 'p10-h', 'gf-h', 'ttr-h', 'ws-h');
 
+-- Remove old redundant section headings but keep End-of-Round Goals
+DELETE FROM template_cells WHERE id IN ('ws-bh', 'ws-boh', 'ws-oh', 'ws-ln', 'ws-lt');
+
+-- Restore End-of-Round Goals heading
+INSERT OR IGNORE INTO template_cells (id, template_id, row_pos, col_pos, row_span, col_span, cell_type, cell_key, label, formula_expr, per_player, config_json, sort_order)
+VALUES ('ws-rh', 'tpl-wingspan', 7, 0, 1, 2, 'heading', 'h_rounds', 'End-of-Round Goals', NULL, 0, '{}', 3);
+
 -- Update Wingspan cells to new sort order (flat list, no section headings)
 UPDATE template_cells SET sort_order = 1 WHERE id = 'ws-bi';
 UPDATE template_cells SET sort_order = 2 WHERE id = 'ws-bi2';
-UPDATE template_cells SET sort_order = 3 WHERE id = 'ws-r1i';
-UPDATE template_cells SET sort_order = 4 WHERE id = 'ws-r2i';
-UPDATE template_cells SET sort_order = 5 WHERE id = 'ws-r3i';
-UPDATE template_cells SET sort_order = 6 WHERE id = 'ws-r4i';
-UPDATE template_cells SET sort_order = 7 WHERE id = 'ws-et';
-UPDATE template_cells SET sort_order = 8 WHERE id = 'ws-ft2';
-UPDATE template_cells SET sort_order = 9 WHERE id = 'ws-tt';
-UPDATE template_cells SET sort_order = 10 WHERE id = 'ws-ft';
+UPDATE template_cells SET sort_order = 4 WHERE id = 'ws-r1i';
+UPDATE template_cells SET sort_order = 5 WHERE id = 'ws-r2i';
+UPDATE template_cells SET sort_order = 6 WHERE id = 'ws-r3i';
+UPDATE template_cells SET sort_order = 7 WHERE id = 'ws-r4i';
+UPDATE template_cells SET sort_order = 8 WHERE id = 'ws-et';
+UPDATE template_cells SET sort_order = 9 WHERE id = 'ws-ft2';
+UPDATE template_cells SET sort_order = 10 WHERE id = 'ws-tt';
+UPDATE template_cells SET sort_order = 11 WHERE id = 'ws-ft';
 
 -- Update labels
 UPDATE template_cells SET label = 'Bonus Cards' WHERE id = 'ws-bi2';
-UPDATE template_cells SET label = 'Round 1 Goal' WHERE id = 'ws-r1i';
-UPDATE template_cells SET label = 'Round 2 Goal' WHERE id = 'ws-r2i';
-UPDATE template_cells SET label = 'Round 3 Goal' WHERE id = 'ws-r3i';
-UPDATE template_cells SET label = 'Round 4 Goal' WHERE id = 'ws-r4i';
+UPDATE template_cells SET label = 'Round 1' WHERE id = 'ws-r1i';
+UPDATE template_cells SET label = 'Round 2' WHERE id = 'ws-r2i';
+UPDATE template_cells SET label = 'Round 3' WHERE id = 'ws-r3i';
+UPDATE template_cells SET label = 'Round 4' WHERE id = 'ws-r4i';
