@@ -125,8 +125,8 @@ export default function ScorecardFill({
             </div>
           );
         },
-        size: 180,
-        minSize: 120,
+        size: 140,
+        minSize: 100,
         enableHiding: false,
       }),
     ];
@@ -159,8 +159,8 @@ export default function ScorecardFill({
             />
           );
         },
-        size: 120,
-        minSize: 90,
+        size: 100,
+        minSize: 75,
         enableHiding: false,
       }));
     });
@@ -206,7 +206,7 @@ export default function ScorecardFill({
       <div className="card overflow-x-auto">
         {/* View toggle */}
         {isMultiplayer && players.length > 1 && (
-          <div className="px-4 pt-4 flex items-center justify-between">
+          <div className="px-3 sm:px-4 pt-4 flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:justify-between">
             <div className="flex items-center bg-slate-100 rounded-lg p-0.5">
               <button onClick={() => setMyViewOnly(false)}
                 className={`text-xs font-medium px-3 py-1.5 rounded-md transition-all ${!myViewOnly ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}>
@@ -230,7 +230,7 @@ export default function ScorecardFill({
               <tr key={hg.id} className="border-b-2 border-slate-200">
                 {hg.headers.map(header => (
                   <th key={header.id}
-                    className="text-xs font-semibold text-slate-500 uppercase tracking-wider px-3 py-3 text-left first:pl-4 last:text-center"
+                    className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider px-2 sm:px-3 py-2.5 text-left first:pl-3 last:text-center"
                     style={{ width: header.getSize(), minWidth: header.column.columnDef.minSize }}>
                     {flexRender(header.column.columnDef.header, header.getContext())}
                   </th>
@@ -254,7 +254,7 @@ export default function ScorecardFill({
               return (
                 <tr key={row.id} className={`border-b border-slate-100 hover:bg-slate-50/50 transition-colors ${ri % 2 === 0 ? "bg-slate-50/30" : ""}`}>
                   {row.getVisibleCells().map(vcell => (
-                    <td key={vcell.id} className="px-3 py-2.5 first:pl-4 last:text-center">
+                    <td key={vcell.id} className="px-2 sm:px-3 py-2 first:pl-3 last:text-center">
                       {flexRender(vcell.column.columnDef.cell, vcell.getContext())}
                     </td>
                   ))}

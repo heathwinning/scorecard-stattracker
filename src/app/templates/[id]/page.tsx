@@ -68,7 +68,7 @@ export default function TemplateDetailPage() {
         <HiOutlineArrowLeft className="w-4 h-4" /> Templates
       </Link>
 
-      <div className="flex items-start justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
         <div>
           <div className="flex items-center gap-3 mb-1">
             <h1 className="text-2xl font-bold tracking-tight text-slate-900">{template.name}</h1>

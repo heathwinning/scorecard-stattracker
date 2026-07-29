@@ -90,7 +90,7 @@ export default function TemplateNewPage({ params }: Props) {
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8 page-enter">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>
           <Link href="/templates" className="inline-flex items-center gap-1 text-sm text-slate-400 hover:text-slate-600 mb-2 transition-colors">
             ← Templates

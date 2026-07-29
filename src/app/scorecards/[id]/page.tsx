@@ -163,7 +163,7 @@ export default function ScorecardDetailPage() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 page-enter">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>
           <Link href="/scorecards" className="inline-flex items-center gap-1 text-sm text-slate-400 hover:text-slate-600 mb-1 transition-colors">
             ← Scorecards
