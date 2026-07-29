@@ -40,6 +40,14 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: d1 execute scorecard-db --file=./database/schema.sql --remote
 
+      - name: Run data migrations (production)
+        if: github.ref == 'refs/heads/main'
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: d1 execute scorecard-db --file=./database/migrations/001_remove_tpl_prefix.sql --remote
+
       - name: Seed D1 data (production, first deploy only)
         if: github.ref == 'refs/heads/main'
         uses: cloudflare/wrangler-action@v3
