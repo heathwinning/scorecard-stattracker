@@ -330,32 +330,26 @@ INSERT OR IGNORE INTO templates (id, name, description, game_id, is_public, crea
 
 INSERT OR IGNORE INTO template_cells (id, template_id, row_pos, col_pos, row_span, col_span, cell_type, cell_key, label, formula_expr, per_player, config_json, sort_order) VALUES
 -- Header
-('ws-h', 'tpl-wingspan', 0, 0, 1, 2, 'heading', 'h_main', '🐦 Wingspan Scorecard', NULL, 0, '{}', 0),
-('ws-ln', 'tpl-wingspan', 1, 0, 1, 1, 'label', 'lbl_name', 'Player', NULL, 0, '{}', 1),
-('ws-lt', 'tpl-wingspan', 1, 1, 1, 1, 'label', 'lbl_total', 'Total', NULL, 0, '{}', 2),
--- Bird Cards
-('ws-bh', 'tpl-wingspan', 3, 0, 1, 2, 'heading', 'h_birds', 'Bird Cards', NULL, 0, '{}', 5),
-('ws-bi', 'tpl-wingspan', 4, 0, 1, 1, 'input:number', 'bird_points', 'Bird Points', NULL, 1, '{"default":0}', 6),
--- Bonus Cards (allow_multiple — players can add any number)
-('ws-boh', 'tpl-wingspan', 5, 0, 1, 2, 'heading', 'h_bonus', 'Bonus Cards', NULL, 0, '{}', 7),
-('ws-bi2', 'tpl-wingspan', 6, 0, 1, 1, 'input:number', 'bonus', 'Bonus Card', NULL, 1, '{"default":0,"allow_multiple":true}', 8),
--- Round Goals
-('ws-rh', 'tpl-wingspan', 7, 0, 1, 2, 'heading', 'h_rounds', 'End-of-Round Goals', NULL, 0, '{}', 9),
-('ws-r1i', 'tpl-wingspan', 8, 0, 1, 1, 'input:number', 'round_1', 'Round 1', NULL, 1, '{"default":0}', 10),
-('ws-r2i', 'tpl-wingspan', 9, 0, 1, 1, 'input:number', 'round_2', 'Round 2', NULL, 1, '{"default":0}', 11),
-('ws-r3i', 'tpl-wingspan', 10, 0, 1, 1, 'input:number', 'round_3', 'Round 3', NULL, 1, '{"default":0}', 12),
-('ws-r4i', 'tpl-wingspan', 11, 0, 1, 1, 'input:number', 'round_4', 'Round 4', NULL, 1, '{"default":0}', 13),
--- Eggs, Food, Tucked
-('ws-oh', 'tpl-wingspan', 12, 0, 1, 2, 'heading', 'h_other', 'Other Points', NULL, 0, '{}', 14),
-('ws-et', 'tpl-wingspan', 13, 0, 1, 1, 'input:number', 'eggs', '🥚 Eggs', NULL, 1, '{"default":0}', 15),
-('ws-ft2', 'tpl-wingspan', 14, 0, 1, 1, 'input:number', 'cached_food', '🍒 Cached Food', NULL, 1, '{"default":0}', 16),
-('ws-tt', 'tpl-wingspan', 15, 0, 1, 1, 'input:number', 'tucked_cards', '🃏 Tucked Cards', NULL, 1, '{"default":0}', 17),
-('ws-ft', 'tpl-wingspan', 2, 1, 1, 1, 'formula', 'grand_total', 'Total', 'bird_points + SUM(bonus_*) + round_1 + round_2 + round_3 + round_4 + eggs + cached_food + tucked_cards', 1, '{}', 18);
+('ws-h', 'tpl-wingspan', 0, 0, 1, 2, 'heading', 'h_main', '🐦 Wingspan', NULL, 0, '{}', 0),
+-- Categories (no redundant section headings)
+('ws-bi', 'tpl-wingspan', 4, 0, 1, 1, 'input:number', 'bird_points', 'Bird Points', NULL, 1, '{"default":0}', 1),
+('ws-bi2', 'tpl-wingspan', 6, 0, 1, 1, 'input:number', 'bonus', 'Bonus Cards', NULL, 1, '{"default":0,"allow_multiple":true}', 2),
+('ws-r1i', 'tpl-wingspan', 8, 0, 1, 1, 'input:number', 'round_1', 'Round 1 Goal', NULL, 1, '{"default":0}', 3),
+('ws-r2i', 'tpl-wingspan', 9, 0, 1, 1, 'input:number', 'round_2', 'Round 2 Goal', NULL, 1, '{"default":0}', 4),
+('ws-r3i', 'tpl-wingspan', 10, 0, 1, 1, 'input:number', 'round_3', 'Round 3 Goal', NULL, 1, '{"default":0}', 5),
+('ws-r4i', 'tpl-wingspan', 11, 0, 1, 1, 'input:number', 'round_4', 'Round 4 Goal', NULL, 1, '{"default":0}', 6),
+('ws-et', 'tpl-wingspan', 13, 0, 1, 1, 'input:number', 'eggs', '🥚 Eggs', NULL, 1, '{"default":0}', 7),
+('ws-ft2', 'tpl-wingspan', 14, 0, 1, 1, 'input:number', 'cached_food', '🍒 Cached Food', NULL, 1, '{"default":0}', 8),
+('ws-tt', 'tpl-wingspan', 15, 0, 1, 1, 'input:number', 'tucked_cards', '🃏 Tucked Cards', NULL, 1, '{"default":0}', 9),
+-- Total (always last)
+('ws-ft', 'tpl-wingspan', 2, 1, 1, 1, 'formula', 'grand_total', 'Total', 'bird_points + SUM(bonus_*) + round_1 + round_2 + round_3 + round_4 + eggs + cached_food + tucked_cards', 1, '{}', 10);
 
 
 -- ============================================================
 -- Seed template updates (idempotent)
 -- ============================================================
+-- Migration: Update Wingspan template (remove old bonus_1-4, add allow_multiple bonus)
+-- Also: remove player_name cells, fix labels, move totals
 -- Migration: Update Wingspan template (remove old bonus_1-4, add allow_multiple bonus)
 -- Also: remove player_name cells, fix labels, move totals
 
@@ -403,3 +397,25 @@ VALUES ('ws-bi2', 'tpl-wingspan', 6, 0, 1, 1, 'input:number', 'bonus', 'Bonus Ca
 UPDATE template_cells SET cell_type = 'input:number', config_json = '{"default":0}' WHERE id = 'ws-et';
 UPDATE template_cells SET cell_type = 'input:number', config_json = '{"default":0}' WHERE id = 'ws-ft2';
 UPDATE template_cells SET cell_type = 'input:number', config_json = '{"default":0}' WHERE id = 'ws-tt';
+
+-- Hide redundant Wingspan section headings and label cells
+UPDATE template_cells SET sort_order = -1 WHERE id IN ('ws-bh', 'ws-boh', 'ws-rh', 'ws-oh', 'ws-ln', 'ws-lt');
+
+-- Update Wingspan cells to new sort order (flat list, no section headings)
+UPDATE template_cells SET sort_order = 1 WHERE id = 'ws-bi';
+UPDATE template_cells SET sort_order = 2 WHERE id = 'ws-bi2';
+UPDATE template_cells SET sort_order = 3 WHERE id = 'ws-r1i';
+UPDATE template_cells SET sort_order = 4 WHERE id = 'ws-r2i';
+UPDATE template_cells SET sort_order = 5 WHERE id = 'ws-r3i';
+UPDATE template_cells SET sort_order = 6 WHERE id = 'ws-r4i';
+UPDATE template_cells SET sort_order = 7 WHERE id = 'ws-et';
+UPDATE template_cells SET sort_order = 8 WHERE id = 'ws-ft2';
+UPDATE template_cells SET sort_order = 9 WHERE id = 'ws-tt';
+UPDATE template_cells SET sort_order = 10 WHERE id = 'ws-ft';
+
+-- Update labels
+UPDATE template_cells SET label = 'Bonus Cards' WHERE id = 'ws-bi2';
+UPDATE template_cells SET label = 'Round 1 Goal' WHERE id = 'ws-r1i';
+UPDATE template_cells SET label = 'Round 2 Goal' WHERE id = 'ws-r2i';
+UPDATE template_cells SET label = 'Round 3 Goal' WHERE id = 'ws-r3i';
+UPDATE template_cells SET label = 'Round 4 Goal' WHERE id = 'ws-r4i';
