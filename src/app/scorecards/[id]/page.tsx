@@ -19,7 +19,9 @@ export default function TemplateDetailPage() {
   const [template, setTemplate] = useState<Template | null>(null);
   const [loading, setLoading] = useState(true);
   const [starting, setStarting] = useState(false);
-  const id = params.id as string;
+  const urlId = params.id as string;
+  // Resolve clean URL (e.g. "wingspan") to internal ID (e.g. "tpl-wingspan")
+  const id = urlId.startsWith("tpl-") ? urlId : `tpl-${urlId}`;
 
   useEffect(() => {
     if (id.startsWith("guest-")) {
