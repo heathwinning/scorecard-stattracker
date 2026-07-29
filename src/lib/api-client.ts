@@ -89,7 +89,7 @@ export async function listGames() {
 }
 
 export async function getTemplate(id: string) {
-  return api<{ template: Template }>(`/api/scorecards/${id}`);
+  return api<{ template: Template }>(`/api/templates/${id}`);
 }
 
 export async function createTemplate(data: {
@@ -112,14 +112,14 @@ export async function updateTemplate(id: string, data: {
   is_public?: boolean;
   cells?: TemplateCell[];
 }) {
-  return api<{ success: boolean }>(`/api/scorecards/${id}`, {
+  return api<{ success: boolean }>(`/api/templates/${id}`, {
     method: "PUT",
     body: JSON.stringify(data),
   });
 }
 
 export async function deleteTemplate(id: string) {
-  return api<{ success: boolean }>(`/api/scorecards/${id}`, { method: "DELETE" });
+  return api<{ success: boolean }>(`/api/templates/${id}`, { method: "DELETE" });
 }
 
 // Scorecards
@@ -172,7 +172,7 @@ export async function getScorecard(id: string) {
     scorecard: Scorecard;
     players: ScorecardPlayer[];
     values: CellValue[];
-  }>(`/api/scorecards/${id}`);
+  }>(`/api/templates/${id}`);
 }
 
 export async function createScorecard(data: {
@@ -194,19 +194,19 @@ export async function updateScorecard(id: string, data: {
   players?: ScorecardPlayer[];
   values?: CellValue[];
 }) {
-  return api<{ success: boolean }>(`/api/scorecards/${id}`, {
+  return api<{ success: boolean }>(`/api/templates/${id}`, {
     method: "PUT",
     body: JSON.stringify(data),
   });
 }
 
 export async function deleteScorecard(id: string) {
-  return api<{ success: boolean }>(`/api/scorecards/${id}`, { method: "DELETE" });
+  return api<{ success: boolean }>(`/api/templates/${id}`, { method: "DELETE" });
 }
 
 // Multiplayer: sharing & live sync
 export async function shareScorecard(id: string) {
-  return api<{ share_code: string }>(`/api/scorecards/${id}/share`, { method: "POST" });
+  return api<{ share_code: string }>(`/api/templates/${id}/share`, { method: "POST" });
 }
 
 export async function joinScorecard(shareCode: string) {
@@ -224,7 +224,7 @@ export async function getLiveScorecard(id: string, since?: string) {
     values: CellValue[];
     participants: ScorecardParticipant[];
     last_updated: string;
-  }>(`/api/scorecards/${id}/live${qs}`);
+  }>(`/api/templates/${id}/live${qs}`);
 }
 
 export async function updateMyCells(
