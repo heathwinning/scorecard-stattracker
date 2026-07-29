@@ -14,7 +14,7 @@ function QuickPickTemplates() {
   if (templates.length === 0) return null;
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+    <div className="space-y-1.5">
       {templates.map(tpl => (
         <Link key={tpl.id} href={`/scorecards/${tpl.id}`}
           className="card-hover p-3 group flex items-center gap-2.5">
@@ -54,19 +54,27 @@ export default function Home() {
         </div>
       </section>
 
-      {/* How it works + quick pick */}
+      {/* How it works */}
       <section className="max-w-5xl mx-auto px-4 py-14">
         <div className="text-center mb-10">
           <h2 className="text-2xl font-bold tracking-tight text-slate-900 mb-2">How it works</h2>
           <p className="text-slate-500 max-w-md mx-auto">Three simple steps from scorecard to final score</p>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+          <div className="card p-6 sm:col-span-1">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-50 to-violet-50 flex items-center justify-center text-lg shadow-sm">🎨</div>
+              <span className="text-xs font-bold text-indigo-400 uppercase tracking-wider">Step 1</span>
+            </div>
+            <h3 className="font-semibold text-slate-900 mb-2">Pick a Scorecard</h3>
+            <p className="text-sm text-slate-500 leading-relaxed mb-3">Choose one to start scoring right away.</p>
+            <QuickPickTemplates />
+          </div>
           {[
-            { icon: "🎨", step: "1", title: "Build or Pick", desc: "Create a scorecard from scratch, or pick one below to get started instantly." },
             { icon: "🎮", step: "2", title: "Start a Game", desc: "Launch a scorecard, add players, and start tracking scores as you play." },
             { icon: "📊", step: "3", title: "Auto-Calculate", desc: "Formula cells automatically sum and compute results. No mental math needed." },
           ].map((f) => (
-            <div key={f.step} className="card p-6 group">
+            <div key={f.step} className="card p-6">
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-50 to-violet-50 flex items-center justify-center text-lg shadow-sm">{f.icon}</div>
                 <span className="text-xs font-bold text-indigo-400 uppercase tracking-wider">Step {f.step}</span>
@@ -76,12 +84,6 @@ export default function Home() {
             </div>
           ))}
         </div>
-
-        {/* Quick pick scorecards */}
-        <div className="text-center mb-4">
-          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Quick pick — start scoring now</p>
-        </div>
-        <QuickPickTemplates />
       </section>
 
       {/* SEO: visually hidden but crawlable */}
