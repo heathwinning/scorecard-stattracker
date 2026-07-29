@@ -170,7 +170,7 @@ export default function ScorecardFill({
         const tooltip = [c.label || c.cell_key.replace(/_/g, ' ')];
         if (c.formula_expr) tooltip.push(`Formula: ${c.formula_expr}`);
         if (!!(c.config_json as Record<string, unknown>)?.allow_multiple) tooltip.push('Players can add multiple entries');
-        return <span className={`text-[13px] ${isTotal ? "font-bold" : "font-medium"} text-slate-700 truncate block`} title={tooltip.join('\n')}>{c.label || c.cell_key.replace(/_/g, ' ')}</span>;
+        return <span className={`text-[13px] ${isTotal ? "font-bold" : "font-medium"} text-slate-700`} title={tooltip.join('\n')}>{c.label || c.cell_key.replace(/_/g, ' ')}</span>;
       },
     })];
     displayPlayers.forEach((player, pi) => {
@@ -259,7 +259,7 @@ export default function ScorecardFill({
       )}
 
       <div className="card overflow-x-auto">
-        <table className="w-full border-collapse table-fixed">
+        <table className="w-full border-collapse table-auto">
           <thead>
             {table.getHeaderGroups().map(hg => (
               <tr key={hg.id} className="border-b border-slate-200">
