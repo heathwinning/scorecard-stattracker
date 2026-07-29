@@ -109,12 +109,12 @@ export default function TemplateDetailPage() {
       {/* Table Preview */}
       <div className="card p-4 overflow-x-auto">
         <h3 className="section-header">Layout Preview</h3>
-        <table className="w-full min-w-[400px] border-collapse table-auto">
+        <table className="w-full border-collapse table-fixed">
           <thead>
             <tr className="border-b border-slate-200">
               <th className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider px-2 py-1.5 text-left">Category</th>
-              <th className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider px-2 py-1.5 text-center">P1</th>
-              <th className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider px-2 py-1.5 text-center">P2</th>
+              <th className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider px-1 py-1.5 text-center w-10">P1</th>
+              <th className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider px-1 py-1.5 text-center w-10">P2</th>
             </tr>
           </thead>
           <tbody>
