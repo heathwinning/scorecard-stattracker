@@ -164,7 +164,7 @@ export interface ScorecardParticipant {
 }
 
 export async function listScorecards() {
-  return api<{ scorecards: Scorecard[] }>("/api/history");
+  return api<{ scorecards: Scorecard[] }>("/api/scores");
 }
 
 export async function getScorecard(id: string) {
@@ -172,7 +172,7 @@ export async function getScorecard(id: string) {
     scorecard: Scorecard;
     players: ScorecardPlayer[];
     values: CellValue[];
-  }>(`/api/history/${id}`);
+  }>(`/api/scores/${id}`);
 }
 
 export async function createScorecard(data: {
@@ -181,7 +181,7 @@ export async function createScorecard(data: {
   game_date?: string;
   notes?: string;
 }) {
-  return api<{ scorecard: { id: string } }>("/api/history", {
+  return api<{ scorecard: { id: string } }>("/api/scores", {
     method: "POST",
     body: JSON.stringify(data),
   });
@@ -194,24 +194,24 @@ export async function updateScorecard(id: string, data: {
   players?: ScorecardPlayer[];
   values?: CellValue[];
 }) {
-  return api<{ success: boolean }>(`/api/history/${id}`, {
+  return api<{ success: boolean }>(`/api/scores/${id}`, {
     method: "PUT",
     body: JSON.stringify(data),
   });
 }
 
 export async function deleteScorecard(id: string) {
-  return api<{ success: boolean }>(`/api/history/${id}`, { method: "DELETE" });
+  return api<{ success: boolean }>(`/api/scores/${id}`, { method: "DELETE" });
 }
 
 // Multiplayer: sharing & live sync
 export async function shareScorecard(id: string) {
-  return api<{ share_code: string }>(`/api/history/${id}/share`, { method: "POST" });
+  return api<{ share_code: string }>(`/api/scores/${id}/share`, { method: "POST" });
 }
 
 export async function joinScorecard(shareCode: string) {
   return api<{ scorecard_id: string; player_slot_id: string | null; player_name: string | null }>(
-    "/api/history/join",
+    "/api/scores/join",
     { method: "POST", body: JSON.stringify({ share_code: shareCode }) }
   );
 }
@@ -224,21 +224,21 @@ export async function getLiveScorecard(id: string, since?: string) {
     values: CellValue[];
     participants: ScorecardParticipant[];
     last_updated: string;
-  }>(`/api/history/${id}/live${qs}`);
+  }>(`/api/scores/${id}/live${qs}`);
 }
 
 export async function updateMyCells(
   scorecardId: string,
   cells: { template_cell_id: string; player_id: string; value: string; entry_key?: string; is_hidden?: number }[]
 ) {
-  return api<{ success: boolean }>(`/api/history/${scorecardId}/cells`, {
+  return api<{ success: boolean }>(`/api/scores/${scorecardId}/cells`, {
     method: "PUT",
     body: JSON.stringify({ cells }),
   });
 }
 
 export async function assignSlot(scorecardId: string, playerSlotId: string) {
-  return api<{ success: boolean }>(`/api/history/${scorecardId}/assign`, {
+  return api<{ success: boolean }>(`/api/scores/${scorecardId}/assign`, {
     method: "POST",
     body: JSON.stringify({ player_slot_id: playerSlotId }),
   });

@@ -80,7 +80,7 @@ export default function DashboardPage() {
             <div className="text-sm text-slate-500">My Scorecards</div>
           </div>
         </Link>
-        <Link href="/history" className="card-hover p-5 flex items-center gap-4 group">
+        <Link href="/scores" className="card-hover p-5 flex items-center gap-4 group">
           <div className="w-12 h-12 rounded-xl bg-violet-50 flex items-center justify-center text-xl group-hover:scale-110 transition-transform">
             <HiOutlineClipboardList className="w-6 h-6 text-violet-600" />
           </div>
@@ -96,7 +96,7 @@ export default function DashboardPage() {
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-lg font-bold text-slate-900">Recent Games</h2>
           {scorecards.length > 0 && (
-            <Link href="/history" className="text-sm font-medium text-indigo-600 hover:text-indigo-700 flex items-center gap-1">
+            <Link href="/scores" className="text-sm font-medium text-indigo-600 hover:text-indigo-700 flex items-center gap-1">
               View all <HiOutlineArrowRight className="w-3.5 h-3.5" />
             </Link>
           )}
@@ -221,7 +221,7 @@ function GuestDashboard({ templates, scorecards }: { templates: Template[]; scor
           </div>
           <div><div className="text-2xl font-bold text-slate-900">{templates.length}</div><div className="text-sm text-slate-500">My Scorecards</div></div>
         </Link>
-        <Link href="/history" className="card-hover p-5 flex items-center gap-4 group">
+        <Link href="/scores" className="card-hover p-5 flex items-center gap-4 group">
           <div className="w-12 h-12 rounded-xl bg-violet-50 flex items-center justify-center text-xl group-hover:scale-110 transition-transform">
             <HiOutlineClipboardList className="w-6 h-6 text-violet-600" />
           </div>

@@ -146,7 +146,7 @@ export default function ScorecardDetailPage() {
     try {
       if (id.startsWith("guest-")) { guestDeleteScorecard(id); }
       else { await deleteScorecard(id); }
-      toast.success("Deleted"); router.push("/history");
+      toast.success("Deleted"); router.push("/scores");
     } catch { toast.error("Failed to delete"); }
   };
 
@@ -166,7 +166,7 @@ export default function ScorecardDetailPage() {
     <div className="max-w-4xl mx-auto px-4 py-8 page-enter">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>
-          <Link href="/history" className="inline-flex items-center gap-1 text-sm text-slate-400 hover:text-slate-600 mb-1 transition-colors">
+          <Link href="/scores" className="inline-flex items-center gap-1 text-sm text-slate-400 hover:text-slate-600 mb-1 transition-colors">
             ← Scorecards
           </Link>
           <div className="flex items-center gap-3">

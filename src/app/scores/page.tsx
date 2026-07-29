@@ -53,7 +53,7 @@ export default function ScorecardsPage() {
           <h1 className="page-title">My Scores</h1>
           <p className="page-subtitle">Game sessions you've tracked</p>
         </div>
-        <Link href="/history" className="btn-primary"><HiOutlineClipboardList className="w-4 h-4" /> New Scorecard</Link>
+        <Link href="/scores" className="btn-primary"><HiOutlineClipboardList className="w-4 h-4" /> New Scorecard</Link>
       </div>
 
       {scorecards.length === 0 ? (
@@ -61,7 +61,7 @@ export default function ScorecardsPage() {
           <div className="empty-state-icon">🎮</div>
           <p className="empty-state-title">No scorecards yet</p>
           <p className="empty-state-desc">Pick a template and start tracking your first game.</p>
-          <Link href="/history" className="btn-primary text-sm mt-2">Browse Scorecards</Link>
+          <Link href="/scores" className="btn-primary text-sm mt-2">Browse Scorecards</Link>
         </div>
       ) : (
         <div className="space-y-2">

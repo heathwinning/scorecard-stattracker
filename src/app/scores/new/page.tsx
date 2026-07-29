@@ -36,7 +36,7 @@ function NewScorecardPageInner() {
   useEffect(() => {
     if (authLoading) return;
     if (!user && !isGuest) { router.push("/login"); return; }
-    if (!templateId) { router.push("/history"); return; }
+    if (!templateId) { router.push("/scores"); return; }
     (async () => {
       if (templateId.startsWith("guest-")) {
         const tpl = guestGetTemplate(templateId);
@@ -116,7 +116,7 @@ function NewScorecardPageInner() {
       {/* Top bar: title + share + settings */}
       <div className="flex flex-wrap items-center gap-3 mb-4">
         <div className="flex-1 min-w-0">
-          <Link href="/history" className="inline-flex items-center gap-1 text-xs text-slate-400 hover:text-slate-600 mb-0.5 transition-colors">
+          <Link href="/scores" className="inline-flex items-center gap-1 text-xs text-slate-400 hover:text-slate-600 mb-0.5 transition-colors">
             ← My Scores
           </Link>
           <div className="flex items-center gap-2">
