@@ -38,6 +38,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .finally(() => setLoading(false));
   }, []);
 
+  const isGuest = !loading && (!user || user.email?.startsWith("guest-"));
+
   const login = useCallback(async (credential: string) => {
     const data = await loginWithGoogle(credential);
     setUser(data.user);
@@ -49,7 +51,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, isGuest: !loading && !user, login, logout }}>
+    <AuthContext.Provider value={{ user, loading, isGuest, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

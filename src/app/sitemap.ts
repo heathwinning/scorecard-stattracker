@@ -2,17 +2,17 @@ import { MetadataRoute } from "next";
 
 // Known seed template IDs with their game slugs for SEO-friendly sitemap
 const SEED_TEMPLATES = [
-  { id: "tpl-yahtzee", game: "yahtzee" },
-  { id: "tpl-uno", game: "uno" },
-  { id: "tpl-catan", game: "catan" },
-  { id: "tpl-spades", game: "spades" },
-  { id: "tpl-scrabble", game: "scrabble" },
-  { id: "tpl-cornhole", game: "cornhole" },
-  { id: "tpl-poker", game: "poker" },
-  { id: "tpl-phase10", game: "phase-10" },
-  { id: "tpl-golf", game: "golf-card" },
-  { id: "tpl-ticket", game: "ticket-to-ride" },
-  { id: "tpl-wingspan", game: "wingspan" },
+  { id: "yahtzee", game: "yahtzee" },
+  { id: "uno", game: "uno" },
+  { id: "catan", game: "catan" },
+  { id: "spades", game: "spades" },
+  { id: "scrabble", game: "scrabble" },
+  { id: "cornhole", game: "cornhole" },
+  { id: "poker", game: "poker" },
+  { id: "phase10", game: "phase-10" },
+  { id: "golf", game: "golf-card" },
+  { id: "ticket", game: "ticket-to-ride" },
+  { id: "wingspan", game: "wingspan" },
 ];
 
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://scorecard-stattracker.pages.dev";

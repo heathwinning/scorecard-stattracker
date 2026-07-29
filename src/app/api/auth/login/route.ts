@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifyGoogleToken, createSessionToken, sessionCookie } from "@/lib/auth";
+import {
+  verifyGoogleToken,
+  createSessionToken,
+  sessionCookie,
+  getUserFromCookies,
+} from "@/lib/auth";
+import { getDB, execute, uuid } from "@/lib/db";
 
 export const runtime = "edge";
 
@@ -15,22 +21,63 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const user = await verifyGoogleToken(credential);
-    if (!user) {
+    const googleUser = await verifyGoogleToken(credential);
+    if (!googleUser) {
       return NextResponse.json(
         { error: "Invalid Google token" },
         { status: 401 }
       );
     }
 
-    const token = await createSessionToken(user);
+    const db = getDB();
+    const cookieHeader = request.headers.get("cookie");
+    const existingUser = await getUserFromCookies(cookieHeader);
+
+    // If the current session is a guest, migrate their data to the Google account
+    if (existingUser && existingUser.email?.startsWith("guest-")) {
+      const guestId = existingUser.id;
+
+      // Update or insert the Google user
+      await execute(
+        db,
+        `INSERT INTO users (id, email, name, avatar_url) VALUES (?1, ?2, ?3, ?4)
+         ON CONFLICT(id) DO UPDATE SET email = ?2, name = ?3, avatar_url = ?4`,
+        [googleUser.id, googleUser.email, googleUser.name, googleUser.avatar_url]
+      );
+
+      // Migrate guest's scorecards to the Google user
+      await execute(
+        db,
+        `UPDATE scorecards SET created_by = ?1 WHERE created_by = ?2`,
+        [googleUser.id, guestId]
+      );
+
+      // Migrate guest's templates to the Google user
+      await execute(
+        db,
+        `UPDATE templates SET created_by = ?1 WHERE created_by = ?2`,
+        [googleUser.id, guestId]
+      );
+
+      // Remove the old guest user record
+      await execute(db, `DELETE FROM users WHERE id = ?1`, [guestId]);
+    } else {
+      // Just upsert the Google user
+      await execute(
+        db,
+        `INSERT OR IGNORE INTO users (id, email, name, avatar_url) VALUES (?1, ?2, ?3, ?4)`,
+        [googleUser.id, googleUser.email, googleUser.name, googleUser.avatar_url]
+      );
+    }
+
+    const token = await createSessionToken(googleUser);
 
     const response = NextResponse.json({
       user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        avatar_url: user.avatar_url,
+        id: googleUser.id,
+        email: googleUser.email,
+        name: googleUser.name,
+        avatar_url: googleUser.avatar_url,
       },
     });
 

@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
 
   const db = getDB();
   const body = await request.json();
-  const { share_code } = body;
+  const { share_code, player_name } = body;
 
   if (!share_code || typeof share_code !== "string") {
     return NextResponse.json({ error: "Share code required" }, { status: 400 });
@@ -39,30 +39,62 @@ export async function POST(request: NextRequest) {
   );
 
   if (existing) {
-    // Get the player name if they have a slot
     let playerName: string | null = null;
-    if (existing.player_slot_id) {
+    let slotId: string | null = existing.player_slot_id;
+    if (slotId) {
       const slot = await queryFirst<{ player_name: string }>(
         db,
         "SELECT player_name FROM scorecard_players WHERE id = ?1",
-        [existing.player_slot_id]
+        [slotId]
       );
       playerName = slot?.player_name || null;
     }
     return NextResponse.json({
       scorecard_id: scorecard.id,
-      player_slot_id: existing.player_slot_id,
+      player_slot_id: slotId,
       player_name: playerName,
     });
   }
 
-  // Add as participant (no slot assigned yet)
+  // Add as participant
+  const participantId = crypto.randomUUID();
   await execute(
     db,
     `INSERT OR IGNORE INTO scorecard_participants (id, scorecard_id, user_id, role)
      VALUES (?1, ?2, ?3, 'player')`,
-    [crypto.randomUUID(), scorecard.id, user.id]
+    [participantId, scorecard.id, user.id]
   );
+
+  // If player_name provided, create a new player slot
+  if (player_name && player_name.trim()) {
+    const chosenName = player_name.trim();
+    const slotId = crypto.randomUUID();
+    const sortOrder = await queryFirst<{ cnt: number }>(
+      db,
+      "SELECT COUNT(*) as cnt FROM scorecard_players WHERE scorecard_id = ?1",
+      [scorecard.id]
+    ).then(r => (r?.cnt ?? 0));
+
+    await execute(
+      db,
+      `INSERT INTO scorecard_players (id, scorecard_id, player_name, sort_order)
+       VALUES (?1, ?2, ?3, ?4)`,
+      [slotId, scorecard.id, chosenName, sortOrder]
+    );
+
+    // Assign the slot to the participant
+    await execute(
+      db,
+      "UPDATE scorecard_participants SET player_slot_id = ?1 WHERE id = ?2",
+      [slotId, participantId]
+    );
+
+    return NextResponse.json({
+      scorecard_id: scorecard.id,
+      player_slot_id: slotId,
+      player_name: chosenName,
+    });
+  }
 
   return NextResponse.json({
     scorecard_id: scorecard.id,

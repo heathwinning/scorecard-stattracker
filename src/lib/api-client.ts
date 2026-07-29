@@ -209,10 +209,10 @@ export async function shareScorecard(id: string) {
   return api<{ share_code: string }>(`/api/scores/${id}/share`, { method: "POST" });
 }
 
-export async function joinScorecard(shareCode: string) {
+export async function joinScorecard(shareCode: string, playerName?: string) {
   return api<{ scorecard_id: string; player_slot_id: string | null; player_name: string | null }>(
     "/api/scores/join",
-    { method: "POST", body: JSON.stringify({ share_code: shareCode }) }
+    { method: "POST", body: JSON.stringify({ share_code: shareCode, player_name: playerName || undefined }) }
   );
 }
 
@@ -237,9 +237,9 @@ export async function updateMyCells(
   });
 }
 
-export async function assignSlot(scorecardId: string, playerSlotId: string) {
-  return api<{ success: boolean }>(`/api/scores/${scorecardId}/assign`, {
+export async function assignSlot(scorecardId: string, playerSlotId: string, playerName?: string) {
+  return api<{ success: boolean; player_name?: string }>(`/api/scores/${scorecardId}/assign`, {
     method: "POST",
-    body: JSON.stringify({ player_slot_id: playerSlotId }),
+    body: JSON.stringify({ player_slot_id: playerSlotId, player_name: playerName || undefined }),
   });
 }

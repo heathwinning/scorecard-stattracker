@@ -153,10 +153,12 @@ export default function ScorecardFill({
     if (players.length > 0) {
       return myViewOnly && myPlayerSlotId ? players.filter(p => p.id === myPlayerSlotId) : players;
     }
-    // Preview mode: show P1 and P2
+    // Preview mode: show P1–P4
     return [
       { id: "preview-1", player_name: "P1", sort_order: 0 },
       { id: "preview-2", player_name: "P2", sort_order: 1 },
+      { id: "preview-3", player_name: "P3", sort_order: 2 },
+      { id: "preview-4", player_name: "P4", sort_order: 3 },
     ];
   }, [players, myViewOnly, myPlayerSlotId]);
 
@@ -287,13 +289,13 @@ export default function ScorecardFill({
         </div>
       )}
 
-      <div className="card overflow-x-auto">
-        <table className="w-full border-collapse table-auto">
+      <div className="card overflow-x-auto w-fit mx-auto">
+        <table className="border-collapse table-auto">
           <thead>
             {table.getHeaderGroups().map(hg => (
               <tr key={hg.id} className="border-b border-slate-200">
                 {hg.headers.map(h => (
-                  <th key={h.id} className={`text-[11px] font-semibold text-slate-400 uppercase tracking-wider px-2 py-1.5 ${h.column.id === "category" ? "text-left" : "text-center w-0"}`}>
+                  <th key={h.id} className={`text-[11px] font-semibold text-slate-400 uppercase tracking-wider px-4 py-2 ${h.column.id === "category" ? "text-left whitespace-nowrap w-0" : "text-center w-0"}`}>
                     {flexRender(h.column.columnDef.header, h.getContext())}
                   </th>
                 ))}
@@ -309,11 +311,11 @@ export default function ScorecardFill({
                 const hasFormula = !!c.formula_expr;
                 return (
                   <tr key={row.id} className="border-b border-slate-100 bg-indigo-50/40">
-                    <td className="px-2 py-1">
+                    <td className="px-4 py-2">
                       <span className="font-semibold text-[13px] text-indigo-700">{c.label || c.cell_key}</span>
                     </td>
                     {row.getVisibleCells().slice(1).map(vc => (
-                      <td key={vc.id} className="px-2 py-1 text-center">
+                      <td key={vc.id} className="px-4 py-2 text-center">
                         {hasFormula && c.per_player ? (
                           <span className="text-[13px] font-bold text-slate-700 tabular-nums">
                             {computedFormulas?.[`${c.id}:${displayPlayers.find(p => p.id === vc.column.id)?.id}`] ?? "—"}
@@ -327,7 +329,7 @@ export default function ScorecardFill({
               return (
                 <tr key={row.id} className={`border-b border-slate-100 ${isTotal ? "bg-indigo-50/60 font-bold border-t-2 border-t-indigo-200" : isSection ? "bg-indigo-50/30" : ri % 2 === 0 ? "bg-slate-50/40" : ""}`}>
                   {row.getVisibleCells().map(vc => (
-                    <td key={vc.id} className={`px-2 py-1 first:pl-2 ${vc.column.id !== "category" ? "text-center" : ""}`}>
+                    <td key={vc.id} className={`px-4 py-2 first:pl-4 ${vc.column.id !== "category" ? "text-center" : "whitespace-nowrap"}`}>
                       {flexRender(vc.column.columnDef.cell, vc.getContext())}
                     </td>
                   ))}

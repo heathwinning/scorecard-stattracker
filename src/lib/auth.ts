@@ -27,6 +27,19 @@ export async function createSessionToken(user: SessionUser): Promise<string> {
     .sign(secretKey);
 }
 
+// Create a guest session (temporary user, valid 30 days)
+export async function createGuestSession(): Promise<{ token: string; user: SessionUser }> {
+  const id = crypto.randomUUID();
+  const user: SessionUser = {
+    id,
+    email: `guest-${id}@scorecard.local`,
+    name: "Guest",
+    avatar_url: null,
+  };
+  const token = await createSessionToken(user);
+  return { token, user };
+}
+
 // Verify a session JWT
 export async function verifySessionToken(
   token: string

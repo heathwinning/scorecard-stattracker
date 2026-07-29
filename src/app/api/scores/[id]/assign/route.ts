@@ -17,7 +17,7 @@ export async function POST(
 
   const db = getDB();
   const body = await request.json();
-  const { player_slot_id } = body;
+  const { player_slot_id, player_name } = body;
 
   if (!player_slot_id) {
     return NextResponse.json({ error: "player_slot_id required" }, { status: 400 });
@@ -62,5 +62,14 @@ export async function POST(
     [player_slot_id, participant.id]
   );
 
-  return NextResponse.json({ success: true });
+  // Update player name if provided
+  if (player_name && player_name.trim()) {
+    await execute(
+      db,
+      "UPDATE scorecard_players SET player_name = ?1 WHERE id = ?2",
+      [player_name.trim(), player_slot_id]
+    );
+  }
+
+  return NextResponse.json({ success: true, player_name: player_name?.trim() });
 }

@@ -19,9 +19,7 @@ export default function TemplateDetailPage() {
   const [template, setTemplate] = useState<Template | null>(null);
   const [loading, setLoading] = useState(true);
   const [starting, setStarting] = useState(false);
-  const urlId = params.id as string;
-  // Resolve clean URL (e.g. "wingspan") to internal ID (e.g. "tpl-wingspan")
-  const id = urlId.startsWith("tpl-") ? urlId : `tpl-${urlId}`;
+  const id = params.id as string;
 
   useEffect(() => {
     if (id.startsWith("guest-")) {
@@ -55,9 +53,6 @@ export default function TemplateDetailPage() {
     try {
       const result = await createScorecard({ template_id: id });
       const shareRes = await fetch(`/api/scores/${result.scorecard.id}/share`, { method: "POST" }).then(r => r.json());
-      await updateScorecard(result.scorecard.id, {
-        players: [{ id: crypto.randomUUID(), player_name: "P1", sort_order: 0 }],
-      });
       if (shareRes.share_code) router.push(`/scores/${shareRes.share_code}`);
     } catch { toast.error("Failed to start game"); }
     finally { setStarting(false); }

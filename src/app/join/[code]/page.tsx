@@ -5,7 +5,7 @@ export const runtime = 'edge';
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
-import { joinScorecard, assignSlot, getScorecard, type ScorecardPlayer } from "@/lib/api-client";
+import { joinScorecard, type ScorecardPlayer } from "@/lib/api-client";
 import { guestFindByShareCode } from "@/lib/guest-store";
 import Link from "next/link";
 import toast from "react-hot-toast";
@@ -19,10 +19,10 @@ export default function JoinPage() {
   const [scorecardId, setScorecardId] = useState<string | null>(null);
   const [playerSlotId, setPlayerSlotId] = useState<string | null>(null);
   const [playerName, setPlayerName] = useState<string | null>(null);
-  const [players, setPlayers] = useState<ScorecardPlayer[]>([]);
+  const [customName, setCustomName] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [assigning, setAssigning] = useState(false);
+  const [joining, setJoining] = useState(false);
 
   useEffect(() => {
     const init = async () => {
@@ -34,20 +34,19 @@ export default function JoinPage() {
     const guestSc = guestFindByShareCode(code);
     if (guestSc) {
       setScorecardId(guestSc.id);
-      const { guestGetScorecard } = await import("@/lib/guest-store");
-      const data = guestGetScorecard(guestSc.id);
-      if (data) { setPlayers(data.players || []); }
       setLoading(false);
       return;
     }
 
     try {
+      // Just validate the code exists — don't join yet (wait for name)
       const result = await joinScorecard(code);
       setScorecardId(result.scorecard_id);
-      setPlayerSlotId(result.player_slot_id);
-      setPlayerName(result.player_name);
-      const sc = await getScorecard(result.scorecard_id);
-      setPlayers(sc.players || []);
+      // If they already have a slot, redirect directly
+      if (result.player_slot_id) {
+        setPlayerSlotId(result.player_slot_id);
+        setPlayerName(result.player_name);
+      }
     } catch (err: any) {
       setError(err.message || "Invalid or expired share code");
     }
@@ -56,25 +55,37 @@ export default function JoinPage() {
     init();
   }, [user, isGuest, authLoading, code, router]);
 
-  const handleClaimSlot = useCallback(async (slotId: string) => {
-    if (!scorecardId) return;
-    setAssigning(true);
+  const handleJoin = useCallback(async () => {
+    if (!scorecardId || !code) return;
+    const name = customName.trim();
+    if (!name) { toast.error("Enter your name"); return; }
+    setJoining(true);
     try {
       if (isGuest || scorecardId.startsWith("guest-")) {
-        setPlayerSlotId(slotId);
-        const slot = players.find(p => p.id === slotId);
-        if (slot) setPlayerName(slot.player_name);
-        toast.success("Slot claimed!");
+        // Create a player slot in guest store
+        const { guestUpdateScorecard, guestGetScorecard } = await import("@/lib/guest-store");
+        const sc = guestGetScorecard(scorecardId);
+        if (sc) {
+          const newSlotId = `slot-${crypto.randomUUID().slice(0, 8)}`;
+          const updatedPlayers = [...(sc.players || []), {
+            id: newSlotId,
+            player_name: name,
+            sort_order: sc.players?.length || 0,
+          }];
+          guestUpdateScorecard(scorecardId, { players: updatedPlayers } as any);
+          setPlayerSlotId(newSlotId);
+          setPlayerName(name);
+        }
+        toast.success("Joined!");
       } else {
-        await assignSlot(scorecardId, slotId);
-        setPlayerSlotId(slotId);
-        const slot = players.find(p => p.id === slotId);
-        if (slot) setPlayerName(slot.player_name);
-        toast.success("Slot claimed!");
+        const result = await joinScorecard(code, name);
+        setPlayerSlotId(result.player_slot_id);
+        setPlayerName(result.player_name);
+        toast.success("Joined!");
       }
-    } catch { toast.error("Failed to claim slot"); }
-    finally { setAssigning(false); }
-  }, [scorecardId, players, isGuest]);
+    } catch { toast.error("Failed to join"); }
+    finally { setJoining(false); }
+  }, [scorecardId, code, customName, isGuest]);
 
   const handleGoToScorecard = () => {
     if (scorecardId) router.push(`/scores/${code}`);
@@ -119,37 +130,40 @@ export default function JoinPage() {
     );
   }
 
-  // Joined but needs to pick a slot
+  // Join — enter name
   return (
     <div className="max-w-md mx-auto px-4 py-12 page-enter">
       <div className="text-center mb-8">
-        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-indigo-200 mx-auto mb-4">
-          {code.slice(0, 2)}
+        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-indigo-200 mx-auto mb-4 tracking-wider">
+          {code}
         </div>
         <h1 className="text-xl font-bold text-slate-900">Join Game</h1>
-        <p className="text-sm text-slate-500 mt-1">Pick your player slot to start scoring</p>
+        <p className="text-sm text-slate-500 mt-1">Enter your name to start scoring</p>
       </div>
 
-      <div className="card p-5 space-y-2">
-        <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
-          Available Players
-        </h3>
-        {players.map((player) => (
-          <button
-            key={player.id}
-            onClick={() => handleClaimSlot(player.id!)}
-            disabled={assigning}
-            className="w-full flex items-center justify-between p-3 rounded-xl border border-slate-200 hover:border-indigo-300 hover:bg-indigo-50/50 transition-all text-left"
-          >
-            <span className="font-medium text-slate-900">{player.player_name}</span>
-            <span className="text-xs text-indigo-500 font-medium">Claim →</span>
-          </button>
-        ))}
-        {players.length === 0 && (
-          <p className="text-sm text-slate-400 text-center py-4">
-            No player slots available. Ask the game creator to add players first.
-          </p>
-        )}
+      <div className="card p-5 space-y-4">
+        <div>
+          <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-2">
+            Your Name
+          </label>
+          <input
+            type="text"
+            value={customName}
+            onChange={e => setCustomName(e.target.value)}
+            onKeyDown={e => e.key === "Enter" && handleJoin()}
+            placeholder="Enter your name"
+            className="w-full px-4 py-3 text-sm border border-slate-200 rounded-xl focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+            autoFocus
+            disabled={joining}
+          />
+        </div>
+        <button
+          onClick={handleJoin}
+          disabled={joining || !customName.trim()}
+          className="w-full py-3 text-sm font-medium text-white bg-indigo-500 hover:bg-indigo-600 rounded-xl transition-colors disabled:opacity-50"
+        >
+          {joining ? "Joining..." : "Join Game"}
+        </button>
       </div>
     </div>
   );
