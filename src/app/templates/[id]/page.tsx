@@ -157,8 +157,6 @@ export default function TemplateDetailPage() {
 function PreviewValue({ cell }: { cell: TemplateCell }) {
   const allowMultiple = !!(cell.config_json as Record<string, unknown>)?.allow_multiple;
   if (allowMultiple) return <span className="text-[11px] text-slate-300" title="Variable entries">…</span>;
-  if (cell.cell_type === "formula") return <span className="text-[11px] text-slate-300">0</span>;
-  if (cell.cell_type === "tally") return <span className="text-[11px] text-slate-300">−0+</span>;
   if (cell.cell_type === "input:text") return <span className="text-[11px] text-slate-300">abc</span>;
   return <span className="text-[11px] text-slate-300">0</span>;
 }
