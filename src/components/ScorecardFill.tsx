@@ -166,11 +166,12 @@ export default function ScorecardFill({
       cell: ({ row }) => {
         const c = row.original;
         const isTotal = /total/i.test(c.label || c.cell_key);
+        const isSection = !!(c.config_json as Record<string, unknown>)?.section;
         if (c.cell_type === "heading") return <span className="font-semibold text-[13px] text-indigo-700">{c.label || c.cell_key}</span>;
         const tooltip = [c.label || c.cell_key.replace(/_/g, ' ')];
         if (c.formula_expr) tooltip.push(`Formula: ${c.formula_expr}`);
         if (!!(c.config_json as Record<string, unknown>)?.allow_multiple) tooltip.push('Players can add multiple entries');
-        return <span className={`text-[13px] ${isTotal ? "font-bold" : "font-medium"} text-slate-700`} title={tooltip.join('\n')}>{c.label || c.cell_key.replace(/_/g, ' ')}</span>;
+        return <span className={`text-[13px] ${isTotal ? "font-bold" : isSection ? "font-semibold text-indigo-700" : "font-medium"} text-slate-700`} title={tooltip.join('\n')}>{c.label || c.cell_key.replace(/_/g, ' ')}</span>;
       },
     })];
     displayPlayers.forEach((player, pi) => {
@@ -275,6 +276,7 @@ export default function ScorecardFill({
             {table.getRowModel().rows.map((row, ri) => {
               const c = row.original;
               const isTotal = /total/i.test(c.label || c.cell_key);
+              const isSection = !!(c.config_json as Record<string, unknown>)?.section;
               if (c.cell_type === "heading") {
                 const hasFormula = !!c.formula_expr;
                 return (
@@ -295,7 +297,7 @@ export default function ScorecardFill({
                 );
               }
               return (
-                <tr key={row.id} className={`border-b border-slate-100 ${isTotal ? "bg-indigo-50/60 font-bold border-t-2 border-t-indigo-200" : ri % 2 === 0 ? "bg-slate-50/40" : ""}`}>
+                <tr key={row.id} className={`border-b border-slate-100 ${isTotal ? "bg-indigo-50/60 font-bold border-t-2 border-t-indigo-200" : isSection ? "bg-indigo-50/30" : ri % 2 === 0 ? "bg-slate-50/40" : ""}`}>
                   {row.getVisibleCells().map(vc => (
                     <td key={vc.id} className={`px-2 py-1 first:pl-2 ${vc.column.id !== "category" ? "text-center" : ""}`}>
                       {flexRender(vc.column.columnDef.cell, vc.getContext())}
