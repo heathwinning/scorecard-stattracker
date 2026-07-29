@@ -1,5 +1,9 @@
 -- Migration: Update Wingspan template (remove old bonus_1-4, add allow_multiple bonus)
--- Safe approach: update old cells instead of deleting (avoids cascade)
+-- Also: remove player_name cells, fix labels, move totals
+
+-- Remove player_name cells from all templates (player naming is handled by P1/P2 column headers)
+UPDATE template_cells SET cell_type = 'heading', label = '', sort_order = -1 WHERE cell_key = 'player_name' AND template_id LIKE 'tpl-%';
+UPDATE template_cells SET cell_type = 'heading', label = '', sort_order = -1 WHERE cell_key = 'team_name' AND template_id LIKE 'tpl-%';
 
 -- Remove old bonus label cells (update their labels to indicate they're unused)
 -- These get filtered out by the preview anyway, but clean them up

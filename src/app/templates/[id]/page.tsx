@@ -127,12 +127,15 @@ export default function TemplateDetailPage() {
                 ) : (
                   <>
                     <td className="px-2 py-1">
-                      <span className="text-[13px] font-medium text-slate-700 truncate block max-w-[220px]"
-                        title={(cell.label || cell.cell_key.replace(/_/g, ' ')) + (cell.formula_expr ? `  (=${cell.formula_expr})` : '')}>
+                      <span className="text-[13px] font-medium text-slate-700 truncate"
+                        title={(() => {
+                          const parts = [cell.label || cell.cell_key.replace(/_/g, ' ')];
+                          if (cell.formula_expr) parts.push(`Formula: ${cell.formula_expr}`);
+                          if (!!(cell.config_json as Record<string, unknown>)?.allow_multiple) parts.push('Players can add multiple entries');
+                          return parts.join('\n');
+                        })()}>
                         {cell.label || cell.cell_key.replace(/_/g, ' ')}
                       </span>
-                      {cell.formula_expr && <span className="text-[10px] font-mono text-amber-500 ml-1" title={`=${cell.formula_expr}`}>ƒ</span>}
-                      {!!(cell.config_json as Record<string, unknown>)?.allow_multiple && <span className="text-[10px] text-indigo-400 ml-1" title="Multiple entries allowed">+</span>}
                     </td>
                     <td className="px-2 py-1 text-center">
                       <PreviewValue cell={cell} />
