@@ -52,31 +52,34 @@ function NewScorecardPageInner() {
     })();
   }, [user, isGuest, authLoading, templateId, router]);
 
-  // Auto-create scorecard + auto-share
+  // Auto-create scorecard + auto-share + redirect to permanent URL
   useEffect(() => {
     if (!templateId || loading || cells.length === 0) return;
+    let cancelled = false;
     const create = async () => {
       if (isGuest) {
         const sc = guestCreateScorecard({ template_id: templateId, title: "" });
-        setScorecardId(sc.id);
-        // Auto-generate share code for guest
+        if (cancelled) return;
         const code = generateCode();
-        guestUpdateScorecard(sc.id, { share_code: code } as any);
-        setShareCode(code);
-        setPlayers([{ id: crypto.randomUUID(), player_name: "Player 1", sort_order: 0 }]);
+        guestUpdateScorecard(sc.id, { share_code: code, players: [{ id: crypto.randomUUID(), player_name: "Player 1", sort_order: 0 }] } as any);
+        if (!cancelled) router.replace(`/scores/${sc.id}`);
       } else {
         try {
           const result = await createScorecard({ template_id: templateId });
-          setScorecardId(result.scorecard.id);
-          // Auto-share
-          const shareResult = await fetch(`/api/scorecards/${result.scorecard.id}/share`, { method: "POST" }).then(r => r.json());
-          if (shareResult.share_code) setShareCode(shareResult.share_code);
-          setPlayers([{ id: crypto.randomUUID(), player_name: "Player 1", sort_order: 0 }]);
+          if (cancelled) return;
+          // Auto-share (creates share code)
+          await fetch(`/api/scorecards/${result.scorecard.id}/share`, { method: "POST" });
+          // Add first player
+          await updateScorecard(result.scorecard.id, {
+            players: [{ id: crypto.randomUUID(), player_name: "Player 1", sort_order: 0 }],
+          });
+          if (!cancelled) router.replace(`/scores/${result.scorecard.id}`);
         } catch { toast.error("Failed to create game"); }
       }
     };
     create();
-  }, [templateId, cells.length, loading, isGuest]);
+    return () => { cancelled = true; };
+  }, [templateId, cells.length, loading, isGuest, router]);
 
   const persist = useCallback(async () => {
     if (!scorecardId) return;
