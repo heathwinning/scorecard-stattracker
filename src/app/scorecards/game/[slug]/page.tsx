@@ -82,7 +82,7 @@ export default function GameTemplatesPage() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {templates.map((tpl) => (
-            <Link key={tpl.id} href={`/templates/${tpl.id}`} className="card-hover p-5 group">
+            <Link key={tpl.id} href={`/scorecards/${tpl.id}`} className="card-hover p-5 group">
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-2.5">
                   <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-indigo-50 to-violet-50 flex items-center justify-center text-sm group-hover:scale-110 transition-transform">
@@ -111,7 +111,7 @@ export default function GameTemplatesPage() {
             .map(([s, id]) => (
               <Link
                 key={s}
-                href={`/templates/game/${s}`}
+                href={`/scorecards/game/${s}`}
                 className="px-3 py-1.5 rounded-lg bg-slate-100 text-xs font-medium text-slate-600 hover:bg-indigo-50 hover:text-indigo-700 transition-colors"
               >
                 {s.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())} Templates

@@ -77,7 +77,7 @@ function TemplateNewPageInner({ params }: Props) {
           // Set game_id after creation
           if (gameId) guestUpdateTemplate(tpl.id, { name, description, cells });
           toast.success("Template created! Sign in to save permanently.");
-          router.push(`/templates/${tpl.id}`);
+          router.push(`/scorecards/${tpl.id}`);
         }
       } else if (isEdit && templateId) {
         await updateTemplate(templateId, { name, description, game_id: gameId || undefined, is_public: isPublic, cells });
@@ -85,7 +85,7 @@ function TemplateNewPageInner({ params }: Props) {
       } else {
         const result = await createTemplate({ name, description, game_id: gameId || undefined, is_public: isPublic, cells });
         toast.success("Template created!");
-        router.push(`/templates/${result.template.id}`);
+        router.push(`/scorecards/${result.template.id}`);
       }
     } catch { toast.error("Failed to save template"); }
     finally { setSaving(false); }
@@ -110,7 +110,7 @@ function TemplateNewPageInner({ params }: Props) {
           <h1 className="text-2xl font-bold tracking-tight text-slate-900">{isEdit ? "Edit Scorecard" : "New Scorecard"}</h1>
         </div>
         <div className="flex gap-2">
-          <Link href={isEdit ? `/templates/${templateId}` : "/scorecards"} className="btn-secondary text-sm">Cancel</Link>
+          <Link href={isEdit ? `/scorecards/${templateId}` : "/scorecards"} className="btn-secondary text-sm">Cancel</Link>
           <button onClick={handleSave} disabled={saving} className="btn-primary text-sm">
             {saving ? "Saving..." : isEdit ? "Save Changes" : "Create Scorecard"}
           </button>

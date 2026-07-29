@@ -89,7 +89,7 @@ export default function TemplateDetailPage() {
         <div className="flex items-center gap-2">
           {isOwner ? (
             <>
-              <Link href={`/templates/${id}/edit`} className="btn-secondary text-sm">
+              <Link href={`/scorecards/${id}/edit`} className="btn-secondary text-sm">
                 <HiOutlinePencil className="w-4 h-4" /> Edit
               </Link>
               <button onClick={handleDelete} className="btn-danger text-sm">
@@ -97,7 +97,7 @@ export default function TemplateDetailPage() {
               </button>
             </>
           ) : (
-            <Link href={`/templates/new?fork=${id}`} className="btn-secondary text-sm">
+            <Link href={`/scorecards/new?fork=${id}`} className="btn-secondary text-sm">
               <HiOutlinePencil className="w-4 h-4" /> Copy & Edit
             </Link>
           )}

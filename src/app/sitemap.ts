@@ -42,7 +42,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   // Add individual template pages
   for (const tpl of SEED_TEMPLATES) {
     entries.push({
-      url: `${BASE_URL}/templates/${tpl.id}`,
+      url: `${BASE_URL}/scorecards/${tpl.id}`,
       lastModified: new Date(),
       changeFrequency: "weekly",
       priority: 0.8,
@@ -53,7 +53,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const gameSlugs = [...new Set(SEED_TEMPLATES.map((t) => t.game))];
   for (const slug of gameSlugs) {
     entries.push({
-      url: `${BASE_URL}/templates/game/${slug}`,
+      url: `${BASE_URL}/scorecards/game/${slug}`,
       lastModified: new Date(),
       changeFrequency: "weekly",
       priority: 0.7,

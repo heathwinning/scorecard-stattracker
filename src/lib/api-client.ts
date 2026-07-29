@@ -89,7 +89,7 @@ export async function listGames() {
 }
 
 export async function getTemplate(id: string) {
-  return api<{ template: Template }>(`/api/templates/${id}`);
+  return api<{ template: Template }>(`/api/scorecards/${id}`);
 }
 
 export async function createTemplate(data: {
@@ -112,14 +112,14 @@ export async function updateTemplate(id: string, data: {
   is_public?: boolean;
   cells?: TemplateCell[];
 }) {
-  return api<{ success: boolean }>(`/api/templates/${id}`, {
+  return api<{ success: boolean }>(`/api/scorecards/${id}`, {
     method: "PUT",
     body: JSON.stringify(data),
   });
 }
 
 export async function deleteTemplate(id: string) {
-  return api<{ success: boolean }>(`/api/templates/${id}`, { method: "DELETE" });
+  return api<{ success: boolean }>(`/api/scorecards/${id}`, { method: "DELETE" });
 }
 
 // Scorecards
