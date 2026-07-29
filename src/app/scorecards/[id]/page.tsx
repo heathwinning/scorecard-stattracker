@@ -118,8 +118,10 @@ export default function TemplateDetailPage() {
             </tr>
           </thead>
           <tbody>
-            {sortedCells.map((cell, idx) => (
-              <tr key={cell.id || cell.cell_key} className={`border-b border-slate-100 ${idx % 2 === 0 ? "bg-slate-50/40" : ""}`}>
+            {sortedCells.map((cell, idx) => {
+              const isTotal = /total/i.test(cell.label || cell.cell_key);
+              return (
+              <tr key={cell.id || cell.cell_key} className={`border-b border-slate-100 ${isTotal ? "bg-indigo-50/60 font-bold border-t-2 border-t-indigo-200" : idx % 2 === 0 ? "bg-slate-50/40" : ""}`}>
                 {cell.cell_type === "heading" ? (
                   <td colSpan={3} className="px-2 py-1 font-semibold text-[13px] text-indigo-700 bg-indigo-50/40">
                     {cell.label || cell.cell_key}
@@ -146,7 +148,8 @@ export default function TemplateDetailPage() {
                   </>
                 )}
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
       </div>

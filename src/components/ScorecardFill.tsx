@@ -257,6 +257,7 @@ export default function ScorecardFill({
           <tbody>
             {table.getRowModel().rows.map((row, ri) => {
               const c = row.original;
+              const isTotal = /total/i.test(c.label || c.cell_key);
               if (c.cell_type === "heading") {
                 return (
                   <tr key={row.id} className="border-b border-slate-100 bg-indigo-50/40">
@@ -265,7 +266,7 @@ export default function ScorecardFill({
                 );
               }
               return (
-                <tr key={row.id} className={`border-b border-slate-100 ${ri % 2 === 0 ? "bg-slate-50/40" : ""}`}>
+                <tr key={row.id} className={`border-b border-slate-100 ${isTotal ? "bg-indigo-50/60 font-bold border-t-2 border-t-indigo-200" : ri % 2 === 0 ? "bg-slate-50/40" : ""}`}>
                   {row.getVisibleCells().map(vc => (
                     <td key={vc.id} className="px-2 py-1 first:pl-3 last:text-center">
                       {flexRender(vc.column.columnDef.cell, vc.getContext())}
