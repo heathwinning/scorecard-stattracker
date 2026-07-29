@@ -135,6 +135,7 @@ export interface CellValue {
   scorecard_id?: string;
   template_cell_id: string;
   player_id: string | null;
+  entry_key?: string; // '' for normal, '0','1','2' for list entries
   value: string;
   is_hidden?: number;
 }
@@ -228,7 +229,7 @@ export async function getLiveScorecard(id: string, since?: string) {
 
 export async function updateMyCells(
   scorecardId: string,
-  cells: { template_cell_id: string; player_id: string; value: string; is_hidden?: number }[]
+  cells: { template_cell_id: string; player_id: string; value: string; entry_key?: string; is_hidden?: number }[]
 ) {
   return api<{ success: boolean }>(`/api/scorecards/${scorecardId}/cells`, {
     method: "PUT",

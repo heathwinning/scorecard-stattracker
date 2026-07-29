@@ -82,6 +82,18 @@ function RowProperties({ cell, allKeys, onChange, onDelete }: {
         <input type="text" value={cell.cell_key} onChange={e => onChange({ ...cell, cell_key: e.target.value })}
           className="input-field text-sm font-mono" placeholder="e.g. bird_points" />
       </div>
+      {(cell.cell_type === "input:number" || cell.cell_type === "tally") && (
+        <div>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox"
+              checked={!!(cell.config_json as Record<string, unknown>)?.allow_multiple}
+              onChange={e => onChange({ ...cell, config_json: { ...cell.config_json, allow_multiple: e.target.checked } })}
+              className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" />
+            <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Allow multiple entries</span>
+          </label>
+          <p className="text-[11px] text-slate-400 mt-0.5 ml-6">Players can add/remove entries (e.g. bonus cards). Key_0, key_1, etc.</p>
+        </div>
+      )}
       {cell.cell_type === "formula" && (
         <div>
           <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block mb-1">Formula</label>

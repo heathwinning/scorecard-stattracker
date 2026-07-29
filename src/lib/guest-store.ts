@@ -183,10 +183,10 @@ export function guestUpdateScorecard(id: string, data: {
 
     if (data.values) {
       const valMap = new Map(
-        current.values.map((v) => [`${v.template_cell_id}:${v.player_id}`, v])
+        current.values.map((v) => [`${v.template_cell_id}:${v.player_id}:${v.entry_key || ''}`, v])
       );
       for (const v of data.values) {
-        const key = `${v.template_cell_id}:${v.player_id}`;
+        const key = `${v.template_cell_id}:${v.player_id}:${v.entry_key || ''}`;
         valMap.set(key, { ...v, id: v.id || `guest-val-${uid()}` });
       }
       current.values = Array.from(valMap.values());

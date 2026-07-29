@@ -125,17 +125,18 @@ export default function ScorecardDetailPage() {
   }, [liveMode, id]);
 
   const handleCellUpdate = useCallback(async (
-    cellId: string, playerId: string, value: string, isHidden: number
+    cellId: string, playerId: string, value: string, isHidden: number, entryKey?: string
   ) => {
+    const ek = entryKey || '';
     setValues((prev) => {
-      const existing = prev.find(v => v.template_cell_id === cellId && v.player_id === playerId);
-      if (existing) return prev.map(v => v.template_cell_id === cellId && v.player_id === playerId ? { ...v, value, is_hidden: isHidden } : v);
-      return [...prev, { template_cell_id: cellId, player_id: playerId, value, is_hidden: isHidden }];
+      const existing = prev.find(v => v.template_cell_id === cellId && v.player_id === playerId && (v.entry_key || '') === ek);
+      if (existing) return prev.map(v => v.template_cell_id === cellId && v.player_id === playerId && (v.entry_key || '') === ek ? { ...v, value, is_hidden: isHidden } : v);
+      return [...prev, { template_cell_id: cellId, player_id: playerId, entry_key: ek, value, is_hidden: isHidden }];
     });
     if (id.startsWith("guest-")) {
-      guestUpdateScorecard(id, { values: [{ template_cell_id: cellId, player_id: playerId, value, is_hidden: isHidden }] });
+      guestUpdateScorecard(id, { values: [{ template_cell_id: cellId, player_id: playerId, entry_key: ek, value, is_hidden: isHidden }] });
     } else {
-      try { await updateMyCells(id, [{ template_cell_id: cellId, player_id: playerId, value, is_hidden: isHidden }]); }
+      try { await updateMyCells(id, [{ template_cell_id: cellId, player_id: playerId, entry_key: ek, value, is_hidden: isHidden }]); }
       catch { toast.error("Failed to save"); }
     }
   }, [id]);

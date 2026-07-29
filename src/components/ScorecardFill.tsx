@@ -16,7 +16,7 @@ interface ScorecardFillProps {
   readOnly?: boolean;
   myPlayerSlotId?: string | null;
   isOwner?: boolean;
-  onCellUpdate?: (cellId: string, playerId: string, value: string, isHidden: number) => void;
+  onCellUpdate?: (cellId: string, playerId: string, value: string, isHidden: number, entryKey?: string) => void;
 }
 
 export default function ScorecardFill({
@@ -29,13 +29,22 @@ export default function ScorecardFill({
 
   const sortedCells = useMemo(() => [...cells].sort((a, b) => a.sort_order - b.sort_order), [cells]);
 
-  const getValue = useCallback((cellId: string, playerId: string | null): string =>
-    values.find(v => v.template_cell_id === cellId && v.player_id === (playerId || null))?.value ?? "",
+  // Get ALL values for a cell+player (may be multiple if allow_multiple)
+  const getEntryValues = useCallback((cellId: string, playerId: string | null): CellValue[] =>
+    values.filter(v => v.template_cell_id === cellId && v.player_id === (playerId || null)).sort((a, b) => (a.entry_key || '').localeCompare(b.entry_key || '')),
   [values]);
 
-  const isHidden = useCallback((cellId: string, playerId: string | null): boolean => {
+  const getValue = useCallback((cellId: string, playerId: string | null, entryKey?: string): string => {
+    const ek = entryKey ?? '';
+    const v = values.find(v => v.template_cell_id === cellId && v.player_id === (playerId || null) && (v.entry_key || '') === ek);
+    return v?.value ?? "";
+  }, [values]);
+
+  const isHidden = useCallback((cellId: string, playerId: string | null, entryKey?: string): boolean => {
     if (!isMultiplayer) return false;
-    return values.find(v => v.template_cell_id === cellId && v.player_id === (playerId || null))?.is_hidden === 1;
+    const ek = entryKey ?? '';
+    const v = values.find(v => v.template_cell_id === cellId && v.player_id === (playerId || null) && (v.entry_key || '') === ek);
+    return v?.is_hidden === 1;
   }, [values, isMultiplayer]);
 
   const canEdit = useCallback((playerId: string | null): boolean => {
@@ -44,34 +53,71 @@ export default function ScorecardFill({
     return canEditAny || playerId === myPlayerSlotId;
   }, [readOnly, isMultiplayer, canEditAny, myPlayerSlotId]);
 
-  const setValue = useCallback((cellId: string, playerId: string | null, value: string, hidden?: number) => {
-    if (isMultiplayer && onCellUpdate) { onCellUpdate(cellId, playerId || "", value, hidden ?? 0); return; }
-    const ex = values.find(v => v.template_cell_id === cellId && v.player_id === (playerId || null));
-    if (ex) onValuesChange(values.map(v => v.id === ex.id ? { ...v, value } : v));
-    else onValuesChange([...values, { template_cell_id: cellId, player_id: playerId, value }]);
+  const setValue = useCallback((cellId: string, playerId: string | null, value: string, entryKey?: string, hidden?: number) => {
+    const ek = entryKey ?? '';
+    if (isMultiplayer && onCellUpdate) { onCellUpdate(cellId, playerId || "", value, hidden ?? 0, entryKey); return; }
+    const ex = values.find(v => v.template_cell_id === cellId && v.player_id === (playerId || null) && (v.entry_key || '') === ek);
+    if (ex) onValuesChange(values.map(v => v === ex ? { ...v, value } : v));
+    else onValuesChange([...values, { template_cell_id: cellId, player_id: playerId, entry_key: ek, value }]);
   }, [values, onValuesChange, isMultiplayer, onCellUpdate]);
 
-  const tallyValue = useCallback((cellId: string, playerId: string | null, delta: number) => {
-    const cur = parseInt(getValue(cellId, playerId)) || 0;
-    const config = cells.find(c => c.id === cellId)?.config_json as Record<string, unknown> | undefined;
+  // Add a new list entry
+  const addEntry = useCallback((cellId: string, playerId: string | null) => {
+    const entries = getEntryValues(cellId, playerId);
+    const nextKey = String(entries.length);
+    onValuesChange([...values, { template_cell_id: cellId, player_id: playerId, entry_key: nextKey, value: '' }]);
+  }, [values, onValuesChange, getEntryValues]);
+
+  // Remove a list entry
+  const removeEntry = useCallback((cellId: string, playerId: string | null, entryKey: string) => {
+    onValuesChange(values.filter(v => !(v.template_cell_id === cellId && v.player_id === (playerId || null) && (v.entry_key || '') === entryKey)));
+  }, [values, onValuesChange]);
+
+  const tallyValue = useCallback((cellId: string, playerId: string | null, delta: number, entryKey?: string) => {
+    const cur = parseInt(getValue(cellId, playerId, entryKey)) || 0;
+    const cell = cells.find(c => c.id === cellId);
+    const config = cell?.config_json as Record<string, unknown> | undefined;
     const min = (config?.min as number) ?? 0;
     const step = (config?.step as number) ?? 1;
-    setValue(cellId, playerId, String(Math.max(min, cur + delta * step)));
+    setValue(cellId, playerId, String(Math.max(min, cur + delta * step)), entryKey);
   }, [cells, getValue, setValue]);
 
-  // Formula computation (unchanged core logic)
+  // Formula computation — now emits per-entry keys for allow_multiple
   const computedFormulas = useMemo(() => {
     const formulaCells = cells.filter(c => c.cell_type === "formula" && c.formula_expr);
     if (!formulaCells.length) return {} as Record<string, number>;
     const results: Record<string, number> = {};
     const pp = cells.filter(c => c.per_player);
     const st = cells.filter(c => !c.per_player);
+
     function ctx(inc: Record<string, number>): CellContext[] {
       const c: CellContext[] = [];
+      // Per-player cells — emit per-entry keys for allow_multiple
       pp.filter(x => x.cell_type !== "formula").forEach(cell => {
-        players.forEach(p => c.push({ key: `${cell.cell_key}_${p.id}`, value: parseFloat(getValue(cell.id!, p.id!)) || 0 }));
-        c.push({ key: cell.cell_key, value: players.reduce((s, p) => s + (parseFloat(getValue(cell.id!, p.id!)) || 0), 0) });
+        const allowMultiple = !!(cell.config_json as Record<string, unknown>)?.allow_multiple;
+        players.forEach(p => {
+          const entries = values.filter(v => v.template_cell_id === cell.id && v.player_id === p.id).sort((a, b) => (a.entry_key || '').localeCompare(b.entry_key || ''));
+          if (allowMultiple && entries.length > 0) {
+            entries.forEach(e => {
+              c.push({ key: `${cell.cell_key}_${e.entry_key || '0'}`, value: parseFloat(e.value) || 0 });
+            });
+            // Also emit per-player aggregate
+            const total = entries.reduce((s, e) => s + (parseFloat(e.value) || 0), 0);
+            c.push({ key: `${cell.cell_key}_${p.id}`, value: total });
+          } else {
+            const v = entries.length > 0 ? parseFloat(entries[0].value) || 0 : 0;
+            c.push({ key: `${cell.cell_key}_${p.id}`, value: v });
+          }
+        });
+        // Aggregate across all players
+        const aggKey = cell.cell_key;
+        const aggTotal = players.reduce((s, p) => {
+          const ents = values.filter(v => v.template_cell_id === cell.id && v.player_id === p.id);
+          return s + ents.reduce((ss, e) => ss + (parseFloat(e.value) || 0), 0);
+        }, 0);
+        c.push({ key: aggKey, value: aggTotal });
       });
+
       for (const [k, v] of Object.entries(inc)) {
         const cid = k.includes(":") ? k.split(":")[0] : k;
         const fc = formulaCells.find(f => f.id === cid);
@@ -92,14 +138,13 @@ export default function ScorecardFill({
       if (!changed) break;
     }
     return results;
-  }, [cells, players, getValue]);
+  }, [cells, players, values, getValue]);
 
-  // Player management
   const addPlayer = () => onPlayersChange([...players, { player_name: `P${players.length + 1}`, sort_order: players.length }]);
   const removePlayer = (i: number) => onPlayersChange(players.filter((_, idx) => idx !== i));
   const updatePlayerName = (i: number, n: string) => onPlayersChange(players.map((p, idx) => idx === i ? { ...p, player_name: n } : p));
 
-  // TanStack Table columns — auto-width
+  // TanStack columns
   const columnHelper = createColumnHelper<TemplateCell>();
   const columns = useMemo(() => {
     const cols = [columnHelper.display({
@@ -109,41 +154,67 @@ export default function ScorecardFill({
         const c = row.original;
         if (c.cell_type === "heading") return <span className="font-semibold text-[13px] text-indigo-700">{c.label || c.cell_key}</span>;
         const tooltip = c.formula_expr ? `=${c.formula_expr}` : c.cell_type;
-        return (
-          <span className="text-[13px] font-medium text-slate-700 truncate block max-w-[160px]" title={tooltip}>
-            {c.label || c.cell_key}
-          </span>
-        );
+        return <span className="text-[13px] font-medium text-slate-700 truncate block max-w-[160px]" title={tooltip}>{c.label || c.cell_key}</span>;
       },
     })];
     const visiblePlayers = myViewOnly && myPlayerSlotId ? players.filter(p => p.id === myPlayerSlotId) : players;
-    visiblePlayers.forEach((player) => {
+    visiblePlayers.forEach(player => {
       cols.push(columnHelper.display({
         id: player.id || "",
         header: player.player_name,
         cell: ({ row }) => {
           const c = row.original;
           if (c.cell_type === "heading") return null;
+          const allowMultiple = !!(c.config_json as Record<string, unknown>)?.allow_multiple;
+          const edit = canEdit(player.id!);
+
+          if (allowMultiple) {
+            const entries = getEntryValues(c.id!, player.id!);
+            return (
+              <div className="space-y-1 py-0.5">
+                {entries.map(e => {
+                  const ek = e.entry_key || '0';
+                  const val = e.value || '';
+                  return (
+                    <div key={ek} className="flex items-center gap-1">
+                      <input type="text" value={val}
+                        onChange={ev => setValue(c.id!, player.id!, ev.target.value, ek)}
+                        className="w-12 text-[12px] font-mono text-center px-1 py-0.5 border border-slate-200 rounded focus:outline-none focus:border-indigo-400 bg-white"
+                        placeholder="0"
+                        disabled={!edit} />
+                      {!readOnly && entries.length > 1 && (
+                        <button onClick={() => removeEntry(c.id!, player.id!, ek)}
+                          className="text-[10px] text-slate-400 hover:text-rose-500 leading-none">×</button>
+                      )}
+                    </div>
+                  );
+                })}
+                {!readOnly && (
+                  <button onClick={() => addEntry(c.id!, player.id!)}
+                    className="text-[10px] text-indigo-500 hover:text-indigo-700 font-medium">+ entry</button>
+                )}
+              </div>
+            );
+          }
+
           const val = getValue(c.id!, player.id!);
           const hidden = isHidden(c.id!, player.id!);
-          const edit = canEdit(player.id!);
           return <CellInput cell={c} value={val}
             formulaResult={c.cell_type === "formula" ? computedFormulas?.[`${c.id}:${player.id}`] : undefined}
             onChange={v => setValue(c.id!, player.id!, v)}
             onTally={d => tallyValue(c.id!, player.id!, d)}
             readOnly={!edit} isHidden={hidden}
-            onReveal={edit && hidden ? () => setValue(c.id!, player.id!, getValue(c.id!, player.id!), 0) : undefined} />;
+            onReveal={edit && hidden ? () => setValue(c.id!, player.id!, getValue(c.id!, player.id!)) : undefined} />;
         },
       }));
     });
     return cols;
-  }, [columnHelper, players, myViewOnly, myPlayerSlotId, getValue, isHidden, canEdit, setValue, tallyValue, computedFormulas]);
+  }, [columnHelper, players, myViewOnly, myPlayerSlotId, getValue, isHidden, canEdit, setValue, tallyValue, computedFormulas, getEntryValues, addEntry, removeEntry, readOnly]);
 
   const table = useReactTable({ data: sortedCells, columns, getCoreRowModel: getCoreRowModel() });
 
   return (
     <div className="space-y-3">
-      {/* Top bar: Players + Toggle */}
       <div className="flex flex-wrap items-center gap-2">
         {players.map((player, i) => (
           <div key={player.id || i} className="flex items-center gap-1 bg-slate-100 border border-slate-200 rounded-lg px-2 py-1">
@@ -170,7 +241,6 @@ export default function ScorecardFill({
         )}
       </div>
 
-      {/* Table */}
       <div className="card overflow-x-auto">
         <table className="w-full border-collapse table-auto">
           <thead>
@@ -211,7 +281,7 @@ export default function ScorecardFill({
   );
 }
 
-// Cell Input — compact
+// Cell Input
 function CellInput({ cell, value, formulaResult, onChange, onTally, readOnly, isHidden, onReveal }: {
   cell: TemplateCell; value: string; formulaResult?: number; onChange: (v: string) => void;
   onTally?: (d: number) => void; readOnly: boolean; isHidden?: boolean; onReveal?: () => void;

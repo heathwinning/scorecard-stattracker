@@ -18,7 +18,7 @@ export async function PUT(
   const db = getDB();
   const body = await request.json();
   const { cells } = body as {
-    cells: { template_cell_id: string; player_id: string; value: string; is_hidden?: number }[];
+    cells: { template_cell_id: string; player_id: string; value: string; entry_key?: string; is_hidden?: number }[];
   };
 
   if (!cells || !Array.isArray(cells)) {
@@ -38,8 +38,8 @@ export async function PUT(
 
   // Owners can edit any cell; players can only edit their own slot's cells
   const stmt = db.prepare(
-    `INSERT OR REPLACE INTO cell_values (id, scorecard_id, template_cell_id, player_id, value, is_hidden, updated_at)
-     VALUES (?1, ?2, ?3, ?4, ?5, ?6, datetime('now'))`
+    `INSERT OR REPLACE INTO cell_values (id, scorecard_id, template_cell_id, player_id, entry_key, value, is_hidden, updated_at)
+     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, datetime('now'))`
   );
 
   const batch = cells
@@ -56,6 +56,7 @@ export async function PUT(
         params.id,
         cell.template_cell_id,
         cell.player_id,
+        cell.entry_key ?? '',
         String(cell.value ?? ""),
         cell.is_hidden ?? 0
       )

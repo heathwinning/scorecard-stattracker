@@ -81,13 +81,14 @@ CREATE TABLE IF NOT EXISTS cell_values (
   scorecard_id TEXT NOT NULL REFERENCES scorecards(id) ON DELETE CASCADE,
   template_cell_id TEXT NOT NULL REFERENCES template_cells(id) ON DELETE CASCADE,
   player_id TEXT REFERENCES scorecard_players(id) ON DELETE CASCADE, -- NULL for non-per_player cells
+  entry_key TEXT NOT NULL DEFAULT '', -- '' for normal cells, '0','1','2'... for list entries
   value TEXT NOT NULL DEFAULT '',
   is_hidden INTEGER NOT NULL DEFAULT 0, -- 0=visible, 1=hidden (multiplayer reveal)
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_cell_values_scorecard ON cell_values(scorecard_id);
-CREATE UNIQUE INDEX IF NOT EXISTS idx_cell_values_unique ON cell_values(scorecard_id, template_cell_id, player_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_cell_values_unique ON cell_values(scorecard_id, template_cell_id, player_id, entry_key);
 
 -- Multiplayer: participants in a shared scorecard
 CREATE TABLE IF NOT EXISTS scorecard_participants (
