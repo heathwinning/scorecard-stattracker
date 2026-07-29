@@ -347,8 +347,8 @@ INSERT OR IGNORE INTO template_cells (id, template_id, row_pos, col_pos, row_spa
 ('ws-r4i', 'tpl-wingspan', 11, 0, 1, 1, 'input:number', 'round_4', 'Round 4', NULL, 1, '{"default":0}', 13),
 -- Eggs, Food, Tucked
 ('ws-oh', 'tpl-wingspan', 12, 0, 1, 2, 'heading', 'h_other', 'Other Points', NULL, 0, '{}', 14),
-('ws-et', 'tpl-wingspan', 13, 0, 1, 1, 'tally', 'eggs', '🥚 Eggs', NULL, 1, '{"min":0}', 15),
-('ws-ft2', 'tpl-wingspan', 14, 0, 1, 1, 'tally', 'cached_food', '🍒 Cached Food', NULL, 1, '{"min":0}', 16),
-('ws-tt', 'tpl-wingspan', 15, 0, 1, 1, 'tally', 'tucked_cards', '🃏 Tucked Cards', NULL, 1, '{"min":0}', 17),
+('ws-et', 'tpl-wingspan', 13, 0, 1, 1, 'input:number', 'eggs', '🥚 Eggs', NULL, 1, '{"default":0}', 15),
+('ws-ft2', 'tpl-wingspan', 14, 0, 1, 1, 'input:number', 'cached_food', '🍒 Cached Food', NULL, 1, '{"default":0}', 16),
+('ws-tt', 'tpl-wingspan', 15, 0, 1, 1, 'input:number', 'tucked_cards', '🃏 Tucked Cards', NULL, 1, '{"default":0}', 17),
 ('ws-ft', 'tpl-wingspan', 2, 1, 1, 1, 'formula', 'grand_total', 'Total', 'bird_points + SUM(bonus_*) + round_1 + round_2 + round_3 + round_4 + eggs + cached_food + tucked_cards', 1, '{}', 18);
 

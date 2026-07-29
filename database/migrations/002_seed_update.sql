@@ -40,3 +40,8 @@ UPDATE template_cells SET sort_order = 15 WHERE id = 'gf-ft';
 -- Insert new Wingspan bonus cell with allow_multiple (if not already present)
 INSERT OR IGNORE INTO template_cells (id, template_id, row_pos, col_pos, row_span, col_span, cell_type, cell_key, label, formula_expr, per_player, config_json, sort_order)
 VALUES ('ws-bi2', 'tpl-wingspan', 6, 0, 1, 1, 'input:number', 'bonus', 'Bonus Card', NULL, 1, '{"default":0,"allow_multiple":true}', 8);
+
+-- Change Wingspan eggs/food/tucked from tally to number input (they're point values, not counters)
+UPDATE template_cells SET cell_type = 'input:number', config_json = '{"default":0}' WHERE id = 'ws-et';
+UPDATE template_cells SET cell_type = 'input:number', config_json = '{"default":0}' WHERE id = 'ws-ft2';
+UPDATE template_cells SET cell_type = 'input:number', config_json = '{"default":0}' WHERE id = 'ws-tt';
