@@ -10,6 +10,7 @@ import { useAuth } from "@/components/AuthProvider";
 import Link from "next/link";
 import toast from "react-hot-toast";
 import { HiOutlinePencil, HiOutlineTrash, HiOutlinePlay, HiOutlineArrowLeft, HiOutlineTemplate } from "react-icons/hi";
+import ScorecardFill from "@/components/ScorecardFill";
 
 export default function TemplateDetailPage() {
   const params = useParams();
@@ -106,60 +107,15 @@ export default function TemplateDetailPage() {
         </div>
       </div>
 
-      {/* Table Preview */}
-      <div className="card p-4 overflow-x-auto">
-        <h3 className="section-header">Layout Preview</h3>
-        <table className="w-full border-collapse table-fixed">
-          <thead>
-            <tr className="border-b border-slate-200">
-              <th className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider px-2 py-1.5 text-left">Category</th>
-              <th className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider px-1 py-1.5 text-center w-10">P1</th>
-              <th className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider px-1 py-1.5 text-center w-10">P2</th>
-            </tr>
-          </thead>
-          <tbody>
-            {sortedCells.map((cell, idx) => {
-              const isTotal = /total/i.test(cell.label || cell.cell_key);
-              return (
-              <tr key={cell.id || cell.cell_key} className={`border-b border-slate-100 ${isTotal ? "bg-indigo-50/60 font-bold border-t-2 border-t-indigo-200" : idx % 2 === 0 ? "bg-slate-50/40" : ""}`}>
-                {cell.cell_type === "heading" ? (
-                  <td colSpan={3} className="px-2 py-1 font-semibold text-[13px] text-indigo-700 bg-indigo-50/40">
-                    {cell.label || cell.cell_key}
-                  </td>
-                ) : (
-                  <>
-                    <td className="px-2 py-1">
-                      <span className="text-[13px] font-medium text-slate-700 truncate"
-                        title={(() => {
-                          const parts = [cell.label || cell.cell_key.replace(/_/g, ' ')];
-                          if (cell.formula_expr) parts.push(`Formula: ${cell.formula_expr}`);
-                          if (!!(cell.config_json as Record<string, unknown>)?.allow_multiple) parts.push('Players can add multiple entries');
-                          return parts.join('\n');
-                        })()}>
-                        {cell.label || cell.cell_key.replace(/_/g, ' ')}
-                      </span>
-                    </td>
-                    <td className="px-2 py-1 text-center">
-                      <PreviewValue cell={cell} />
-                    </td>
-                    <td className="px-2 py-1 text-center">
-                      <PreviewValue cell={cell} />
-                    </td>
-                  </>
-                )}
-              </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+      {/* Layout Preview - uses same component as live scoring */}
+      <ScorecardFill
+        cells={sortedCells}
+        players={[]}
+        values={[]}
+        onPlayersChange={() => {}}
+        onValuesChange={() => {}}
+        readOnly={true}
+      />
     </div>
   );
-}
-
-function PreviewValue({ cell }: { cell: TemplateCell }) {
-  const allowMultiple = !!(cell.config_json as Record<string, unknown>)?.allow_multiple;
-  if (allowMultiple) return <span className="text-[11px] text-slate-300" title="Variable entries">…</span>;
-  if (cell.cell_type === "input:text") return <span className="text-[11px] text-slate-300">abc</span>;
-  return <span className="text-[11px] text-slate-300">0</span>;
 }
