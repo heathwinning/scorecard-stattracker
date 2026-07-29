@@ -264,7 +264,7 @@ export default function ScorecardFill({
             {table.getHeaderGroups().map(hg => (
               <tr key={hg.id} className="border-b border-slate-200">
                 {hg.headers.map(h => (
-                  <th key={h.id} className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider px-2 py-1.5 text-left first:pl-2 last:text-center">
+                  <th key={h.id} className={`text-[11px] font-semibold text-slate-400 uppercase tracking-wider px-2 py-1.5 ${h.column.id === "category" ? "text-left whitespace-nowrap" : "text-center w-0"}`}>
                     {flexRender(h.column.columnDef.header, h.getContext())}
                   </th>
                 ))}
