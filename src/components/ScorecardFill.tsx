@@ -15,11 +15,12 @@ interface ScorecardFillProps {
   myPlayerSlotId?: string | null;
   isOwner?: boolean;
   onCellUpdate?: (cellId: string, playerId: string, value: string, isHidden: number, entryKey?: string) => void;
+  onPersist?: () => void;
 }
 
 export default function ScorecardFill({
   cells, players, values, onPlayersChange, onValuesChange,
-  readOnly = false, myPlayerSlotId, isOwner = false, onCellUpdate,
+  readOnly = false, myPlayerSlotId, isOwner = false, onCellUpdate, onPersist,
 }: ScorecardFillProps) {
   const isMultiplayer = !!myPlayerSlotId;
   const canEditAny = isOwner || !isMultiplayer;
@@ -232,6 +233,7 @@ export default function ScorecardFill({
           return <CellInput cell={c} value={val}
             formulaResult={c.cell_type === "formula" ? computedFormulas?.[`${c.id}:${player.id}`] : undefined}
             onChange={v => setValue(c.id!, player.id!, v)} onTally={d => tallyValue(c.id!, player.id!, d)}
+            onPersist={onPersist}
             readOnly={!edit} isHidden={hidden}
             onReveal={edit && hidden ? () => setValue(c.id!, player.id!, getValue(c.id!, player.id!)) : undefined} />;
         },
@@ -314,9 +316,9 @@ export default function ScorecardFill({
   );
 }
 
-function CellInput({ cell, value, formulaResult, onChange, onTally, readOnly, isHidden, onReveal }: {
+function CellInput({ cell, value, formulaResult, onChange, onTally, onPersist, readOnly, isHidden, onReveal }: {
   cell: TemplateCell; value: string; formulaResult?: number; onChange: (v: string) => void;
-  onTally?: (d: number) => void; readOnly: boolean; isHidden?: boolean; onReveal?: () => void;
+  onTally?: (d: number) => void; onPersist?: () => void; readOnly: boolean; isHidden?: boolean; onReveal?: () => void;
 }) {
   if (isHidden) {
     if (onReveal) return <button onClick={onReveal} className="text-[11px] text-indigo-500 hover:text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded">🔒</button>;
@@ -325,13 +327,13 @@ function CellInput({ cell, value, formulaResult, onChange, onTally, readOnly, is
   switch (cell.cell_type) {
     case "input:text":
       return readOnly ? <span className="text-[13px] text-slate-900">{value || "—"}</span>
-        : <input type="text" value={value} onChange={e => onChange(e.target.value)} className="w-full text-[13px] px-1.5 py-1 border border-slate-200 rounded focus:outline-none focus:border-indigo-400 bg-white" placeholder="—" />;
+        : <input type="text" value={value} onChange={e => onChange(e.target.value)} onBlur={() => onPersist?.()} className="w-full text-[13px] px-1.5 py-1 border border-slate-200 rounded focus:outline-none focus:border-indigo-400 bg-white" placeholder="—" />;
     case "input:number":
       return readOnly ? <span className="text-[13px] font-mono font-semibold text-slate-900">{value || "—"}</span>
-        : <input type="number" value={value} onChange={e => onChange(e.target.value)} className="w-16 text-[13px] font-mono text-center px-1 py-1 border border-slate-200 rounded focus:outline-none focus:border-indigo-400 bg-white" placeholder="0" />;
+        : <input type="number" value={value} onChange={e => onChange(e.target.value)} onBlur={() => onPersist?.()} className="w-16 text-[13px] font-mono text-center px-1 py-1 border border-slate-200 rounded focus:outline-none focus:border-indigo-400 bg-white" placeholder="0" />;
     case "tally":
       return readOnly ? <span className="text-[13px] font-mono font-semibold text-slate-900">{value || "0"}</span>
-        : <div className="inline-flex items-center gap-0.5"><button onClick={() => onTally?.(-1)} className="w-6 h-6 rounded bg-rose-50 text-rose-500 hover:bg-rose-100 text-xs font-bold">−</button><span className="text-[13px] font-mono font-semibold w-8 text-center tabular-nums">{value || "0"}</span><button onClick={() => onTally?.(1)} className="w-6 h-6 rounded bg-emerald-50 text-emerald-500 hover:bg-emerald-100 text-xs font-bold">+</button></div>;
+        : <div className="inline-flex items-center gap-0.5"><button onClick={() => { onTally?.(-1); onPersist?.(); }} className="w-6 h-6 rounded bg-rose-50 text-rose-500 hover:bg-rose-100 text-xs font-bold">−</button><span className="text-[13px] font-mono font-semibold w-8 text-center tabular-nums">{value || "0"}</span><button onClick={() => { onTally?.(1); onPersist?.(); }} className="w-6 h-6 rounded bg-emerald-50 text-emerald-500 hover:bg-emerald-100 text-xs font-bold">+</button></div>;
     case "formula":
       return <span className="text-[13px] font-mono font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded">{formulaResult ?? "—"}</span>;
     default: return null;

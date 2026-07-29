@@ -78,19 +78,15 @@ function NewScorecardPageInner() {
     create();
   }, [templateId, cells.length, loading, isGuest]);
 
-  // Auto-save on changes (debounced 1.5s)
-  useEffect(() => {
-    if (!scorecardId || players.length === 0) return;
-    const timer = setTimeout(async () => {
-      try {
-        if (isGuest) {
-          guestUpdateScorecard(scorecardId, { title, players, values });
-        } else {
-          await updateScorecard(scorecardId, { title, players, values });
-        }
-      } catch { /* silent */ }
-    }, 1500);
-    return () => clearTimeout(timer);
+  const persist = useCallback(async () => {
+    if (!scorecardId) return;
+    try {
+      if (isGuest) {
+        guestUpdateScorecard(scorecardId, { title, players, values });
+      } else {
+        await updateScorecard(scorecardId, { title, players, values });
+      }
+    } catch { /* silent */ }
   }, [scorecardId, title, players, values, isGuest]);
 
   const copyLink = async () => {
@@ -150,6 +146,7 @@ function NewScorecardPageInner() {
           values={values}
           onPlayersChange={setPlayers}
           onValuesChange={setValues}
+          onPersist={persist}
           readOnly={false}
         />
       )}
