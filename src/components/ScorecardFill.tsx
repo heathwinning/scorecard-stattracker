@@ -99,7 +99,7 @@ export default function ScorecardFill({
   }, [cells, getValue, setValue]);
 
   const computedFormulas = useMemo(() => {
-    const formulaCells = cells.filter(c => c.cell_type === "formula" && c.formula_expr);
+    const formulaCells = cells.filter(c => (c.cell_type === "formula" || c.cell_type === "heading") && c.formula_expr);
     if (!formulaCells.length) return {} as Record<string, number>;
     const results: Record<string, number> = {};
     const pp = cells.filter(c => c.per_player);
@@ -276,11 +276,21 @@ export default function ScorecardFill({
               const c = row.original;
               const isTotal = /total/i.test(c.label || c.cell_key);
               if (c.cell_type === "heading") {
+                const hasFormula = !!c.formula_expr;
                 return (
                   <tr key={row.id} className="border-b border-slate-100 bg-indigo-50/40">
-                    <td colSpan={row.getVisibleCells().length} className="px-2 py-1">
+                    <td className="px-2 py-1">
                       <span className="font-semibold text-[13px] text-indigo-700">{c.label || c.cell_key}</span>
                     </td>
+                    {row.getVisibleCells().slice(1).map(vc => (
+                      <td key={vc.id} className="px-2 py-1 text-center">
+                        {hasFormula && c.per_player ? (
+                          <span className="text-[13px] font-mono font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded">
+                            {computedFormulas?.[`${c.id}:${displayPlayers.find(p => p.id === vc.column.id)?.id}`] ?? "—"}
+                          </span>
+                        ) : null}
+                      </td>
+                    ))}
                   </tr>
                 );
               }
