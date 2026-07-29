@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { useReactTable, getCoreRowModel, createColumnHelper, flexRender } from "@tanstack/react-table";
 import type { TemplateCell, ScorecardPlayer, CellValue } from "@/lib/api-client";
 import { evaluateFormula, type CellContext } from "@/lib/formula";
@@ -26,6 +26,25 @@ export default function ScorecardFill({
   const [myViewOnly, setMyViewOnly] = useState(false);
 
   const sortedCells = useMemo(() => [...cells].sort((a, b) => a.sort_order - b.sort_order), [cells]);
+  const initialized = useRef(false);
+
+  // Auto-add one entry for allow_multiple cells when scorecard first loads
+  useEffect(() => {
+    if (initialized.current || readOnly || players.length === 0) return;
+    initialized.current = true;
+    const newValues = [...values];
+    let changed = false;
+    cells.filter(c => !!(c.config_json as Record<string, unknown>)?.allow_multiple).forEach(cell => {
+      players.forEach(player => {
+        const existing = values.filter(v => v.template_cell_id === cell.id && v.player_id === player.id);
+        if (existing.length === 0) {
+          newValues.push({ template_cell_id: cell.id!, player_id: player.id!, entry_key: '0', value: '' });
+          changed = true;
+        }
+      });
+    });
+    if (changed) onValuesChange(newValues);
+  }, [cells, players, values, readOnly, onValuesChange]);
 
   const getEntryValues = useCallback((cellId: string, playerId: string | null): CellValue[] =>
     values.filter(v => v.template_cell_id === cellId && v.player_id === (playerId || null)).sort((a, b) => (a.entry_key || '').localeCompare(b.entry_key || '')),
