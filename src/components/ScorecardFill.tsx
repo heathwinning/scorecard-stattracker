@@ -140,7 +140,7 @@ export default function ScorecardFill({
     return results;
   }, [cells, players, values, getValue]);
 
-  const addPlayer = () => onPlayersChange([...players, { player_name: `P${players.length + 1}`, sort_order: players.length }]);
+  const addPlayer = () => onPlayersChange([...players, { id: `new-${crypto.randomUUID().slice(0, 8)}`, player_name: `P${players.length + 1}`, sort_order: players.length }]);
   const removePlayer = (i: number) => onPlayersChange(players.filter((_, idx) => idx !== i));
   const updatePlayerName = (i: number, n: string) => onPlayersChange(players.map((p, idx) => idx === i ? { ...p, player_name: n } : p));
 
@@ -158,9 +158,9 @@ export default function ScorecardFill({
       },
     })];
     const visiblePlayers = myViewOnly && myPlayerSlotId ? players.filter(p => p.id === myPlayerSlotId) : players;
-    visiblePlayers.forEach(player => {
+    visiblePlayers.forEach((player, pi) => {
       cols.push(columnHelper.display({
-        id: player.id || "",
+        id: player.id || `p${pi}`,
         header: player.player_name,
         cell: ({ row }) => {
           const c = row.original;
