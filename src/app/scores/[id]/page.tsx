@@ -34,6 +34,7 @@ export default function ScorecardDetailPage() {
   const [participants, setParticipants] = useState<ScorecardParticipant[]>([]);
   const [loading, setLoading] = useState(true);
   const [liveMode, setLiveMode] = useState(false);
+  const [gameMode, setGameMode] = useState<"shared" | "live">("shared");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const lastUpdatedRef = useRef<string>("");
@@ -87,13 +88,14 @@ export default function ScorecardDetailPage() {
 
         if (data.scorecard.share_code && user) {
           try {
-            const live = await getLiveScorecard(scorecardId);
+            const live = await getLiveScorecard(data.scorecard.id);
             setParticipants(live.participants || []);
             lastUpdatedRef.current = live.last_updated;
             const me = live.participants.find((p: ScorecardParticipant) => p.user_id === user.id);
             if (me) {
               setMyPlayerSlotId(me.player_slot_id);
               setLiveMode(true);
+              setGameMode("live");
               if (live.values?.length) setValues(live.values);
             }
           } catch { /* not a participant */ }
@@ -105,7 +107,7 @@ export default function ScorecardDetailPage() {
 
   // Live polling
   useEffect(() => {
-    if (!liveMode) return;
+    if (!liveMode || !scorecardId) return;
 
     pollRef.current = setInterval(async () => {
       try {
@@ -143,6 +145,15 @@ export default function ScorecardDetailPage() {
       catch { toast.error("Failed to save"); }
     }
   }, [scorecardId]);
+
+  // Generate share code when switching to live mode
+  useEffect(() => {
+    if (gameMode !== "live" || shareCode || scorecardId.startsWith("guest-")) return;
+    fetch(`/api/scorecards/${scorecardId}/share`, { method: "POST" })
+      .then(r => r.json())
+      .then(data => { if (data.share_code) setShareCode(data.share_code); })
+      .catch(() => {});
+  }, [gameMode, shareCode, scorecardId]);
 
   const persist = useCallback(async () => {
     if (scorecardId.startsWith("guest-")) {
@@ -214,11 +225,11 @@ export default function ScorecardDetailPage() {
           values={values}
           onPlayersChange={setPlayers}
           onValuesChange={setValues}
-          readOnly={!(isOwner || !!myPlayerSlotId)}
-          myPlayerSlotId={liveMode ? myPlayerSlotId : undefined}
+          readOnly={gameMode === "live" ? !(isOwner || !!myPlayerSlotId) : !isOwner}
+          myPlayerSlotId={gameMode === "live" ? myPlayerSlotId : undefined}
           isOwner={isOwner}
-          onCellUpdate={liveMode ? handleCellUpdate : undefined}
-          onPersist={!liveMode ? persist : undefined}
+          onCellUpdate={gameMode === "live" ? handleCellUpdate : undefined}
+          onPersist={gameMode !== "live" ? persist : undefined}
         />
       )}
 
@@ -231,7 +242,29 @@ export default function ScorecardDetailPage() {
 
       {/* Settings Modal */}
       <Modal open={settingsOpen} onClose={() => setSettingsOpen(false)} title="Game Settings">
-        <div className="space-y-4">
+        <div className="space-y-6">
+          {/* Game Mode */}
+          <div>
+            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-2">Game Mode</label>
+            <div className="flex items-center bg-slate-100 rounded-lg p-0.5">
+              <button
+                onClick={() => setGameMode("shared")}
+                className={`flex-1 text-xs font-medium px-3 py-2 rounded-md transition-all ${gameMode === "shared" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}>
+                Shared
+              </button>
+              <button
+                onClick={() => setGameMode("live")}
+                className={`flex-1 text-xs font-medium px-3 py-2 rounded-md transition-all ${gameMode === "live" ? "bg-white text-indigo-700 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}>
+                Player Slots
+              </button>
+            </div>
+            <p className="text-[11px] text-slate-400 mt-2">
+              {gameMode === "shared"
+                ? "Everyone with the link sees the same scorecard and can edit everything."
+                : "Each player joins via link, picks a slot, and only edits their own scores."}
+            </p>
+          </div>
+
           {isOwner && (
             <button onClick={() => { setSettingsOpen(false); handleDelete(); }}
               className="w-full flex items-center justify-center gap-2 text-sm font-medium text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-lg px-4 py-2.5 transition-colors">

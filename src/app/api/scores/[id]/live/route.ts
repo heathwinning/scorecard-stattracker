@@ -18,12 +18,24 @@ export async function GET(
   const db = getDB();
   const url = new URL(request.url);
   const since = url.searchParams.get("since") || "";
+  const lookupId = params.id;
+
+  // Resolve share code to real ID if needed
+  let scorecardId = lookupId;
+  if (lookupId.length <= 10 && !lookupId.includes("-")) {
+    const resolved = await queryFirst<{ id: string }>(
+      db,
+      "SELECT id FROM scorecards WHERE share_code = ?1",
+      [lookupId.toUpperCase()]
+    );
+    if (resolved) scorecardId = resolved.id;
+  }
 
   // Verify participant
   const participant = await queryFirst<{ player_slot_id: string | null }>(
     db,
     "SELECT player_slot_id FROM scorecard_participants WHERE scorecard_id = ?1 AND user_id = ?2",
-    [params.id, user.id]
+    [scorecardId, user.id]
   );
   if (!participant) {
     return NextResponse.json({ error: "Not a participant" }, { status: 403 });
@@ -34,7 +46,7 @@ export async function GET(
     db,
     `SELECT s.*, t.name as template_name FROM scorecards s
      JOIN templates t ON s.template_id = t.id WHERE s.id = ?1`,
-    [params.id]
+    [scorecardId]
   );
   if (!scorecard) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -44,12 +56,12 @@ export async function GET(
   const players = await queryAll(
     db,
     "SELECT * FROM scorecard_players WHERE scorecard_id = ?1 ORDER BY sort_order",
-    [params.id]
+    [scorecardId]
   );
 
   // Get values (only those updated since the last poll)
   let valuesQuery = "SELECT * FROM cell_values WHERE scorecard_id = ?1";
-  const queryParams: unknown[] = [params.id];
+  const queryParams: unknown[] = [scorecardId];
   if (since) {
     valuesQuery += " AND updated_at > ?2";
     queryParams.push(since);
@@ -62,7 +74,7 @@ export async function GET(
     `SELECT sp.*, u.name as user_name FROM scorecard_participants sp
      JOIN users u ON sp.user_id = u.id
      WHERE sp.scorecard_id = ?1`,
-    [params.id]
+    [scorecardId]
   );
 
   return NextResponse.json({

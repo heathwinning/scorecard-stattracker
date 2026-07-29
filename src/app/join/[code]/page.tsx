@@ -77,7 +77,7 @@ export default function JoinPage() {
   }, [scorecardId, players, isGuest]);
 
   const handleGoToScorecard = () => {
-    if (scorecardId) router.push(`/scorecards/${scorecardId}`);
+    if (scorecardId) router.push(`/scores/${code}`);
   };
 
   if (authLoading || loading) {
