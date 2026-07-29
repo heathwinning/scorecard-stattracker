@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getUserFromCookies } from "@/lib/auth";
+import { getUserFromRequest } from "@/lib/auth";
 import { getDB, queryAll, uuid } from "@/lib/db";
 
 export const runtime = "edge";
 
 // GET /api/scorecards - list user's scorecards
 export async function GET(request: NextRequest) {
-  const cookieHeader = request.headers.get("cookie");
-  const user = await getUserFromCookies(cookieHeader);
+  const user = await getUserFromRequest(request);
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -29,8 +28,7 @@ export async function GET(request: NextRequest) {
 
 // POST /api/scorecards - create a new scorecard
 export async function POST(request: NextRequest) {
-  const cookieHeader = request.headers.get("cookie");
-  const user = await getUserFromCookies(cookieHeader);
+  const user = await getUserFromRequest(request);
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -42,6 +40,12 @@ export async function POST(request: NextRequest) {
   if (!template_id) {
     return NextResponse.json({ error: "template_id is required" }, { status: 400 });
   }
+
+  // Ensure user exists (for guests)
+  await db
+    .prepare("INSERT OR IGNORE INTO users (id, email, name) VALUES (?1, ?2, ?3)")
+    .bind(user.id, user.email, user.name)
+    .run();
 
   const scorecardId = uuid();
 

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getUserFromCookies } from "@/lib/auth";
+import { getUserFromRequest } from "@/lib/auth";
 import { getDB, queryAll, queryFirst, uuid } from "@/lib/db";
 
 export const runtime = "edge";
@@ -7,8 +7,7 @@ export const runtime = "edge";
 // GET /api/templates - list templates (public gallery + user's own)
 export async function GET(request: NextRequest) {
   const db = getDB();
-  const cookieHeader = request.headers.get("cookie");
-  const user = await getUserFromCookies(cookieHeader);
+  const user = await getUserFromRequest(request);
   const url = new URL(request.url);
   const showPublic = url.searchParams.get("public") !== "false";
   const showMine = url.searchParams.get("mine") === "true";
@@ -46,8 +45,7 @@ export async function GET(request: NextRequest) {
 
 // POST /api/templates - create a new template
 export async function POST(request: NextRequest) {
-  const cookieHeader = request.headers.get("cookie");
-  const user = await getUserFromCookies(cookieHeader);
+  const user = await getUserFromRequest(request);
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

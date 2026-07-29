@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getUserFromCookies } from "@/lib/auth";
+import { getUserFromRequest } from "@/lib/auth";
 import { getDB, queryFirst, queryAll, execute } from "@/lib/db";
 
 export const runtime = "edge";
 
 // POST /api/scorecards/join — join a shared scorecard via code
 export async function POST(request: NextRequest) {
-  const cookieHeader = request.headers.get("cookie");
-  const user = await getUserFromCookies(cookieHeader);
+  const user = await getUserFromRequest(request);
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
