@@ -101,50 +101,38 @@ export default function TemplateDetailPage() {
       </div>
 
       {/* Table Preview */}
-      <div className="card p-6 overflow-x-auto">
+      <div className="card p-4 overflow-x-auto">
         <h3 className="section-header">Layout Preview</h3>
-        <table className="w-full min-w-[400px] border-collapse">
+        <table className="w-full min-w-[400px] border-collapse table-auto">
           <thead>
-            <tr className="border-b-2 border-slate-200">
-              <th className="text-xs font-semibold text-slate-500 uppercase tracking-wider px-4 py-2.5 text-left">Score Category</th>
-              <th className="text-xs font-semibold text-slate-500 uppercase tracking-wider px-3 py-2.5 text-center">Player 1</th>
-              <th className="text-xs font-semibold text-slate-500 uppercase tracking-wider px-3 py-2.5 text-center">Player 2</th>
+            <tr className="border-b border-slate-200">
+              <th className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider px-2 py-1.5 text-left">Category</th>
+              <th className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider px-2 py-1.5 text-center">P1</th>
+              <th className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider px-2 py-1.5 text-center">P2</th>
             </tr>
           </thead>
           <tbody>
             {sortedCells.map((cell, idx) => (
-              <tr key={cell.id || cell.cell_key} className={`border-b border-slate-100 ${idx % 2 === 0 ? "bg-slate-50/30" : ""}`}>
+              <tr key={cell.id || cell.cell_key} className={`border-b border-slate-100 ${idx % 2 === 0 ? "bg-slate-50/40" : ""}`}>
                 {cell.cell_type === "heading" ? (
-                  <td colSpan={3} className="px-4 py-2.5 font-bold text-sm text-indigo-800 bg-indigo-50/30">
+                  <td colSpan={3} className="px-2 py-1 font-semibold text-[13px] text-indigo-700 bg-indigo-50/40">
                     {cell.label || cell.cell_key}
                   </td>
                 ) : (
                   <>
-                    <td className="px-4 py-2.5">
-                      <div className="text-sm font-medium text-slate-700">{cell.label || cell.cell_key}</div>
-                      {cell.formula_expr && <div className="text-[10px] font-mono text-amber-600 mt-0.5">={cell.formula_expr}</div>}
-                    </td>
-                    <td className="px-3 py-2.5 text-center">
-                      <span className={`text-xs ${
-                        cell.cell_type === "formula" ? "font-mono text-amber-400" :
-                        cell.cell_type === "tally" ? "text-slate-300" :
-                        cell.cell_type === "input:text" ? "text-slate-300" : "text-slate-300"
-                      }`}>
-                        {cell.cell_type === "tally" ? "− 0 +" :
-                         cell.cell_type === "formula" ? "0" :
-                         cell.cell_type === "input:text" ? "text" : "0"}
+                    <td className="px-2 py-1">
+                      <span className="text-[13px] font-medium text-slate-700 truncate block max-w-[220px]"
+                        title={(cell.label || cell.cell_key) + (cell.formula_expr ? `  (=${cell.formula_expr})` : '')}>
+                        {cell.label || cell.cell_key}
                       </span>
+                      {cell.formula_expr && <span className="text-[10px] font-mono text-amber-500 ml-1" title={`=${cell.formula_expr}`}>ƒ</span>}
+                      {!!(cell.config_json as Record<string, unknown>)?.allow_multiple && <span className="text-[10px] text-indigo-400 ml-1" title="Multiple entries allowed">+</span>}
                     </td>
-                    <td className="px-3 py-2.5 text-center">
-                      <span className={`text-xs ${
-                        cell.cell_type === "formula" ? "font-mono text-amber-400" :
-                        cell.cell_type === "tally" ? "text-slate-300" :
-                        cell.cell_type === "input:text" ? "text-slate-300" : "text-slate-300"
-                      }`}>
-                        {cell.cell_type === "tally" ? "− 0 +" :
-                         cell.cell_type === "formula" ? "0" :
-                         cell.cell_type === "input:text" ? "text" : "0"}
-                      </span>
+                    <td className="px-2 py-1 text-center">
+                      <span className="text-[11px] text-slate-300">{cell.cell_type === "formula" ? "0" : cell.cell_type === "tally" ? "−0+" : cell.cell_type === "input:text" ? "abc" : "0"}</span>
+                    </td>
+                    <td className="px-2 py-1 text-center">
+                      <span className="text-[11px] text-slate-300">{cell.cell_type === "formula" ? "0" : cell.cell_type === "tally" ? "−0+" : cell.cell_type === "input:text" ? "abc" : "0"}</span>
                     </td>
                   </>
                 )}

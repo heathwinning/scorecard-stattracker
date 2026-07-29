@@ -140,18 +140,18 @@ INSERT OR IGNORE INTO template_cells (id, template_id, row_pos, col_pos, row_spa
 ('cat-lvp', 'tpl-catan', 1, 2, 1, 1, 'label', 'lbl_vp', 'Total VP', NULL, 0, '{}', 2),
 ('cat-in', 'tpl-catan', 2, 0, 1, 1, 'input:text', 'player_name', '', NULL, 1, '{"placeholder":"Name"}', 3),
 -- Route length for longest road
-('cat-llr', 'tpl-catan', 2, 1, 1, 1, 'label', 'lbl_lr', 'Longest Road (≥5=2VP)', NULL, 1, '{}', 4),
+('cat-llr', 'tpl-catan', 2, 1, 1, 1, 'label', 'lbl_lr', 'Longest Road', NULL, 1, '{}', 4),
 ('cat-ir', 'tpl-catan', 3, 1, 1, 1, 'input:number', 'road_length', '', NULL, 1, '{"default":0}', 5),
 ('cat-flr', 'tpl-catan', 3, 2, 1, 1, 'formula', 'road_vp', '', 'road_length >= 5 ? 2 : 0', 1, '{}', 6),
 -- Knights for largest army
-('cat-lla', 'tpl-catan', 4, 1, 1, 1, 'label', 'lbl_army', 'Largest Army (≥3=2VP)', NULL, 1, '{}', 7),
+('cat-lla', 'tpl-catan', 4, 1, 1, 1, 'label', 'lbl_army', 'Largest Army', NULL, 1, '{}', 7),
 ('cat-ik', 'tpl-catan', 5, 1, 1, 1, 'input:number', 'knights', '', NULL, 1, '{"default":0}', 8),
 ('cat-fla', 'tpl-catan', 5, 2, 1, 1, 'formula', 'army_vp', '', 'knights >= 3 ? 2 : 0', 1, '{}', 9),
 -- Settlements
-('cat-ls', 'tpl-catan', 6, 1, 1, 1, 'label', 'lbl_settle', 'Settlements (1 VP each)', NULL, 1, '{}', 10),
+('cat-ls', 'tpl-catan', 6, 1, 1, 1, 'label', 'lbl_settle', 'Settlements', NULL, 1, '{}', 10),
 ('cat-ts', 'tpl-catan', 7, 1, 1, 1, 'tally', 'settlements', '', NULL, 1, '{"min":0,"default":2,"step":1}', 11),
 -- Cities
-('cat-lc', 'tpl-catan', 8, 1, 1, 1, 'label', 'lbl_cities', 'Cities (2 VP each)', NULL, 1, '{}', 12),
+('cat-lc', 'tpl-catan', 8, 1, 1, 1, 'label', 'lbl_cities', 'Cities', NULL, 1, '{}', 12),
 ('cat-tc', 'tpl-catan', 9, 1, 1, 1, 'tally', 'cities', '', NULL, 1, '{"min":0,"default":0,"step":1}', 13),
 -- VP Cards
 ('cat-lv', 'tpl-catan', 10, 1, 1, 1, 'label', 'lbl_vpcards', 'VP Dev Cards', NULL, 1, '{}', 14),
@@ -323,7 +323,7 @@ INSERT OR IGNORE INTO template_cells (id, template_id, row_pos, col_pos, row_spa
 ('ttr-itk', 'tpl-ticket', 5, 1, 1, 1, 'input:number', 'ticket_points', '', NULL, 1, '{"default":0}', 7),
 ('ttr-luf', 'tpl-ticket', 6, 1, 1, 1, 'label', 'lbl_unfin', 'Unfinished Tickets (-)', NULL, 1, '{}', 8),
 ('ttr-iuf', 'tpl-ticket', 7, 1, 1, 1, 'input:number', 'unfinished_penalty', '', NULL, 1, '{"default":0}', 9),
-('ttr-llp', 'tpl-ticket', 8, 1, 1, 1, 'label', 'lbl_path', 'Longest Path (10 VP)', NULL, 1, '{}', 10),
+('ttr-llp', 'tpl-ticket', 8, 1, 1, 1, 'label', 'lbl_path', 'Longest Path', NULL, 1, '{}', 10),
 ('ttr-ilp', 'tpl-ticket', 9, 1, 1, 1, 'input:number', 'longest_trains', '', NULL, 1, '{"default":0}', 11),
 ('ttr-flp', 'tpl-ticket', 9, 2, 1, 1, 'formula', 'path_bonus', '', 'longest_trains > 0 ? 10 : 0', 1, '{}', 12),
 ('ttr-lc', 'tpl-ticket', 10, 1, 1, 1, 'label', 'lbl_cars', 'Trains Left', NULL, 1, '{}', 13),
@@ -343,37 +343,22 @@ INSERT OR IGNORE INTO template_cells (id, template_id, row_pos, col_pos, row_spa
 ('ws-ln', 'tpl-wingspan', 1, 0, 1, 1, 'label', 'lbl_name', 'Player', NULL, 0, '{}', 1),
 ('ws-lt', 'tpl-wingspan', 1, 1, 1, 1, 'label', 'lbl_total', 'Total', NULL, 0, '{}', 2),
 ('ws-in', 'tpl-wingspan', 2, 0, 1, 1, 'input:text', 'player_name', '', NULL, 1, '{"placeholder":"Name"}', 3),
-('ws-ft', 'tpl-wingspan', 2, 1, 1, 1, 'formula', 'grand_total', 'Total', 'bird_points + bonus_1 + bonus_2 + bonus_3 + bonus_4 + round_1 + round_2 + round_3 + round_4 + eggs + cached_food + tucked_cards', 1, '{}', 4),
+('ws-ft', 'tpl-wingspan', 2, 1, 1, 1, 'formula', 'grand_total', 'Total', 'bird_points + SUM(bonus_*) + round_1 + round_2 + round_3 + round_4 + eggs + cached_food + tucked_cards', 1, '{}', 4),
 -- Bird Cards
 ('ws-bh', 'tpl-wingspan', 3, 0, 1, 2, 'heading', 'h_birds', 'Bird Cards', NULL, 0, '{}', 5),
-('ws-bl', 'tpl-wingspan', 4, 0, 1, 1, 'label', 'lbl_birds', 'Bird Points (sum of all bird card values)', NULL, 0, '{}', 6),
-('ws-bi', 'tpl-wingspan', 4, 1, 1, 1, 'input:number', 'bird_points', '', NULL, 1, '{"default":0}', 7),
--- Bonus Cards
-('ws-boh', 'tpl-wingspan', 5, 0, 1, 2, 'heading', 'h_bonus', 'Bonus Cards', NULL, 0, '{}', 8),
-('ws-bo1l', 'tpl-wingspan', 6, 0, 1, 1, 'label', 'lbl_bonus1', 'Bonus Card 1', NULL, 0, '{}', 9),
-('ws-bo1i', 'tpl-wingspan', 6, 1, 1, 1, 'input:number', 'bonus_1', '', NULL, 1, '{"default":0}', 10),
-('ws-bo2l', 'tpl-wingspan', 7, 0, 1, 1, 'label', 'lbl_bonus2', 'Bonus Card 2', NULL, 0, '{}', 11),
-('ws-bo2i', 'tpl-wingspan', 7, 1, 1, 1, 'input:number', 'bonus_2', '', NULL, 1, '{"default":0}', 12),
-('ws-bo3l', 'tpl-wingspan', 8, 0, 1, 1, 'label', 'lbl_bonus3', 'Bonus Card 3', NULL, 0, '{}', 13),
-('ws-bo3i', 'tpl-wingspan', 8, 1, 1, 1, 'input:number', 'bonus_3', '', NULL, 1, '{"default":0}', 14),
-('ws-bo4l', 'tpl-wingspan', 9, 0, 1, 1, 'label', 'lbl_bonus4', 'Bonus Card 4', NULL, 0, '{}', 15),
-('ws-bo4i', 'tpl-wingspan', 9, 1, 1, 1, 'input:number', 'bonus_4', '', NULL, 1, '{"default":0}', 16),
+('ws-bi', 'tpl-wingspan', 4, 0, 1, 1, 'input:number', 'bird_points', 'Bird Points', NULL, 1, '{"default":0}', 6),
+-- Bonus Cards (allow_multiple — players can add any number)
+('ws-boh', 'tpl-wingspan', 5, 0, 1, 2, 'heading', 'h_bonus', 'Bonus Cards', NULL, 0, '{}', 7),
+('ws-bi2', 'tpl-wingspan', 6, 0, 1, 1, 'input:number', 'bonus', 'Bonus Card', NULL, 1, '{"default":0,"allow_multiple":true}', 8),
 -- Round Goals
-('ws-rh', 'tpl-wingspan', 10, 0, 1, 2, 'heading', 'h_rounds', 'End-of-Round Goals', NULL, 0, '{}', 17),
-('ws-r1l', 'tpl-wingspan', 11, 0, 1, 1, 'label', 'lbl_round1', 'Round 1 Goal', NULL, 0, '{}', 18),
-('ws-r1i', 'tpl-wingspan', 11, 1, 1, 1, 'input:number', 'round_1', '', NULL, 1, '{"default":0}', 19),
-('ws-r2l', 'tpl-wingspan', 12, 0, 1, 1, 'label', 'lbl_round2', 'Round 2 Goal', NULL, 0, '{}', 20),
-('ws-r2i', 'tpl-wingspan', 12, 1, 1, 1, 'input:number', 'round_2', '', NULL, 1, '{"default":0}', 21),
-('ws-r3l', 'tpl-wingspan', 13, 0, 1, 1, 'label', 'lbl_round3', 'Round 3 Goal', NULL, 0, '{}', 22),
-('ws-r3i', 'tpl-wingspan', 13, 1, 1, 1, 'input:number', 'round_3', '', NULL, 1, '{"default":0}', 23),
-('ws-r4l', 'tpl-wingspan', 14, 0, 1, 1, 'label', 'lbl_round4', 'Round 4 Goal', NULL, 0, '{}', 24),
-('ws-r4i', 'tpl-wingspan', 14, 1, 1, 1, 'input:number', 'round_4', '', NULL, 1, '{"default":0}', 25),
+('ws-rh', 'tpl-wingspan', 7, 0, 1, 2, 'heading', 'h_rounds', 'End-of-Round Goals', NULL, 0, '{}', 9),
+('ws-r1i', 'tpl-wingspan', 8, 0, 1, 1, 'input:number', 'round_1', 'Round 1', NULL, 1, '{"default":0}', 10),
+('ws-r2i', 'tpl-wingspan', 9, 0, 1, 1, 'input:number', 'round_2', 'Round 2', NULL, 1, '{"default":0}', 11),
+('ws-r3i', 'tpl-wingspan', 10, 0, 1, 1, 'input:number', 'round_3', 'Round 3', NULL, 1, '{"default":0}', 12),
+('ws-r4i', 'tpl-wingspan', 11, 0, 1, 1, 'input:number', 'round_4', 'Round 4', NULL, 1, '{"default":0}', 13),
 -- Eggs, Food, Tucked
-('ws-oh', 'tpl-wingspan', 15, 0, 1, 2, 'heading', 'h_other', 'Other Points (1 point each)', NULL, 0, '{}', 26),
-('ws-el', 'tpl-wingspan', 16, 0, 1, 1, 'label', 'lbl_eggs', '🥚 Eggs', NULL, 0, '{}', 27),
-('ws-et', 'tpl-wingspan', 16, 1, 1, 1, 'tally', 'eggs', '', NULL, 1, '{"min":0,"default":0,"step":1}', 28),
-('ws-fl', 'tpl-wingspan', 17, 0, 1, 1, 'label', 'lbl_food', '🍒 Cached Food', NULL, 0, '{}', 29),
-('ws-ft2', 'tpl-wingspan', 17, 1, 1, 1, 'tally', 'cached_food', '', NULL, 1, '{"min":0,"default":0,"step":1}', 30),
-('ws-tl', 'tpl-wingspan', 18, 0, 1, 1, 'label', 'lbl_tucked', '🃏 Tucked Cards', NULL, 0, '{}', 31),
-('ws-tt', 'tpl-wingspan', 18, 1, 1, 1, 'tally', 'tucked_cards', '', NULL, 1, '{"min":0,"default":0,"step":1}', 32);
+('ws-oh', 'tpl-wingspan', 12, 0, 1, 2, 'heading', 'h_other', 'Other Points', NULL, 0, '{}', 14),
+('ws-et', 'tpl-wingspan', 13, 0, 1, 1, 'tally', 'eggs', '🥚 Eggs', NULL, 1, '{"min":0}', 15),
+('ws-ft2', 'tpl-wingspan', 14, 0, 1, 1, 'tally', 'cached_food', '🍒 Cached Food', NULL, 1, '{"min":0}', 16),
+('ws-tt', 'tpl-wingspan', 15, 0, 1, 1, 'tally', 'tucked_cards', '🃏 Tucked Cards', NULL, 1, '{"min":0}', 17);
 
