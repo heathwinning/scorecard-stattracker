@@ -111,7 +111,7 @@ export default function DashboardPage() {
         ) : (
           <div className="space-y-2">
             {scorecards.slice(0, 5).map((sc) => (
-              <Link key={sc.id} href={`/scorecards/${sc.id}`}
+              <Link key={sc.id} href={`/scores/${sc.id}`}
                 className="card-hover flex items-center justify-between p-3 group">
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center text-sm group-hover:bg-indigo-50 transition-colors">
@@ -241,7 +241,7 @@ function GuestDashboard({ templates, scorecards }: { templates: Template[]; scor
         ) : (
           <div className="space-y-2">
             {scorecards.slice(0, 5).map((sc) => (
-              <Link key={sc.id} href={`/scorecards/${sc.id}`} className="card-hover flex items-center justify-between p-4 group">
+              <Link key={sc.id} href={`/scores/${sc.id}`} className="card-hover flex items-center justify-between p-4 group">
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center text-sm group-hover:bg-indigo-50 transition-colors">🎲</div>
                   <div>
