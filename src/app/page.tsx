@@ -7,10 +7,6 @@ export default function Home() {
       <section className="relative overflow-hidden bg-gradient-to-b from-indigo-50 via-white to-white">
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNjN2QyZmUiIGZpbGwtb3BhY2l0eT0iMC40Ij48Y2lyY2xlIGN4PSIzMCIgY3k9IjMwIiByPSIyIi8+PC9nPjwvZz48L3N2Zz4=')] opacity-40" />
         <div className="max-w-4xl mx-auto px-4 pt-24 pb-20 text-center relative">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/80 border border-indigo-100 shadow-sm text-sm text-indigo-600 font-medium mb-8 backdrop-blur-sm">
-            <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
-            Now in beta — free to use
-          </div>
           <h1 className="text-5xl sm:text-6xl font-bold tracking-tight text-slate-900 mb-6 leading-tight">
             Scorecards for{" "}
             <span className="gradient-text">any game</span>
