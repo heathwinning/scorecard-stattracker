@@ -52,17 +52,13 @@ INSERT OR IGNORE INTO games (id, name, slug, category, player_count, icon) VALUE
   ('game-code-names-duet', 'Codenames Duet', 'codenames-duet', 'party', '2', '🤝'),
   ('game-telestrations', 'Telestrations', 'telestrations', 'party', '4-8', '✏️');
 
--- Clear seed templates before re-inserting (allows updates to take effect on re-deploy)
-DELETE FROM template_cells WHERE template_id LIKE 'tpl-%';
-DELETE FROM templates WHERE id LIKE 'tpl-%';
-
 -- ============================================================
 -- TEMPLATE 1: Yahtzee
 -- ============================================================
-INSERT INTO templates (id, name, description, game_id, is_public, created_by) VALUES
+INSERT OR REPLACE INTO templates (id, name, description, game_id, is_public, created_by) VALUES
   ('tpl-yahtzee', 'Yahtzee', 'Classic dice game scorecard. Upper section (1s-6s) with 63-point bonus, lower section (3 of a kind through Yahtzee), auto-calculated totals.', 'game-yahtzee', 1, 'system');
 
-INSERT INTO template_cells (id, template_id, row_pos, col_pos, row_span, col_span, cell_type, cell_key, label, formula_expr, per_player, config_json, sort_order) VALUES
+INSERT OR REPLACE INTO template_cells (id, template_id, row_pos, col_pos, row_span, col_span, cell_type, cell_key, label, formula_expr, per_player, config_json, sort_order) VALUES
 -- Header
 ('y-h', 'tpl-yahtzee', 0, 0, 1, 2, 'heading', 'h_main', 'Yahtzee', NULL, 0, '{}', 0),
 -- Upper Section
@@ -112,10 +108,10 @@ INSERT INTO template_cells (id, template_id, row_pos, col_pos, row_span, col_spa
 -- ============================================================
 -- TEMPLATE 2: Uno
 -- ============================================================
-INSERT INTO templates (id, name, description, game_id, is_public, created_by) VALUES
+INSERT OR REPLACE INTO templates (id, name, description, game_id, is_public, created_by) VALUES
   ('tpl-uno', 'Uno', 'Track rounds of Uno. Record remaining cards per player per round. Lowest running total wins.', 'game-uno', 1, 'system');
 
-INSERT INTO template_cells (id, template_id, row_pos, col_pos, row_span, col_span, cell_type, cell_key, label, formula_expr, per_player, config_json, sort_order) VALUES
+INSERT OR REPLACE INTO template_cells (id, template_id, row_pos, col_pos, row_span, col_span, cell_type, cell_key, label, formula_expr, per_player, config_json, sort_order) VALUES
 ('uno-h', 'tpl-uno', 0, 0, 1, 2, 'heading', 'h_main', 'Uno Scorecard', NULL, 0, '{}', 0),
 ('uno-ln', 'tpl-uno', 1, 0, 1, 1, 'label', 'lbl_name', 'Player', NULL, 0, '{}', 1),
 ('uno-lt', 'tpl-uno', 1, 1, 1, 1, 'label', 'lbl_total', 'Total', NULL, 0, '{}', 2),
@@ -134,10 +130,10 @@ INSERT INTO template_cells (id, template_id, row_pos, col_pos, row_span, col_spa
 -- ============================================================
 -- TEMPLATE 3: Catan
 -- ============================================================
-INSERT INTO templates (id, name, description, game_id, is_public, created_by) VALUES
+INSERT OR REPLACE INTO templates (id, name, description, game_id, is_public, created_by) VALUES
   ('tpl-catan', 'Catan', 'Track Victory Points. Count settlements, cities, longest road, largest army, and VP development cards. Auto-calculates totals with conditional bonuses.', 'game-catan', 1, 'system');
 
-INSERT INTO template_cells (id, template_id, row_pos, col_pos, row_span, col_span, cell_type, cell_key, label, formula_expr, per_player, config_json, sort_order) VALUES
+INSERT OR REPLACE INTO template_cells (id, template_id, row_pos, col_pos, row_span, col_span, cell_type, cell_key, label, formula_expr, per_player, config_json, sort_order) VALUES
 ('cat-h', 'tpl-catan', 0, 0, 1, 3, 'heading', 'h_main', 'Catan Victory Points', NULL, 0, '{}', 0),
 ('cat-ln', 'tpl-catan', 1, 0, 1, 1, 'label', 'lbl_name', 'Player', NULL, 0, '{}', 1),
 ('cat-lvp', 'tpl-catan', 1, 2, 1, 1, 'label', 'lbl_vp', 'Total VP', NULL, 0, '{}', 2),
@@ -165,10 +161,10 @@ INSERT INTO template_cells (id, template_id, row_pos, col_pos, row_span, col_spa
 -- ============================================================
 -- TEMPLATE 4: Spades
 -- ============================================================
-INSERT INTO templates (id, name, description, game_id, is_public, created_by) VALUES
+INSERT OR REPLACE INTO templates (id, name, description, game_id, is_public, created_by) VALUES
   ('tpl-spades', 'Spades', 'Track bids and tricks in Spades. Calculates scores: 10 pts per trick bid, 1 pt per overtrick (bag). -10 pts per undertrick per bid missed.', 'game-spades', 1, 'system');
 
-INSERT INTO template_cells (id, template_id, row_pos, col_pos, row_span, col_span, cell_type, cell_key, label, formula_expr, per_player, config_json, sort_order) VALUES
+INSERT OR REPLACE INTO template_cells (id, template_id, row_pos, col_pos, row_span, col_span, cell_type, cell_key, label, formula_expr, per_player, config_json, sort_order) VALUES
 ('sp-h', 'tpl-spades', 0, 0, 1, 5, 'heading', 'h_main', 'Spades Scorecard', NULL, 0, '{}', 0),
 ('sp-lp', 'tpl-spades', 1, 0, 1, 1, 'label', 'lbl_player', 'Player', NULL, 0, '{}', 1),
 ('sp-lb', 'tpl-spades', 1, 1, 1, 1, 'label', 'lbl_bid', 'Bid', NULL, 0, '{}', 2),
@@ -184,10 +180,10 @@ INSERT INTO template_cells (id, template_id, row_pos, col_pos, row_span, col_spa
 -- ============================================================
 -- TEMPLATE 5: Scrabble
 -- ============================================================
-INSERT INTO templates (id, name, description, game_id, is_public, created_by) VALUES
+INSERT OR REPLACE INTO templates (id, name, description, game_id, is_public, created_by) VALUES
   ('tpl-scrabble', 'Scrabble', 'Track Scrabble word scores. Enter each word played and its score. Auto-calculates running total per player.', 'game-scrabble', 1, 'system');
 
-INSERT INTO template_cells (id, template_id, row_pos, col_pos, row_span, col_span, cell_type, cell_key, label, formula_expr, per_player, config_json, sort_order) VALUES
+INSERT OR REPLACE INTO template_cells (id, template_id, row_pos, col_pos, row_span, col_span, cell_type, cell_key, label, formula_expr, per_player, config_json, sort_order) VALUES
 ('sc-h', 'tpl-scrabble', 0, 0, 1, 3, 'heading', 'h_main', 'Scrabble Scores', NULL, 0, '{}', 0),
 ('sc-ln', 'tpl-scrabble', 1, 0, 1, 1, 'label', 'lbl_name', 'Player', NULL, 0, '{}', 1),
 ('sc-lt', 'tpl-scrabble', 1, 2, 1, 1, 'label', 'lbl_total', 'Total', NULL, 0, '{}', 2),
@@ -213,10 +209,10 @@ INSERT INTO template_cells (id, template_id, row_pos, col_pos, row_span, col_spa
 -- ============================================================
 -- TEMPLATE 6: Cornhole
 -- ============================================================
-INSERT INTO templates (id, name, description, game_id, is_public, created_by) VALUES
+INSERT OR REPLACE INTO templates (id, name, description, game_id, is_public, created_by) VALUES
   ('tpl-cornhole', 'Cornhole / Bags', 'Track cornhole rounds. Enter bags in the hole (3 pts) and on the board (1 pt) per team per round. Auto-calculates totals.', 'game-cornhole', 1, 'system');
 
-INSERT INTO template_cells (id, template_id, row_pos, col_pos, row_span, col_span, cell_type, cell_key, label, formula_expr, per_player, config_json, sort_order) VALUES
+INSERT OR REPLACE INTO template_cells (id, template_id, row_pos, col_pos, row_span, col_span, cell_type, cell_key, label, formula_expr, per_player, config_json, sort_order) VALUES
 ('ch-h', 'tpl-cornhole', 0, 0, 1, 2, 'heading', 'h_main', 'Cornhole Scorecard', NULL, 0, '{}', 0),
 ('ch-ln', 'tpl-cornhole', 1, 0, 1, 1, 'label', 'lbl_team', 'Team', NULL, 0, '{}', 1),
 ('ch-ls', 'tpl-cornhole', 1, 1, 1, 1, 'label', 'lbl_score', 'Total Score', NULL, 0, '{}', 2),
@@ -239,10 +235,10 @@ INSERT INTO template_cells (id, template_id, row_pos, col_pos, row_span, col_spa
 -- ============================================================
 -- TEMPLATE 7: Poker Night
 -- ============================================================
-INSERT INTO templates (id, name, description, game_id, is_public, created_by) VALUES
+INSERT OR REPLACE INTO templates (id, name, description, game_id, is_public, created_by) VALUES
   ('tpl-poker', 'Poker Night', 'Track buy-ins, cash-outs, and net profit/loss. Shows house balance for cash games with friends.', 'game-poker', 1, 'system');
 
-INSERT INTO template_cells (id, template_id, row_pos, col_pos, row_span, col_span, cell_type, cell_key, label, formula_expr, per_player, config_json, sort_order) VALUES
+INSERT OR REPLACE INTO template_cells (id, template_id, row_pos, col_pos, row_span, col_span, cell_type, cell_key, label, formula_expr, per_player, config_json, sort_order) VALUES
 ('pk-h', 'tpl-poker', 0, 0, 1, 4, 'heading', 'h_main', 'Poker Night', NULL, 0, '{}', 0),
 ('pk-ln', 'tpl-poker', 1, 0, 1, 1, 'label', 'lbl_name', 'Player', NULL, 0, '{}', 1),
 ('pk-lb', 'tpl-poker', 1, 1, 1, 1, 'label', 'lbl_buyin', 'Buy-in', NULL, 0, '{}', 2),
@@ -263,10 +259,10 @@ INSERT INTO template_cells (id, template_id, row_pos, col_pos, row_span, col_spa
 -- ============================================================
 -- TEMPLATE 8: Phase 10
 -- ============================================================
-INSERT INTO templates (id, name, description, game_id, is_public, created_by) VALUES
+INSERT OR REPLACE INTO templates (id, name, description, game_id, is_public, created_by) VALUES
   ('tpl-phase10', 'Phase 10', 'Track phases completed and round scores. Lowest total score wins. Players complete 10 phases in order.', 'game-phase10', 1, 'system');
 
-INSERT INTO template_cells (id, template_id, row_pos, col_pos, row_span, col_span, cell_type, cell_key, label, formula_expr, per_player, config_json, sort_order) VALUES
+INSERT OR REPLACE INTO template_cells (id, template_id, row_pos, col_pos, row_span, col_span, cell_type, cell_key, label, formula_expr, per_player, config_json, sort_order) VALUES
 ('p10-h', 'tpl-phase10', 0, 0, 1, 3, 'heading', 'h_main', 'Phase 10', NULL, 0, '{}', 0),
 ('p10-ln', 'tpl-phase10', 1, 0, 1, 1, 'label', 'lbl_name', 'Player', NULL, 0, '{}', 1),
 ('p10-lp', 'tpl-phase10', 1, 1, 1, 1, 'label', 'lbl_phase', 'Current Phase', NULL, 0, '{}', 2),
@@ -289,10 +285,10 @@ INSERT INTO template_cells (id, template_id, row_pos, col_pos, row_span, col_spa
 -- ============================================================
 -- TEMPLATE 9: Golf (card game)
 -- ============================================================
-INSERT INTO templates (id, name, description, game_id, is_public, created_by) VALUES
+INSERT OR REPLACE INTO templates (id, name, description, game_id, is_public, created_by) VALUES
   ('tpl-golf', 'Golf (Card Game)', 'Track 9-hole Golf card game. Lower score wins. Each hole: reveal cards, lowest total wins.', 'game-golf-card', 1, 'system');
 
-INSERT INTO template_cells (id, template_id, row_pos, col_pos, row_span, col_span, cell_type, cell_key, label, formula_expr, per_player, config_json, sort_order) VALUES
+INSERT OR REPLACE INTO template_cells (id, template_id, row_pos, col_pos, row_span, col_span, cell_type, cell_key, label, formula_expr, per_player, config_json, sort_order) VALUES
 ('gf-h', 'tpl-golf', 0, 0, 1, 6, 'heading', 'h_main', 'Golf Card Game', NULL, 0, '{}', 0),
 ('gf-ln', 'tpl-golf', 1, 0, 1, 1, 'label', 'lbl_name', 'Player', NULL, 0, '{}', 1),
 ('gf-lt', 'tpl-golf', 1, 1, 1, 1, 'label', 'lbl_total', 'Total', NULL, 0, '{}', 2),
@@ -312,10 +308,10 @@ INSERT INTO template_cells (id, template_id, row_pos, col_pos, row_span, col_spa
 -- ============================================================
 -- TEMPLATE 10: Ticket to Ride
 -- ============================================================
-INSERT INTO templates (id, name, description, game_id, is_public, created_by) VALUES
+INSERT OR REPLACE INTO templates (id, name, description, game_id, is_public, created_by) VALUES
   ('tpl-ticket', 'Ticket to Ride', 'Track Ticket to Ride scores. Route points, destination tickets (completed & unfinished), longest path bonus, and trains remaining.', 'game-ticket-to-ride', 1, 'system');
 
-INSERT INTO template_cells (id, template_id, row_pos, col_pos, row_span, col_span, cell_type, cell_key, label, formula_expr, per_player, config_json, sort_order) VALUES
+INSERT OR REPLACE INTO template_cells (id, template_id, row_pos, col_pos, row_span, col_span, cell_type, cell_key, label, formula_expr, per_player, config_json, sort_order) VALUES
 ('ttr-h', 'tpl-ticket', 0, 0, 1, 3, 'heading', 'h_main', 'Ticket to Ride', NULL, 0, '{}', 0),
 ('ttr-ln', 'tpl-ticket', 1, 0, 1, 1, 'label', 'lbl_name', 'Player', NULL, 0, '{}', 1),
 ('ttr-lt', 'tpl-ticket', 1, 2, 1, 1, 'label', 'lbl_total', 'Total Score', NULL, 0, '{}', 2),
@@ -337,10 +333,10 @@ INSERT INTO template_cells (id, template_id, row_pos, col_pos, row_span, col_spa
 -- ============================================================
 -- TEMPLATE 11: Wingspan
 -- ============================================================
-INSERT INTO templates (id, name, description, game_id, is_public, created_by) VALUES
+INSERT OR REPLACE INTO templates (id, name, description, game_id, is_public, created_by) VALUES
   ('tpl-wingspan', 'Wingspan', 'Track Wingspan scores. Bird card points, bonus cards, end-of-round goals, eggs, cached food, and tucked cards. Auto-calculates grand total.', 'game-wingspan', 1, 'system');
 
-INSERT INTO template_cells (id, template_id, row_pos, col_pos, row_span, col_span, cell_type, cell_key, label, formula_expr, per_player, config_json, sort_order) VALUES
+INSERT OR REPLACE INTO template_cells (id, template_id, row_pos, col_pos, row_span, col_span, cell_type, cell_key, label, formula_expr, per_player, config_json, sort_order) VALUES
 -- Header
 ('ws-h', 'tpl-wingspan', 0, 0, 1, 2, 'heading', 'h_main', '🐦 Wingspan Scorecard', NULL, 0, '{}', 0),
 ('ws-ln', 'tpl-wingspan', 1, 0, 1, 1, 'label', 'lbl_name', 'Player', NULL, 0, '{}', 1),
