@@ -19,7 +19,7 @@ export default function TemplateDetailPage() {
   const [template, setTemplate] = useState<Template | null>(null);
   const [loading, setLoading] = useState(true);
   const [starting, setStarting] = useState(false);
-  const id = params.id as string;
+  const id = (params.id as string).startsWith("tpl-") ? params.id as string : `tpl-${params.id}`;
 
   useEffect(() => {
     if (id.startsWith("guest-")) {

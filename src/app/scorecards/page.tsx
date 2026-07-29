@@ -116,7 +116,7 @@ function TemplatesPageInner() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {templates.map((tpl) => (
-            <Link key={tpl.id} href={`/scorecards/${tpl.id}`}
+            <Link key={tpl.id} href={`/scorecards/${tpl.id.replace(/^tpl-/, '')}`}
               className="card-hover p-5 group">
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-2.5">
