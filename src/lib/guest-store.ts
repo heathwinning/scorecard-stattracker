@@ -109,12 +109,13 @@ export function guestGetScorecards(): Scorecard[] {
 
 export function guestCreateScorecard(data: {
   template_id: string;
+  template_name?: string;
   title?: string;
   game_date?: string;
 }): Scorecard {
-  // Try to find the template name
-  let templateName = "";
-  if (data.template_id.startsWith("guest-")) {
+  // Use provided template name, or look up guest template
+  let templateName = data.template_name || "";
+  if (!templateName && data.template_id.startsWith("guest-")) {
     const tpl = guestGetTemplate(data.template_id);
     if (tpl) templateName = tpl.name;
   }

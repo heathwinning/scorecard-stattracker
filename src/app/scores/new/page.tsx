@@ -58,7 +58,7 @@ function NewScorecardPageInner() {
     let cancelled = false;
     const create = async () => {
       if (isGuest) {
-        const sc = guestCreateScorecard({ template_id: templateId, title: "" });
+        const sc = guestCreateScorecard({ template_id: templateId, template_name: templateName, title: "" });
         if (cancelled) return;
         const code = generateCode();
         guestUpdateScorecard(sc.id, { share_code: code, players: [{ id: crypto.randomUUID(), player_name: "Player 1", sort_order: 0 }] } as any);

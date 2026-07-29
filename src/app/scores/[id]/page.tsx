@@ -61,6 +61,17 @@ export default function ScorecardDetailPage() {
       setTemplateName(data.scorecard.template_name || "Game");
       setShareCode(data.scorecard.share_code || null);
       setIsOwner(true);
+      // If template name is missing, look it up
+      if (!data.scorecard.template_name && data.scorecard.template_id) {
+        if (data.scorecard.template_id.startsWith("guest-")) {
+          const tpl = guestGetTemplate(data.scorecard.template_id);
+          if (tpl) setTemplateName(tpl.name);
+        } else {
+          getTemplate(data.scorecard.template_id)
+            .then(tplData => setTemplateName(tplData.template.name))
+            .catch(() => {});
+        }
+      }
       if (data.scorecard.template_id.startsWith("guest-")) {
         const tpl = guestGetTemplate(data.scorecard.template_id);
         if (tpl) setCells(tpl.cells || []);
