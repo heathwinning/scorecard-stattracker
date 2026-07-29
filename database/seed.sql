@@ -321,7 +321,7 @@ INSERT OR IGNORE INTO templates (id, name, description, game_id, is_public, crea
 INSERT OR IGNORE INTO template_cells (id, template_id, row_pos, col_pos, row_span, col_span, cell_type, cell_key, label, formula_expr, per_player, config_json, sort_order) VALUES
 ('ws-bi', 'tpl-wingspan', 4, 0, 1, 1, 'input:number', 'bird_points', 'Bird Points', NULL, 1, '{"default":0}', 1),
 ('ws-bi2', 'tpl-wingspan', 6, 0, 1, 1, 'input:number', 'bonus', 'Bonus Cards', NULL, 1, '{"default":0,"allow_multiple":true}', 2),
-('ws-rh', 'tpl-wingspan', 7, 0, 1, 2, 'heading', 'h_rounds', 'End-of-Round Goals', NULL, 0, '{}', 3),
+('ws-rh', 'tpl-wingspan', 7, 0, 1, 2, 'formula', 'round_total', 'End-of-Round Goals', 'SUM(round_1, round_2, round_3, round_4)', 1, '{}', 3),
 ('ws-r1i', 'tpl-wingspan', 8, 0, 1, 1, 'input:number', 'round_1', 'Round 1', NULL, 1, '{"default":0}', 4),
 ('ws-r2i', 'tpl-wingspan', 9, 0, 1, 1, 'input:number', 'round_2', 'Round 2', NULL, 1, '{"default":0}', 5),
 ('ws-r3i', 'tpl-wingspan', 10, 0, 1, 1, 'input:number', 'round_3', 'Round 3', NULL, 1, '{"default":0}', 6),
@@ -329,4 +329,4 @@ INSERT OR IGNORE INTO template_cells (id, template_id, row_pos, col_pos, row_spa
 ('ws-et', 'tpl-wingspan', 13, 0, 1, 1, 'input:number', 'eggs', '🥚 Eggs', NULL, 1, '{"default":0}', 8),
 ('ws-ft2', 'tpl-wingspan', 14, 0, 1, 1, 'input:number', 'cached_food', '🍒 Cached Food', NULL, 1, '{"default":0}', 9),
 ('ws-tt', 'tpl-wingspan', 15, 0, 1, 1, 'input:number', 'tucked_cards', '🃏 Tucked Cards', NULL, 1, '{"default":0}', 10),
-('ws-ft', 'tpl-wingspan', 2, 1, 1, 1, 'formula', 'grand_total', 'Total', 'bird_points + SUM(bonus_*) + round_1 + round_2 + round_3 + round_4 + eggs + cached_food + tucked_cards', 1, '{}', 11);
+('ws-ft', 'tpl-wingspan', 2, 1, 1, 1, 'formula', 'grand_total', 'Total', 'bird_points + SUM(bonus_*) + round_total + eggs + cached_food + tucked_cards', 1, '{}', 11);
