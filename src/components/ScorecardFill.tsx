@@ -198,7 +198,7 @@ export default function ScorecardFill({
           if (c.cell_type === "heading") return null;
           if (isPreview) {
             const allowMultiple = !!(c.config_json as Record<string, unknown>)?.allow_multiple;
-            if (allowMultiple) return <span className="text-[11px] text-slate-300">…</span>;
+            if (allowMultiple) return <span className="text-[11px] text-slate-300">0, …</span>;
             if (c.cell_type === "input:text") return <span className="text-[11px] text-slate-300">abc</span>;
             return <span className="text-[11px] text-slate-300">0</span>;
           }
