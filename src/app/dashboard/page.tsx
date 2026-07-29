@@ -149,7 +149,7 @@ export default function DashboardPage() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {templates.slice(0, 4).map((tpl) => (
-              <Link key={tpl.id} href={`/scorecards/${tpl.id.replace(/^tpl-/, '')}`}
+              <Link key={tpl.id} href={`/scorecards/${tpl.id}`}
                 className="card-hover p-4 group flex items-center justify-between">
                 <div className="min-w-0">
                   <div className="font-semibold text-slate-900 text-sm truncate">{tpl.name}</div>
@@ -268,7 +268,7 @@ function GuestDashboard({ templates, scorecards }: { templates: Template[]; scor
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {templates.slice(0, 4).map((tpl) => (
-              <Link key={tpl.id} href={`/scorecards/${tpl.id.replace(/^tpl-/, '')}`} className="card-hover p-4 group flex items-center justify-between">
+              <Link key={tpl.id} href={`/scorecards/${tpl.id}`} className="card-hover p-4 group flex items-center justify-between">
                 <div className="min-w-0">
                   <div className="font-semibold text-slate-900 text-sm truncate">{tpl.name}</div>
                   <div className="flex items-center gap-2 mt-1.5">
