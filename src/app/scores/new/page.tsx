@@ -43,7 +43,7 @@ function NewScorecardPageInner() {
         const code = shareRes.share_code;
         // Add first player
         await updateScorecard(result.scorecard.id, {
-          players: [{ id: crypto.randomUUID(), player_name: "Player 1", sort_order: 0 }],
+          players: [{ id: crypto.randomUUID(), player_name: "P1", sort_order: 0 }],
         });
         if (!cancelled && code) router.replace(`/scores/${code}`);
       } catch { toast.error("Failed to create game"); }
