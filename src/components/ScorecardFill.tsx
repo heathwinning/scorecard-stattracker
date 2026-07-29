@@ -25,7 +25,11 @@ export default function ScorecardFill({
   const canEditAny = isOwner || !isMultiplayer;
   const [myViewOnly, setMyViewOnly] = useState(false);
 
-  const sortedCells = useMemo(() => [...cells].sort((a, b) => a.sort_order - b.sort_order), [cells]);
+  const sortedCells = useMemo(() =>
+    [...cells]
+      .filter(c => (c.cell_type as string) !== "label" && c.sort_order >= 0)
+      .sort((a, b) => a.sort_order - b.sort_order),
+  [cells]);
   const initialized = useRef(false);
 
   // Auto-add one entry for allow_multiple cells when scorecard first loads
