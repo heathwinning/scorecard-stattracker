@@ -6,12 +6,12 @@ export default function Home() {
       {/* Hero */}
       <section className="relative overflow-hidden bg-gradient-to-b from-indigo-50 via-white to-white">
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNjN2QyZmUiIGZpbGwtb3BhY2l0eT0iMC40Ij48Y2lyY2xlIGN4PSIzMCIgY3k9IjMwIiByPSIyIi8+PC9nPjwvZz48L3N2Zz4=')] opacity-40" />
-        <div className="max-w-4xl mx-auto px-4 pt-24 pb-20 text-center relative">
-          <h1 className="text-5xl sm:text-6xl font-bold tracking-tight text-slate-900 mb-6 leading-tight">
+        <div className="max-w-4xl mx-auto px-4 pt-16 pb-16 text-center relative">
+          <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-slate-900 mb-4 leading-tight">
             Scorecards for{" "}
             <span className="gradient-text">any game</span>
           </h1>
-          <p className="text-lg sm:text-xl text-slate-500 mb-10 max-w-xl mx-auto leading-relaxed">
+          <p className="text-base sm:text-lg text-slate-500 mb-8 max-w-xl mx-auto leading-relaxed">
             Design custom scorecards with drag & drop. Track scores, tally points, and auto-calculate results for every game you play with friends.
           </p>
           <div className="flex items-center justify-center gap-3">
@@ -26,9 +26,9 @@ export default function Home() {
       </section>
 
       {/* Features */}
-      <section className="max-w-5xl mx-auto px-4 py-20">
-        <div className="text-center mb-14">
-          <h2 className="text-3xl font-bold tracking-tight text-slate-900 mb-3">How it works</h2>
+      <section className="max-w-5xl mx-auto px-4 py-14">
+        <div className="text-center mb-10">
+          <h2 className="text-2xl font-bold tracking-tight text-slate-900 mb-2">How it works</h2>
           <p className="text-slate-500 max-w-md mx-auto">Three simple steps from template to final score</p>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">

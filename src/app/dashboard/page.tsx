@@ -54,9 +54,9 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8 page-enter">
+    <div className="max-w-4xl mx-auto px-4 py-6 page-enter">
       {/* Welcome */}
-      <div className="card bg-gradient-to-br from-indigo-600 to-violet-700 border-0 p-6 sm:p-8 mb-8 text-white shadow-lg shadow-indigo-200">
+      <div className="card bg-gradient-to-br from-indigo-600 to-violet-700 border-0 p-5 sm:p-6 mb-6 text-white shadow-sm">
         <div className="flex items-start justify-between">
           <div>
             <p className="text-indigo-200 text-sm font-medium mb-1">Welcome back</p>
@@ -92,8 +92,8 @@ export default function DashboardPage() {
       </div>
 
       {/* Recent scorecards */}
-      <section className="mb-8">
-        <div className="flex items-center justify-between mb-4">
+      <section className="mb-6">
+        <div className="flex items-center justify-between mb-3">
           <h2 className="text-lg font-bold text-slate-900">Recent Games</h2>
           {scorecards.length > 0 && (
             <Link href="/scorecards" className="text-sm font-medium text-indigo-600 hover:text-indigo-700 flex items-center gap-1">
@@ -112,7 +112,7 @@ export default function DashboardPage() {
           <div className="space-y-2">
             {scorecards.slice(0, 5).map((sc) => (
               <Link key={sc.id} href={`/scorecards/${sc.id}`}
-                className="card-hover flex items-center justify-between p-4 group">
+                className="card-hover flex items-center justify-between p-3 group">
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center text-sm group-hover:bg-indigo-50 transition-colors">
                     🎲

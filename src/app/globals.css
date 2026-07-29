@@ -12,13 +12,13 @@
 @layer components {
   /* ---- Buttons ---- */
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none active:scale-[0.97];
+    @apply inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-1 disabled:opacity-50 disabled:pointer-events-none active:scale-[0.97];
   }
   .btn-primary {
-    @apply btn bg-indigo-600 text-white shadow-sm shadow-indigo-200 hover:bg-indigo-700 hover:shadow-md hover:shadow-indigo-200 focus:ring-indigo-500;
+    @apply btn bg-indigo-600 text-white shadow-sm shadow-indigo-200 hover:bg-indigo-700 focus:ring-indigo-500;
   }
   .btn-secondary {
-    @apply btn bg-white text-slate-700 border border-slate-200 shadow-sm hover:bg-slate-50 hover:border-slate-300 hover:shadow focus:ring-slate-400;
+    @apply btn bg-white text-slate-700 border border-slate-200 shadow-sm hover:bg-slate-50 hover:border-slate-300 focus:ring-slate-400;
   }
   .btn-danger {
     @apply btn bg-rose-600 text-white shadow-sm shadow-rose-200 hover:bg-rose-700 focus:ring-rose-500;
@@ -32,15 +32,15 @@
 
   /* ---- Inputs ---- */
   .input-field {
-    @apply block w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm shadow-sm transition-all duration-200 placeholder:text-slate-400 hover:border-slate-300 focus:border-indigo-400 focus:outline-none focus:ring-4 focus:ring-indigo-50;
+    @apply block w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm transition-all duration-150 placeholder:text-slate-400 hover:border-slate-300 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100;
   }
 
   /* ---- Cards ---- */
   .card {
-    @apply rounded-2xl border border-slate-200 bg-white shadow-sm;
+    @apply rounded-xl border border-slate-200 bg-white shadow-sm;
   }
   .card-hover {
-    @apply card transition-all duration-200 hover:shadow-md hover:border-slate-300 hover:-translate-y-0.5;
+    @apply card transition-all duration-150 hover:shadow-md hover:border-slate-300;
   }
   .card-accent {
     @apply card border-l-4 border-l-indigo-500;
@@ -48,7 +48,7 @@
 
   /* ---- Badges ---- */
   .badge {
-    @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium;
+    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium;
   }
   .badge-public {
     @apply badge bg-emerald-50 text-emerald-700 border border-emerald-200;
@@ -62,15 +62,15 @@
 
   /* ---- Section Headers ---- */
   .section-header {
-    @apply text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3;
+    @apply text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-2;
   }
 
   /* ---- Empty States ---- */
   .empty-state {
-    @apply card p-10 text-center flex flex-col items-center gap-3;
+    @apply card p-6 text-center flex flex-col items-center gap-2;
   }
   .empty-state-icon {
-    @apply w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-50 to-violet-50 flex items-center justify-center text-2xl mb-1;
+    @apply w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-50 to-violet-50 flex items-center justify-center text-xl mb-1;
   }
   .empty-state-title {
     @apply text-sm font-semibold text-slate-700;
@@ -81,13 +81,13 @@
 
   /* ---- Page Headers ---- */
   .page-header {
-    @apply flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8;
+    @apply flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5;
   }
   .page-title {
-    @apply text-2xl font-bold tracking-tight text-slate-900;
+    @apply text-xl font-bold tracking-tight text-slate-900;
   }
   .page-subtitle {
-    @apply text-sm text-slate-500 mt-1;
+    @apply text-sm text-slate-500 mt-0.5;
   }
 }
 

@@ -21,8 +21,8 @@ export default function Navbar() {
   const hasAccess = !!(user || isGuest);
 
   return (
-    <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-200/60">
-      <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
+    <nav className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-slate-200/60">
+      <div className="max-w-6xl mx-auto px-3 h-12 flex items-center justify-between">
         <div className="flex items-center gap-3">
           {/* Mobile hamburger - always visible when there are nav links */}
           {hasAccess && (
