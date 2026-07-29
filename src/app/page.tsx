@@ -83,6 +83,9 @@ export default function Home() {
         </div>
         <QuickPickTemplates />
       </section>
+
+      {/* SEO: visually hidden but crawlable */}
+      <Link href="/login" className="sr-only">Get Started Free — free online scorecard maker for any game</Link>
     </div>
   );
 }
