@@ -14,6 +14,7 @@ function TemplatesPageInner() {
   const showMine = searchParams.get("mine") === "true";
   const [templates, setTemplates] = useState<Template[]>([]);
   const [games, setGames] = useState<Game[]>([]);
+  const [availableGameIds, setAvailableGameIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "mine">(showMine ? "mine" : "all");
   const [gameFilter, setGameFilter] = useState<string>("");
@@ -33,6 +34,11 @@ function TemplatesPageInner() {
         .then((data) => {
           data.templates.sort((a, b) => a.name.localeCompare(b.name));
           setTemplates(data.templates);
+          // When showing all (no game filter), discover which games have templates
+          if (filter === "all" && !gameFilter) {
+            const ids = new Set(data.templates.map(t => t.game_id).filter(Boolean) as string[]);
+            setAvailableGameIds(ids);
+          }
         })
         .finally(() => setLoading(false));
     }
@@ -64,7 +70,7 @@ function TemplatesPageInner() {
         ))}
       </div>
 
-      {/* Game filter chips */}
+      {/* Game filter chips — only show games that have templates */}
       {filter === "all" && games.length > 0 && (
         <div className="flex flex-wrap gap-1.5 mb-6">
           <button
@@ -74,7 +80,10 @@ function TemplatesPageInner() {
             }`}>
             All Games
           </button>
-          {[...games].sort((a, b) => a.name.localeCompare(b.name)).map((g) => (
+          {[...games]
+            .filter(g => availableGameIds.size === 0 || availableGameIds.has(g.id))
+            .sort((a, b) => a.name.localeCompare(b.name))
+            .map((g) => (
             <button
               key={g.id}
               onClick={() => setGameFilter(gameFilter === g.id ? "" : g.id)}
