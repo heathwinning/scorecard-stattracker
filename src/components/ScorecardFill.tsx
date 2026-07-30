@@ -157,7 +157,7 @@ export default function ScorecardFill({
     return results;
   }, [cells, players, values, getValue]);
 
-  const addPlayer = () => { onPlayersChange([...players, { id: `new-${crypto.randomUUID().slice(0, 8)}`, player_name: `P${players.length + 1}`, sort_order: players.length }]); onPersist?.(); };
+  const addPlayer = () => { onPlayersChange([...players, { id: `new-${crypto.randomUUID().slice(0, 8)}`, player_name: `p${players.length + 1}`, sort_order: players.length }]); onPersist?.(); };
   const removePlayer = (i: number) => { onPlayersChange(players.filter((_, idx) => idx !== i)); onPersist?.(); };
   const renamePlayer = (i: number, n: string) => { onPlayersChange(players.map((p, idx) => idx === i ? { ...p, player_name: n } : p)); onPersist?.(); };
 
