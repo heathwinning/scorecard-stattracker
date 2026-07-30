@@ -135,7 +135,19 @@ export default function ScorecardFill({
       let changed = false;
       formulaCells.forEach(cell => {
         if (cell.per_player) {
-          players.forEach(p => { const k = `${cell.id}:${p.id}`; const r = evaluateFormula(cell.formula_expr!, ctx(results)); if (results[k] !== r) { results[k] = r; changed = true; } });
+          players.forEach(p => {
+            // Build per-player context with per-player keys taking priority
+            const baseCtx = ctx(results);
+            const playerCtx: CellContext[] = baseCtx.map(c => {
+              // If there's a per-player variant of this key, use it
+              const perPlayerKey = `${c.key}_${p.id}`;
+              const match = baseCtx.find(x => x.key === perPlayerKey);
+              return match || c;
+            });
+            const k = `${cell.id}:${p.id}`;
+            const r = evaluateFormula(cell.formula_expr!, playerCtx);
+            if (results[k] !== r) { results[k] = r; changed = true; }
+          });
         } else {
           const k = cell.id!; const r = evaluateFormula(cell.formula_expr!, ctx(results)); if (results[k] !== r) { results[k] = r; changed = true; }
         }
