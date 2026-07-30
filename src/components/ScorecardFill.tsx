@@ -355,13 +355,19 @@ export default function ScorecardFill({
 function PlayerNameInput({ initialName, onCommit }: { initialName: string; onCommit: (name: string) => void }) {
   const [localName, setLocalName] = useState(initialName);
   const [hasEdited, setHasEdited] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  // Sync if parent name changes externally
-  useEffect(() => { if (!hasEdited) setLocalName(initialName); }, [initialName, hasEdited]);
+  // Sync from parent only when NOT focused
+  useEffect(() => {
+    if (document.activeElement !== inputRef.current) {
+      setLocalName(initialName);
+      setHasEdited(false);
+    }
+  }, [initialName]);
 
   return (
     <div className="flex items-center gap-1 justify-center">
-      <input type="text" value={localName}
+      <input ref={inputRef} type="text" value={localName}
         onChange={e => { setLocalName(e.target.value); setHasEdited(true); }}
         onBlur={() => { if (localName.trim()) onCommit(localName.trim()); setHasEdited(false); }}
         onKeyDown={e => { if (e.key === "Enter") { if (localName.trim()) onCommit(localName.trim()); setHasEdited(false); (e.target as HTMLInputElement).blur(); } }}
