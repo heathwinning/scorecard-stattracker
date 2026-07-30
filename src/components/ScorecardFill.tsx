@@ -4,6 +4,7 @@ import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { useReactTable, getCoreRowModel, createColumnHelper, flexRender } from "@tanstack/react-table";
 import type { TemplateCell, ScorecardPlayer, CellValue } from "@/lib/api-client";
 import { evaluateFormula, type CellContext } from "@/lib/formula";
+import { HiOutlineLockClosed, HiOutlineLockOpen } from "react-icons/hi";
 
 interface ScorecardFillProps {
   cells: TemplateCell[];
@@ -299,10 +300,10 @@ export default function ScorecardFill({
                         {!readOnly && !isPreviewMode && (
                           <button
                             onClick={() => setPlayersLocked(!playersLocked)}
-                            className="text-[10px] leading-none px-1.5 py-0.5 rounded transition-colors hover:bg-slate-100"
-                            title={playersLocked ? "Unlock players" : "Lock players"}
+                            className="text-slate-400 hover:text-slate-600 transition-colors"
+                            title={playersLocked ? "Unlock to add players" : "Lock players"}
                           >
-                            {playersLocked ? "🔒" : "🔓"}
+                            {playersLocked ? <HiOutlineLockClosed className="w-3.5 h-3.5" /> : <HiOutlineLockOpen className="w-3.5 h-3.5" />}
                           </button>
                         )}
                       </div>
