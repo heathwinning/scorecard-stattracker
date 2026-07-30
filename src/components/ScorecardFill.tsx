@@ -147,7 +147,7 @@ export default function ScorecardFill({
 
   const addPlayer = () => { onPlayersChange([...players, { id: `new-${crypto.randomUUID().slice(0, 8)}`, player_name: `P${players.length + 1}`, sort_order: players.length }]); onPersist?.(); };
   const removePlayer = (i: number) => { onPlayersChange(players.filter((_, idx) => idx !== i)); onPersist?.(); };
-  const updatePlayerName = (i: number, n: string) => { onPlayersChange(players.map((p, idx) => idx === i ? { ...p, player_name: n } : p)); onPersist?.(); };
+  const renamePlayer = (i: number, n: string) => { onPlayersChange(players.map((p, idx) => idx === i ? { ...p, player_name: n } : p)); onPersist?.(); };
 
   // Preview columns when no players exist (layout preview mode)
   const displayPlayers = useMemo(() => {
@@ -193,14 +193,10 @@ export default function ScorecardFill({
         header: () => isPreview ? (
           <span className="text-[11px] font-semibold text-slate-400">{player.player_name}</span>
         ) : canManagePlayers ? (
-          <div className="flex items-center gap-1 justify-center">
-            <input type="text" value={player.player_name}
-              onChange={e => updatePlayerName(players.findIndex(p => p.id === player.id), e.target.value)}
-              className="bg-transparent text-xs font-semibold w-16 outline-none text-slate-900 text-center placeholder:text-slate-400" placeholder="Name" />
-            {players.length > 1 && (
-              <button onClick={() => removePlayer(players.findIndex(p => p.id === player.id))} className="text-slate-400 hover:text-rose-500 text-[10px] leading-none">×</button>
-            )}
-          </div>
+          <PlayerNameInput
+            initialName={player.player_name}
+            onCommit={(name) => renamePlayer(players.findIndex(p => p.id === player.id), name)}
+          />
         ) : (
           <span className={`text-xs font-semibold ${isMyColumn ? "text-indigo-700" : isFaded ? "text-slate-300" : "text-slate-700"}`}>{player.player_name}</span>
         ),
@@ -267,7 +263,7 @@ export default function ScorecardFill({
       }));
     }
     return cols;
-  }, [columnHelper, displayPlayers, players, readOnly, myViewOnly, myPlayerSlotId, playersLocked, isPreviewMode, getValue, isHidden, canEdit, setValue, tallyValue, computedFormulas, getEntryValues, addEntry, removeEntry, updatePlayerName, removePlayer, addPlayer]);
+  }, [columnHelper, displayPlayers, players, readOnly, myViewOnly, myPlayerSlotId, playersLocked, isPreviewMode, getValue, isHidden, canEdit, setValue, tallyValue, computedFormulas, getEntryValues, addEntry, removeEntry, renamePlayer, removePlayer, addPlayer]);
 
   const table = useReactTable({ data: sortedCells, columns, getCoreRowModel: getCoreRowModel() });
 
@@ -352,6 +348,24 @@ export default function ScorecardFill({
           </tbody>
         </table>
       </div>
+    </div>
+  );
+}
+
+function PlayerNameInput({ initialName, onCommit }: { initialName: string; onCommit: (name: string) => void }) {
+  const [localName, setLocalName] = useState(initialName);
+  const [hasEdited, setHasEdited] = useState(false);
+
+  // Sync if parent name changes externally
+  useEffect(() => { if (!hasEdited) setLocalName(initialName); }, [initialName, hasEdited]);
+
+  return (
+    <div className="flex items-center gap-1 justify-center">
+      <input type="text" value={localName}
+        onChange={e => { setLocalName(e.target.value); setHasEdited(true); }}
+        onBlur={() => { if (localName.trim()) onCommit(localName.trim()); setHasEdited(false); }}
+        onKeyDown={e => { if (e.key === "Enter") { if (localName.trim()) onCommit(localName.trim()); setHasEdited(false); (e.target as HTMLInputElement).blur(); } }}
+        className="bg-transparent text-xs font-semibold w-16 outline-none text-slate-900 text-center placeholder:text-slate-400" placeholder="Name" />
     </div>
   );
 }
