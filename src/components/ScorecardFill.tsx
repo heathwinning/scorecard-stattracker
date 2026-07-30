@@ -25,7 +25,7 @@ export default function ScorecardFill({
   const isMultiplayer = !!myPlayerSlotId;
   const canEditAny = isOwner || !isMultiplayer;
   const [myViewOnly, setMyViewOnly] = useState(false);
-  const [playersLocked, setPlayersLocked] = useState(true);
+  const [playersLocked, setPlayersLocked] = useState(false);
 
   const sortedCells = useMemo(() =>
     [...cells]
