@@ -374,6 +374,20 @@ function CellInput({ cell, value, formulaResult, onChange, onTally, onPersist, r
   cell: TemplateCell; value: string; formulaResult?: number; onChange: (v: string) => void;
   onTally?: (d: number) => void; onPersist?: () => void; readOnly: boolean; isHidden?: boolean; isFaded?: boolean; isBold?: boolean; onReveal?: () => void;
 }) {
+  const [localValue, setLocalValue] = useState(value);
+  const [hasEdited, setHasEdited] = useState(false);
+
+  // Sync from parent when value prop changes externally
+  useEffect(() => { if (!hasEdited) setLocalValue(value); }, [value, hasEdited]);
+
+  const commit = () => {
+    if (hasEdited && localValue !== value) {
+      onChange(localValue);
+      onPersist?.();
+    }
+    setHasEdited(false);
+  };
+
   const textClass = `text-[13px] tabular-nums ${isBold ? "font-bold text-indigo-700" : isFaded ? "font-medium text-slate-300" : "font-medium text-slate-900"}`;
 
   if (isHidden) {
@@ -382,10 +396,18 @@ function CellInput({ cell, value, formulaResult, onChange, onTally, onPersist, r
   switch (cell.cell_type) {
     case "input:text":
       return readOnly ? <span className={textClass}>{value || "—"}</span>
-        : <input type="text" value={value} onChange={e => onChange(e.target.value)} onBlur={() => onPersist?.()} className="w-full text-[13px] tabular-nums text-center font-medium text-slate-900 bg-transparent border border-transparent hover:border-slate-200 focus:border-indigo-300 focus:bg-indigo-50/30 focus:outline-none rounded px-1 py-0.5" placeholder="0" />;
+        : <input type="text" value={localValue}
+            onChange={e => { setLocalValue(e.target.value); setHasEdited(true); }}
+            onBlur={commit}
+            onKeyDown={e => { if (e.key === "Enter") { commit(); (e.target as HTMLInputElement).blur(); } }}
+            className="w-full text-[13px] tabular-nums text-center font-medium text-slate-900 bg-transparent border border-transparent hover:border-slate-200 focus:border-indigo-300 focus:bg-indigo-50/30 focus:outline-none rounded px-1 py-0.5" placeholder="0" />;
     case "input:number":
       return readOnly ? <span className={textClass}>{value || "—"}</span>
-        : <input type="number" value={value} onChange={e => onChange(e.target.value)} onBlur={() => onPersist?.()} className="w-16 text-[13px] tabular-nums text-center font-medium text-slate-900 bg-transparent border border-transparent hover:border-slate-200 focus:border-indigo-300 focus:bg-indigo-50/30 focus:outline-none rounded px-1 py-0.5 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" placeholder="0" />;
+        : <input type="number" value={localValue}
+            onChange={e => { setLocalValue(e.target.value); setHasEdited(true); }}
+            onBlur={commit}
+            onKeyDown={e => { if (e.key === "Enter") { commit(); (e.target as HTMLInputElement).blur(); } }}
+            className="w-16 text-[13px] tabular-nums text-center font-medium text-slate-900 bg-transparent border border-transparent hover:border-slate-200 focus:border-indigo-300 focus:bg-indigo-50/30 focus:outline-none rounded px-1 py-0.5 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" placeholder="0" />;
     case "tally":
       if (readOnly || isFaded) return <span className={textClass}>{value || "0"}</span>;
       return <div className="inline-flex items-center gap-0.5"><button onClick={() => { onTally?.(-1); onPersist?.(); }} className="w-6 h-6 rounded text-slate-400 hover:text-slate-600 hover:bg-slate-100 text-xs font-bold">−</button><span className="text-[13px] tabular-nums font-medium w-8 text-center">{value || "0"}</span><button onClick={() => { onTally?.(1); onPersist?.(); }} className="w-6 h-6 rounded text-slate-400 hover:text-slate-600 hover:bg-slate-100 text-xs font-bold">+</button></div>;
