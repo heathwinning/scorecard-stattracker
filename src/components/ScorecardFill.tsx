@@ -260,6 +260,7 @@ export default function ScorecardFill({
             onChange={v => setValue(c.id!, player.id!, v)} onTally={d => tallyValue(c.id!, player.id!, d)}
             onPersist={onPersist}
             readOnly={!edit} isHidden={!isFaded && hidden} isFaded={isFaded} isBold={isMyColumn}
+            rowIndex={row.index} playerIndex={pi}
             onReveal={edit && hidden ? () => setValue(c.id!, player.id!, getValue(c.id!, player.id!)) : undefined} />;
         },
       }));
@@ -388,9 +389,10 @@ function PlayerNameInput({ initialName, onCommit }: { initialName: string; onCom
   );
 }
 
-function CellInput({ cell, value, formulaResult, onChange, onTally, onPersist, readOnly, isHidden, isFaded, isBold, onReveal }: {
+function CellInput({ cell, value, formulaResult, onChange, onTally, onPersist, readOnly, isHidden, isFaded, isBold, rowIndex, playerIndex, onReveal }: {
   cell: TemplateCell; value: string; formulaResult?: number; onChange: (v: string) => void;
-  onTally?: (d: number) => void; onPersist?: () => void; readOnly: boolean; isHidden?: boolean; isFaded?: boolean; isBold?: boolean; onReveal?: () => void;
+  onTally?: (d: number) => void; onPersist?: () => void; readOnly: boolean; isHidden?: boolean; isFaded?: boolean; isBold?: boolean;
+  rowIndex?: number; playerIndex?: number; onReveal?: () => void;
 }) {
   const [localValue, setLocalValue] = useState(value);
   const [hasEdited, setHasEdited] = useState(false);
@@ -412,6 +414,24 @@ function CellInput({ cell, value, formulaResult, onChange, onTally, onPersist, r
     setHasEdited(false);
   };
 
+  const focusCell = (r: number, c: number) => {
+    const el = document.querySelector<HTMLInputElement>(`input[data-row="${r}"][data-col="${c}"]`);
+    el?.focus();
+    el?.select();
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Tab" && rowIndex !== undefined && playerIndex !== undefined) {
+      e.preventDefault();
+      commit();
+      focusCell(rowIndex, playerIndex + 1);
+    } else if (e.key === "Enter" && rowIndex !== undefined && playerIndex !== undefined) {
+      e.preventDefault();
+      commit();
+      focusCell(rowIndex + 1, playerIndex);
+    }
+  };
+
   const textClass = `text-[13px] tabular-nums ${isBold ? "font-bold text-indigo-700" : isFaded ? "font-medium text-slate-300" : "font-medium text-slate-900"}`;
 
   if (isHidden) {
@@ -420,17 +440,17 @@ function CellInput({ cell, value, formulaResult, onChange, onTally, onPersist, r
   switch (cell.cell_type) {
     case "input:text":
       return readOnly ? <span className={textClass}>{value || "—"}</span>
-        : <input ref={inputRef} type="text" value={localValue}
+        : <input ref={inputRef} type="text" value={localValue} data-row={rowIndex} data-col={playerIndex}
             onChange={e => { setLocalValue(e.target.value); setHasEdited(true); }}
             onBlur={commit}
-            onKeyDown={e => { if (e.key === "Enter") { commit(); (e.target as HTMLInputElement).blur(); } }}
+            onKeyDown={handleKeyDown}
             className="w-full text-[13px] tabular-nums text-center font-medium text-slate-900 bg-transparent border border-transparent hover:border-slate-200 focus:border-indigo-300 focus:bg-indigo-50/30 focus:outline-none rounded px-1 py-0.5" placeholder="0" />;
     case "input:number":
       return readOnly ? <span className={textClass}>{value || "—"}</span>
-        : <input ref={inputRef} type="number" value={localValue}
+        : <input ref={inputRef} type="number" value={localValue} data-row={rowIndex} data-col={playerIndex}
             onChange={e => { setLocalValue(e.target.value); setHasEdited(true); }}
             onBlur={commit}
-            onKeyDown={e => { if (e.key === "Enter") { commit(); (e.target as HTMLInputElement).blur(); } }}
+            onKeyDown={handleKeyDown}
             className="w-16 text-[13px] tabular-nums text-center font-medium text-slate-900 bg-transparent border border-transparent hover:border-slate-200 focus:border-indigo-300 focus:bg-indigo-50/30 focus:outline-none rounded px-1 py-0.5 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" placeholder="0" />;
     case "tally":
       if (readOnly || isFaded) return <span className={textClass}>{value || "0"}</span>;
