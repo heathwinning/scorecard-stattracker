@@ -184,6 +184,9 @@ export default function ScorecardFill({
     displayPlayers.forEach((player, pi) => {
       const isPreview = (player.id || '').startsWith("preview-");
       const canManagePlayers = !playersLocked && !isPreview;
+      const isMyColumn = !isPreview && !!myPlayerSlotId && player.id === myPlayerSlotId;
+      const isOtherPlayer = !isPreview && !!myPlayerSlotId && player.id !== myPlayerSlotId;
+      const isFaded = isOtherPlayer && !isOwner; // grey out non-owner viewing others
       cols.push(columnHelper.display({
         id: player.id || `p${pi}`,
         header: () => isPreview ? (
@@ -198,7 +201,7 @@ export default function ScorecardFill({
             )}
           </div>
         ) : (
-          <span className="text-xs font-semibold text-slate-700">{player.player_name}</span>
+          <span className={`text-xs font-semibold ${isMyColumn ? "text-indigo-700" : isFaded ? "text-slate-300" : "text-slate-700"}`}>{player.player_name}</span>
         ),
         cell: ({ row }) => {
           const c = row.original;
@@ -213,13 +216,15 @@ export default function ScorecardFill({
           const allowMultiple = !!(c.config_json as Record<string, unknown>)?.allow_multiple;
           if (allowMultiple) {
             const entries = getEntryValues(c.id!, player.id!);
+            const pillBg = isMyColumn ? "bg-indigo-50" : isFaded ? "bg-slate-50" : "bg-slate-100";
+            const pillText = isFaded ? "text-slate-300" : "text-slate-600";
             return (
               <div className="py-0.5">
                 <div className="flex flex-wrap items-center gap-1 justify-center">
                   {entries.map(e => {
                     const ek = e.entry_key || '0';
                     return (
-                      <span key={ek} className="inline-flex items-center gap-0.5 bg-slate-100 rounded-full px-2 py-0.5 text-[11px] tabular-nums text-slate-600">
+                      <span key={ek} className={`inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[11px] tabular-nums ${pillBg} ${pillText}`}>
                         <input type="text" value={e.value || ''}
                           onChange={ev => setValue(c.id!, player.id!, ev.target.value, ek)}
                           onBlur={() => onPersist?.()}
@@ -239,11 +244,13 @@ export default function ScorecardFill({
           }
           const val = getValue(c.id!, player.id!);
           const hidden = isHidden(c.id!, player.id!);
+          // For other players' hidden cells, show placeholder
+          const showPlaceholder = isFaded && hidden;
           return <CellInput cell={c} value={val}
             formulaResult={c.cell_type === "formula" ? computedFormulas?.[`${c.id}:${player.id}`] : undefined}
             onChange={v => setValue(c.id!, player.id!, v)} onTally={d => tallyValue(c.id!, player.id!, d)}
             onPersist={onPersist}
-            readOnly={!edit} isHidden={hidden}
+            readOnly={!edit} isHidden={!isFaded && hidden} isFaded={isFaded} isBold={isMyColumn}
             onReveal={edit && hidden ? () => setValue(c.id!, player.id!, getValue(c.id!, player.id!)) : undefined} />;
         },
       }));
@@ -343,26 +350,27 @@ export default function ScorecardFill({
   );
 }
 
-function CellInput({ cell, value, formulaResult, onChange, onTally, onPersist, readOnly, isHidden, onReveal }: {
+function CellInput({ cell, value, formulaResult, onChange, onTally, onPersist, readOnly, isHidden, isFaded, isBold, onReveal }: {
   cell: TemplateCell; value: string; formulaResult?: number; onChange: (v: string) => void;
-  onTally?: (d: number) => void; onPersist?: () => void; readOnly: boolean; isHidden?: boolean; onReveal?: () => void;
+  onTally?: (d: number) => void; onPersist?: () => void; readOnly: boolean; isHidden?: boolean; isFaded?: boolean; isBold?: boolean; onReveal?: () => void;
 }) {
+  const textClass = `text-[13px] tabular-nums ${isBold ? "font-bold text-indigo-700" : isFaded ? "font-medium text-slate-300" : "font-medium text-slate-900"}`;
+
   if (isHidden) {
-    if (onReveal) return <button onClick={onReveal} className="text-[11px] text-indigo-500 hover:text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded">🔒</button>;
-    return <span className="text-xs text-slate-300">🔒</span>;
+    return <span className="text-[13px] tabular-nums text-slate-300">—</span>;
   }
   switch (cell.cell_type) {
     case "input:text":
-      return readOnly ? <span className="text-[13px] text-slate-900">{value || "—"}</span>
-        : <input type="text" value={value} onChange={e => onChange(e.target.value)} onBlur={() => onPersist?.()} className="w-full text-[13px] px-1.5 py-1 bg-transparent focus:outline-none focus:bg-indigo-50/30 rounded" placeholder="—" />;
+      return readOnly ? <span className={textClass}>{value || "—"}</span>
+        : <input type="text" value={value} onChange={e => onChange(e.target.value)} onBlur={() => onPersist?.()} className="w-full text-[13px] tabular-nums text-center font-medium text-slate-900 bg-transparent border border-transparent hover:border-slate-200 focus:border-indigo-300 focus:bg-indigo-50/30 focus:outline-none rounded px-1 py-0.5" placeholder="0" />;
     case "input:number":
-      return readOnly ? <span className="text-[13px] tabular-nums font-medium text-slate-900">{value || "—"}</span>
-        : <input type="number" value={value} onChange={e => onChange(e.target.value)} onBlur={() => onPersist?.()} className="w-16 text-[13px] tabular-nums text-center px-1 py-1 bg-transparent focus:outline-none focus:bg-indigo-50/30 rounded" placeholder="0" />;
+      return readOnly ? <span className={textClass}>{value || "—"}</span>
+        : <input type="number" value={value} onChange={e => onChange(e.target.value)} onBlur={() => onPersist?.()} className="w-16 text-[13px] tabular-nums text-center font-medium text-slate-900 bg-transparent border border-transparent hover:border-slate-200 focus:border-indigo-300 focus:bg-indigo-50/30 focus:outline-none rounded px-1 py-0.5 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" placeholder="0" />;
     case "tally":
-      return readOnly ? <span className="text-[13px] tabular-nums font-medium text-slate-900">{value || "0"}</span>
-        : <div className="inline-flex items-center gap-0.5"><button onClick={() => { onTally?.(-1); onPersist?.(); }} className="w-6 h-6 rounded text-slate-400 hover:text-slate-600 hover:bg-slate-100 text-xs font-bold">−</button><span className="text-[13px] tabular-nums font-medium w-8 text-center">{value || "0"}</span><button onClick={() => { onTally?.(1); onPersist?.(); }} className="w-6 h-6 rounded text-slate-400 hover:text-slate-600 hover:bg-slate-100 text-xs font-bold">+</button></div>;
+      if (readOnly || isFaded) return <span className={textClass}>{value || "0"}</span>;
+      return <div className="inline-flex items-center gap-0.5"><button onClick={() => { onTally?.(-1); onPersist?.(); }} className="w-6 h-6 rounded text-slate-400 hover:text-slate-600 hover:bg-slate-100 text-xs font-bold">−</button><span className="text-[13px] tabular-nums font-medium w-8 text-center">{value || "0"}</span><button onClick={() => { onTally?.(1); onPersist?.(); }} className="w-6 h-6 rounded text-slate-400 hover:text-slate-600 hover:bg-slate-100 text-xs font-bold">+</button></div>;
     case "formula":
-      return <span className="text-[13px] font-bold text-slate-700 tabular-nums">{formulaResult ?? "—"}</span>;
+      return <span className={`text-[13px] font-bold tabular-nums ${isBold ? "text-indigo-700" : isFaded ? "text-slate-300" : "text-slate-700"}`}>{formulaResult ?? "—"}</span>;
     default: return null;
   }
 }

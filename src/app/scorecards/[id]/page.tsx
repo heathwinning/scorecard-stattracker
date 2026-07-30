@@ -53,6 +53,10 @@ export default function TemplateDetailPage() {
     try {
       const result = await createScorecard({ template_id: id });
       const shareRes = await fetch(`/api/scores/${result.scorecard.id}/share`, { method: "POST" }).then(r => r.json());
+      // Auto-create a player slot for the host
+      await updateScorecard(result.scorecard.id, {
+        players: [{ id: crypto.randomUUID(), player_name: "You", sort_order: 0 }],
+      });
       if (shareRes.share_code) router.push(`/scores/${shareRes.share_code}`);
     } catch { toast.error("Failed to start game"); }
     finally { setStarting(false); }
