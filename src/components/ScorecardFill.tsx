@@ -376,9 +376,15 @@ function CellInput({ cell, value, formulaResult, onChange, onTally, onPersist, r
 }) {
   const [localValue, setLocalValue] = useState(value);
   const [hasEdited, setHasEdited] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  // Sync from parent when value prop changes externally
-  useEffect(() => { if (!hasEdited) setLocalValue(value); }, [value, hasEdited]);
+  // Sync from parent only when NOT focused (prevents polling from stealing focus)
+  useEffect(() => {
+    if (document.activeElement !== inputRef.current) {
+      setLocalValue(value);
+      setHasEdited(false);
+    }
+  }, [value]);
 
   const commit = () => {
     if (hasEdited && localValue !== value) {
@@ -396,14 +402,14 @@ function CellInput({ cell, value, formulaResult, onChange, onTally, onPersist, r
   switch (cell.cell_type) {
     case "input:text":
       return readOnly ? <span className={textClass}>{value || "—"}</span>
-        : <input type="text" value={localValue}
+        : <input ref={inputRef} type="text" value={localValue}
             onChange={e => { setLocalValue(e.target.value); setHasEdited(true); }}
             onBlur={commit}
             onKeyDown={e => { if (e.key === "Enter") { commit(); (e.target as HTMLInputElement).blur(); } }}
             className="w-full text-[13px] tabular-nums text-center font-medium text-slate-900 bg-transparent border border-transparent hover:border-slate-200 focus:border-indigo-300 focus:bg-indigo-50/30 focus:outline-none rounded px-1 py-0.5" placeholder="0" />;
     case "input:number":
       return readOnly ? <span className={textClass}>{value || "—"}</span>
-        : <input type="number" value={localValue}
+        : <input ref={inputRef} type="number" value={localValue}
             onChange={e => { setLocalValue(e.target.value); setHasEdited(true); }}
             onBlur={commit}
             onKeyDown={e => { if (e.key === "Enter") { commit(); (e.target as HTMLInputElement).blur(); } }}
