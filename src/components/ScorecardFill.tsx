@@ -272,27 +272,15 @@ export default function ScorecardFill({
 
   return (
     <div className="space-y-3">
-      {/* Player lock toggle */}
-      {!readOnly && !isPreviewMode && (
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            onClick={() => setPlayersLocked(!playersLocked)}
-            className={`text-xs font-medium px-2.5 py-1 rounded-md transition-all ${
-              playersLocked
-                ? "bg-slate-100 text-slate-500 hover:text-slate-700"
-                : "bg-indigo-100 text-indigo-700"
-            }`}
-          >
-            {playersLocked ? "🔒 Players" : "🔓 Players"}
-          </button>
-          {isMultiplayer && players.length > 1 && (
-            <div className="ml-auto flex items-center bg-slate-100 rounded-lg p-0.5">
-              <button onClick={() => setMyViewOnly(false)}
-                className={`text-[11px] font-medium px-2 py-1 rounded-md transition-all ${!myViewOnly ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"}`}>All</button>
-              <button onClick={() => setMyViewOnly(true)}
-                className={`text-[11px] font-medium px-2 py-1 rounded-md transition-all ${myViewOnly ? "bg-white text-indigo-700 shadow-sm" : "text-slate-500"}`}>Mine</button>
-            </div>
-          )}
+      {/* All/Mine toggle — separate from lock, only in multiplayer */}
+      {isMultiplayer && players.length > 1 && (
+        <div className="flex items-center justify-end">
+          <div className="flex items-center bg-slate-100 rounded-lg p-0.5">
+            <button onClick={() => setMyViewOnly(false)}
+              className={`text-[11px] font-medium px-2 py-1 rounded-md transition-all ${!myViewOnly ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"}`}>All</button>
+            <button onClick={() => setMyViewOnly(true)}
+              className={`text-[11px] font-medium px-2 py-1 rounded-md transition-all ${myViewOnly ? "bg-white text-indigo-700 shadow-sm" : "text-slate-500"}`}>Mine</button>
+          </div>
         </div>
       )}
 
@@ -301,11 +289,28 @@ export default function ScorecardFill({
           <thead>
             {table.getHeaderGroups().map(hg => (
               <tr key={hg.id} className="border-b border-slate-200">
-                {hg.headers.map(h => (
-                  <th key={h.id} className={`text-[11px] font-semibold text-slate-400 uppercase tracking-wider px-4 py-2 ${h.column.id === "category" ? "text-left whitespace-nowrap w-0" : "text-center w-0"}`}>
-                    {flexRender(h.column.columnDef.header, h.getContext())}
+                {hg.headers.map(h => {
+                  const isCategory = h.column.id === "category";
+                  return (
+                  <th key={h.id} className={`text-[11px] font-semibold text-slate-400 uppercase tracking-wider px-4 py-2 ${isCategory ? "text-left whitespace-nowrap w-0" : "text-center w-0"}`}>
+                    {isCategory ? (
+                      <div className="flex items-center justify-between gap-2">
+                        <span>{flexRender(h.column.columnDef.header, h.getContext())}</span>
+                        {!readOnly && !isPreviewMode && (
+                          <button
+                            onClick={() => setPlayersLocked(!playersLocked)}
+                            className="text-[10px] leading-none px-1.5 py-0.5 rounded transition-colors hover:bg-slate-100"
+                            title={playersLocked ? "Unlock players" : "Lock players"}
+                          >
+                            {playersLocked ? "🔒" : "🔓"}
+                          </button>
+                        )}
+                      </div>
+                    ) : (
+                      flexRender(h.column.columnDef.header, h.getContext())
+                    )}
                   </th>
-                ))}
+                )})}
               </tr>
             ))}
           </thead>
