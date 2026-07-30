@@ -28,6 +28,7 @@ export default function ScorecardDetailPage() {
   const [players, setPlayers] = useState<ScorecardPlayer[]>([]);
   const [values, setValues] = useState<CellValue[]>([]);
   const [templateName, setTemplateName] = useState("");
+  const [gameDate, setGameDate] = useState("");
   const [shareCode, setShareCode] = useState<string | null>(null);
   const [isOwner, setIsOwner] = useState(false);
   const [myPlayerSlotId, setMyPlayerSlotId] = useState<string | null>(null);
@@ -59,6 +60,7 @@ export default function ScorecardDetailPage() {
       setPlayers(data.players || []);
       setValues(data.values || []);
       setTemplateName(data.scorecard.template_name || "Game");
+      setGameDate(data.scorecard.game_date || "");
       setShareCode(data.scorecard.share_code || null);
       setIsOwner(true);
       // If template name is missing, look it up
@@ -91,6 +93,7 @@ export default function ScorecardDetailPage() {
         setPlayers(data.players || []);
         setValues(data.values || []);
         setTemplateName(data.scorecard.template_name || "Game");
+        setGameDate(data.scorecard.game_date || "");
         setShareCode(data.scorecard.share_code || null);
         setIsOwner(user?.id === data.scorecard.created_by);
 
@@ -209,7 +212,10 @@ export default function ScorecardDetailPage() {
           <Link href="/scores" className="inline-flex items-center gap-1 text-xs text-slate-400 hover:text-slate-600 mb-0.5 transition-colors">
             ← My Scores
           </Link>
-          <h1 className="text-lg font-bold tracking-tight text-slate-900 truncate">{templateName}</h1>
+          <h1 className="text-lg font-bold tracking-tight text-slate-900 truncate">
+            {templateName}
+            {gameDate && <span className="text-sm font-normal text-slate-400 ml-2">{new Date(gameDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>}
+          </h1>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           {shareCode && (
@@ -245,9 +251,9 @@ export default function ScorecardDetailPage() {
       )}
 
       {/* Timestamp */}
-      {!loading && (
+      {!loading && gameDate && (
         <p className="text-[11px] text-slate-400 text-right mt-4">
-          {new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+          {new Date(gameDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
         </p>
       )}
 

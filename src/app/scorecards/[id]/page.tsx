@@ -51,7 +51,7 @@ export default function TemplateDetailPage() {
   const handleStartGame = async () => {
     setStarting(true);
     try {
-      const result = await createScorecard({ template_id: id });
+      const result = await createScorecard({ template_id: id, title: template?.name || "Game" });
       const shareRes = await fetch(`/api/scores/${result.scorecard.id}/share`, { method: "POST" }).then(r => r.json());
       // Auto-create a player slot for the host
       await updateScorecard(result.scorecard.id, {
