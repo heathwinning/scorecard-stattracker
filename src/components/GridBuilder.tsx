@@ -177,7 +177,12 @@ function RowProperties({ cell, allFields, onChange, onDelete }: {
           <div className="flex gap-2">
             <select value={selectedFieldKey} onChange={event => setSelectedFieldKey(event.target.value)} className="input-field min-w-0 flex-1 text-xs">
               <option value="">Choose a field</option>
-              {formulaFields.map(field => <option key={field.cell_key} value={field.cell_key}>{fieldLabel(field)}</option>)}
+              <optgroup label="This player">
+                {formulaFields.map(field => <option key={field.cell_key} value={field.cell_key}>{fieldLabel(field)}</option>)}
+              </optgroup>
+              <optgroup label="All players (calculation)">
+                {formulaFields.map(field => <option key={`${field.cell_key}-all`} value={`SUM(${field.cell_key}_*)`}>All players: {fieldLabel(field)}</option>)}
+              </optgroup>
             </select>
             <button type="button" disabled={!selectedFieldKey} onClick={() => appendFormula(selectedFieldKey)} className="btn-secondary shrink-0 px-2 text-xs disabled:opacity-40">Insert</button>
           </div>
@@ -190,6 +195,14 @@ function RowProperties({ cell, allFields, onChange, onDelete }: {
             <button type="button" onClick={() => updateFormula("")} className="ml-auto text-xs text-rose-600 hover:text-rose-700">Clear</button>
           </div>
           {formulaError && <p className="text-xs text-rose-500">{formulaError}</p>}
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox"
+              checked={!cell.per_player}
+              onChange={event => onChange({ ...cell, per_player: event.target.checked ? 0 : 1 })}
+              className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" />
+            <span className="text-[11px] font-semibold text-slate-500 tracking-wider">One shared calculated result</span>
+          </label>
+          <p className="text-[11px] text-slate-400 ml-6">Only formulas can be shared. Use “All players” above to explicitly aggregate player scores.</p>
           <label className="mt-3 flex items-center gap-2 cursor-pointer">
             <input type="checkbox"
               checked={!!(cell.config_json as Record<string, unknown>)?.repeatable_running_total}

@@ -78,6 +78,7 @@ export default function ScorecardGrid({
   valuesRef.current = values;
   const tableRef = useRef<HTMLTableElement>(null);
   const initializedDefaultEntriesRef = useRef(new Set<string>());
+  const [entryToFocus, setEntryToFocus] = useState<string | null>(null);
 
   const isPreview = players.length === 0;
   const isMultiplayer = isLive || !!myPlayerSlotId;
@@ -185,8 +186,20 @@ export default function ScorecardGrid({
     const entries = valuesRef.current.filter(v => v.template_cell_id === cell.id && (v.player_id || "") === playerId);
     const nextKey = String(entries.reduce((max, e) => Math.max(max, (parseInt(e.entry_key || "0", 10) || 0) + 1), entries.length));
     commit(cell, playerId, "", nextKey, 0);
+    setEntryToFocus(vKey(cell.id!, playerId, nextKey));
     // For the local fallback path commit() already persisted; nothing else to do.
   }, [commit]);
+
+  useEffect(() => {
+    if (!entryToFocus || !tableRef.current) return;
+    const input = tableRef.current.querySelector<HTMLInputElement>(`input[data-cell-key="${CSS.escape(entryToFocus)}"]`);
+    if (!input) return;
+    requestAnimationFrame(() => {
+      input.focus({ preventScroll: true });
+      input.select();
+    });
+    setEntryToFocus(null);
+  }, [entryToFocus, values]);
 
   const removeEntry = useCallback((cell: TemplateCell, playerId: string, entryKey: string) => {
     const next = valuesRef.current.filter(v => !(v.template_cell_id === cell.id && (v.player_id || "") === playerId && (v.entry_key || "") === entryKey));
@@ -660,6 +673,7 @@ function GridCell(props: GridCellProps) {
                 colId={colId}
                 onCommit={v => onCommit(cell, player.id!, v, entry.entry_key || "", entry.is_hidden || 0)}
                 onKeyDownNav={onKeyDownNav}
+                onEnter={() => onAddEntry(cell, player.id!)}
                 onBlurFlush={onBlurFlush}
               />
               {canEdit && entries.length > 1 && (
@@ -725,7 +739,7 @@ function GridCell(props: GridCellProps) {
 
 // ---------------------------------------------------------------------------
 
-function ValueInput({ cell, value, placeholder, disabled, className, cellKey, rowIndex, colId, onCommit, onKeyDownNav, onBlurFlush }: {
+function ValueInput({ cell, value, placeholder, disabled, className, cellKey, rowIndex, colId, onCommit, onKeyDownNav, onEnter, onBlurFlush }: {
   cell: TemplateCell;
   value: string;
   placeholder: string;
@@ -736,6 +750,7 @@ function ValueInput({ cell, value, placeholder, disabled, className, cellKey, ro
   colId: string;
   onCommit: (value: string) => void;
   onKeyDownNav: (e: KeyboardEvent<HTMLInputElement>) => void;
+  onEnter?: () => void;
   onBlurFlush?: () => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -772,7 +787,15 @@ function ValueInput({ cell, value, placeholder, disabled, className, cellKey, ro
         setLocal(next);
         onCommit(next);
       }}
-      onKeyDown={onKeyDownNav}
+      onKeyDown={event => {
+        if (event.key === "Enter" && onEnter) {
+          event.preventDefault();
+          onCommit(local);
+          onEnter();
+          return;
+        }
+        onKeyDownNav(event);
+      }}
       onBlur={() => onBlurFlush?.()}
     />
   );

@@ -10,6 +10,8 @@ import { Parser } from "expr-eval";
 export interface CellContext {
   key: string;
   value: number;
+  /** Formula results are addressable directly, but excluded from wildcard sums. */
+  aggregate?: boolean;
 }
 
 function buildCellMap(cells: CellContext[]): Map<string, number> {
@@ -45,29 +47,29 @@ function flattenArgs(
   });
 }
 
-function createParser(cellMap: Map<string, number>): Parser {
+function createParser(cellMap: Map<string, number>, aggregateMap: Map<string, number>): Parser {
   const p = new Parser();
 
   p.functions.SUM = (...args: unknown[]) =>
-    flattenArgs(args, cellMap).reduce((a, b) => a + b, 0);
+    flattenArgs(args, aggregateMap).reduce((a, b) => a + b, 0);
 
   p.functions.AVG = (...args: unknown[]) => {
-    const v = flattenArgs(args, cellMap);
+    const v = flattenArgs(args, aggregateMap);
     return v.length === 0 ? 0 : v.reduce((a, b) => a + b, 0) / v.length;
   };
 
   p.functions.MIN = (...args: unknown[]) => {
-    const v = flattenArgs(args, cellMap);
+    const v = flattenArgs(args, aggregateMap);
     return v.length === 0 ? 0 : Math.min(...v);
   };
 
   p.functions.MAX = (...args: unknown[]) => {
-    const v = flattenArgs(args, cellMap);
+    const v = flattenArgs(args, aggregateMap);
     return v.length === 0 ? 0 : Math.max(...v);
   };
 
   p.functions.COUNT = (...args: unknown[]) =>
-    flattenArgs(args, cellMap).length;
+    flattenArgs(args, aggregateMap).length;
 
   return p;
 }
@@ -80,7 +82,11 @@ export function evaluateFormula(
   if (!expression?.trim()) return 0;
   try {
     const cellMap = buildCellMap(cells);
-    const parser = createParser(cellMap);
+    // Wildcard queries intentionally consider entered scores only. Formula
+    // results remain available as direct references, but are excluded so a
+    // subtotal cannot be counted again by a later wildcard total.
+    const aggregateMap = buildCellMap(cells.filter(cell => cell.aggregate !== false));
+    const parser = createParser(cellMap, aggregateMap);
     // expr-eval treats `bonus_*` as invalid syntax unless the wildcard is
     // passed as a string to the aggregation function. Template formulas use
     // the concise wildcard form, so normalize only wildcard identifiers and

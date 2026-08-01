@@ -18,8 +18,7 @@ const num = (v?: string) => {
  * - static formulas:     `${cellId}`
  *
  * Context keys available inside formula expressions:
- * - `cell_key`           — for the current player (per-player evaluation) or the
- *                          sum across all players (static evaluation)
+ * - `cell_key`           — for the current player (per-player evaluation)
  * - `cell_key_<playerId>`— a specific player's value
  * - `cell_key_<entryKey>`— individual entries of allow_multiple cells (current player)
  */
@@ -56,14 +55,11 @@ export function computeFormulaResults(
     const base: CellContext[] = [];
     perPlayerInputs.forEach(cell => {
       const multipleEntries = hasMultipleEntries(cell);
-      let total = 0;
       players.forEach(p => {
         const entries = entriesFor(cell.id!, p.id!);
         const sum = entries.reduce((s, e) => s + num(e.value), 0);
-        total += sum;
         base.push({ key: `${cell.cell_key}_${p.id}`, value: multipleEntries ? sum : num(entries[0]?.value) });
       });
-      base.push({ key: cell.cell_key, value: total });
     });
     staticInputs.forEach(cell =>
       base.push({ key: cell.cell_key, value: num(entriesFor(cell.id!, null)[0]?.value) })
@@ -73,10 +69,10 @@ export function computeFormulaResults(
       if (fc.per_player) {
         players.forEach(p => {
           const r = results[`${fc.id}:${p.id}`];
-          if (r !== undefined) base.push({ key: `${fc.cell_key}_${p.id}`, value: r });
+          if (r !== undefined) base.push({ key: `${fc.cell_key}_${p.id}`, value: r, aggregate: false });
         });
       } else if (results[fc.id!] !== undefined) {
-        base.push({ key: fc.cell_key, value: results[fc.id!] });
+        base.push({ key: fc.cell_key, value: results[fc.id!], aggregate: false });
       }
     });
 
@@ -101,7 +97,7 @@ export function computeFormulaResults(
           formulaCells.forEach(other => {
             if (!other.per_player || other.id === fc.id) return;
             const r = results[`${other.id}:${p.id}`];
-            if (r !== undefined) ctx.push({ key: other.cell_key, value: r });
+            if (r !== undefined) ctx.push({ key: other.cell_key, value: r, aggregate: false });
           });
           const r = evaluateFormula(fc.formula_expr!, ctx);
           const key = `${fc.id}:${p.id}`;

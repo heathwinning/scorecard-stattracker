@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
         (cell.cell_key as string) ?? `cell_${i}`,
         (cell.label as string) ?? "",
         (cell.formula_expr as string) ?? null,
-        (cell.per_player as number) ?? 0,
+        cell.cell_type === "formula" || cell.cell_type === "heading" ? (cell.per_player ? 1 : 0) : 1,
         JSON.stringify(cell.config_json || {}),
         (cell.sort_order as number) ?? i
       )

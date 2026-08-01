@@ -117,7 +117,8 @@ export async function PUT(
         (cell.row_span as number) ?? 1, (cell.col_span as number) ?? 1,
         (cell.cell_type as string) ?? "input:number", (cell.cell_key as string) ?? `cell_${i}`,
         (cell.label as string) ?? "", (cell.formula_expr as string) ?? null,
-        (cell.per_player as number) ?? 0, JSON.stringify(cell.config_json || {}), (cell.sort_order as number) ?? i
+        cell.cell_type === "formula" || cell.cell_type === "heading" ? (cell.per_player ? 1 : 0) : 1,
+        JSON.stringify(cell.config_json || {}), (cell.sort_order as number) ?? i
       )
     );
     if (batch.length) await db.batch(batch);
