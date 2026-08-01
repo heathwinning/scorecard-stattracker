@@ -237,6 +237,7 @@ export async function shareScorecard(id: string) {
 export async function joinScorecard(shareCode: string, options?: { playerName?: string; playerSlotId?: string }) {
   return api<{
     scorecard_id: string;
+    game_name: string;
     sharing_mode: "shared" | "slots";
     player_slot_id: string | null;
     player_name: string | null;

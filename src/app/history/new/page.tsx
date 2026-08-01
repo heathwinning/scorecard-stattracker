@@ -44,15 +44,25 @@ function NewScorecardPageInner() {
     (async () => {
       if (templateId.startsWith("guest-")) {
         const tpl = guestGetTemplate(templateId);
-        if (tpl) { setCells(tpl.cells || []); setTemplateName(tpl.name); setTemplateRules(tpl.rules || []); }
+        if (tpl) {
+          const rules = tpl.rules || [];
+          setCells(tpl.cells || []);
+          setTemplateName(tpl.name);
+          setTemplateRules(rules);
+          // Most scorecards use their standard layout. Do not stop people at
+          // a configuration screen unless there is actually a choice to make.
+          if (rules.length === 0) setCreationStarted(true);
+        }
         setLoading(false);
         return;
       }
       try {
         const data = await getTemplate(templateId);
+        const rules = data.template.rules || [];
         setCells(data.template.cells || []);
         setTemplateName(data.template.name);
-        setTemplateRules(data.template.rules || []);
+        setTemplateRules(rules);
+        if (rules.length === 0) setCreationStarted(true);
       } catch { toast.error("Scorecard not found"); }
       setLoading(false);
     })();

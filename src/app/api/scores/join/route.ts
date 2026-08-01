@@ -21,9 +21,13 @@ export async function POST(request: NextRequest) {
   if (!share_code?.trim()) return NextResponse.json({ error: "Share code required" }, { status: 400 });
 
   const db = getDB();
-  const scorecard = await queryFirst<{ id: string; sharing_mode: "shared" | "slots" }>(
+  const scorecard = await queryFirst<{ id: string; sharing_mode: "shared" | "slots"; game_name: string }>(
     db,
-    "SELECT id, sharing_mode FROM scorecards WHERE share_code = ?1",
+    `SELECT scorecards.id, scorecards.sharing_mode,
+      COALESCE(NULLIF(scorecards.title, ''), templates.name, 'Scorecard') AS game_name
+     FROM scorecards
+     LEFT JOIN templates ON templates.id = scorecards.template_id
+     WHERE scorecards.share_code = ?1`,
     [share_code.trim().toUpperCase()]
   );
   if (!scorecard) return NextResponse.json({ error: "Invalid share code" }, { status: 404 });
@@ -45,6 +49,7 @@ export async function POST(request: NextRequest) {
       : undefined;
     return NextResponse.json({
       scorecard_id: scorecard.id,
+      game_name: scorecard.game_name,
       sharing_mode: scorecard.sharing_mode,
       player_slot_id: participant.player_slot_id,
       player_name: slot?.player_name || null,

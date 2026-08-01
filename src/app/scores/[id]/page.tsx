@@ -435,6 +435,7 @@ export default function ScorecardDetailPage() {
               <input
                 value={scorecardTitle}
                 placeholder={templateName}
+                aria-label="Game name"
                 data-scorecard-title=""
                 onChange={e => { scorecardTitleRef.current = e.target.value; setScorecardTitle(e.target.value); persistMetadata(); }}
                 className="bg-transparent outline-none border-b border-transparent focus:border-indigo-300 w-full max-w-xs"
@@ -456,10 +457,11 @@ export default function ScorecardDetailPage() {
         </div>
         <div className="flex w-full items-center justify-between gap-2 sm:w-auto sm:justify-end">
           {shareCode && (
-            <div className="flex items-center gap-1.5 bg-indigo-50 border border-indigo-200 rounded-lg px-3 py-1.5">
+            <div className="flex items-center gap-1.5 bg-indigo-50 border border-indigo-200 rounded-lg px-3 py-1.5" title="Invite players with this code or copy the join link">
               <HiOutlineShare className="w-3.5 h-3.5 text-indigo-500" />
+              <span className="text-xs font-semibold text-indigo-600">Invite</span>
               <span className="text-xs font-mono font-bold text-indigo-700 tracking-wider">{shareCode}</span>
-              <button onClick={copyLink} className="text-indigo-400 hover:text-indigo-600 transition-colors" title="Copy share link">
+              <button onClick={copyLink} className="text-indigo-400 hover:text-indigo-600 transition-colors" title="Copy join link" aria-label="Copy join link">
                 <HiOutlineClipboardCopy className="w-3.5 h-3.5" />
               </button>
               {copied && <span className="text-[10px] text-indigo-500">Copied!</span>}
