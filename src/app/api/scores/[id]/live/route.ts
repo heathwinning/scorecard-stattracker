@@ -38,10 +38,12 @@ export async function GET(
        COALESCE(ss.host_only_editing, 0) as host_only_editing,
        COALESCE(ss.is_locked, 0) as is_locked,
        COALESCE(svs.private_player_scores, 0) as private_player_scores
+       , COALESCE(sgc.config_json, '{}') as game_config
      FROM scorecards s
      JOIN templates t ON s.template_id = t.id
      LEFT JOIN scorecard_settings ss ON ss.scorecard_id = s.id
      LEFT JOIN scorecard_visibility_settings svs ON svs.scorecard_id = s.id
+     LEFT JOIN scorecard_game_configurations sgc ON sgc.scorecard_id = s.id
      WHERE s.id = ?1`,
     [scorecardId]
   );
@@ -112,7 +114,7 @@ export async function GET(
 
   return NextResponse.json(
     {
-      scorecard,
+      scorecard: { ...scorecard, game_config: JSON.parse((scorecard.game_config as string) || "{}") },
       players,
       values,
       participants,

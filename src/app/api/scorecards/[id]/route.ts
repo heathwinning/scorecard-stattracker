@@ -42,7 +42,12 @@ export async function GET(
 
   const cells = await queryAll<TemplateCell>(
     db,
-    "SELECT * FROM template_cells WHERE template_id = ?1 ORDER BY sort_order",
+    "SELECT * FROM template_cells WHERE template_id = ?1 AND sort_order >= 0 ORDER BY sort_order",
+    [params.id]
+  );
+  const rules = await queryAll(
+    db,
+    "SELECT * FROM template_rule_sets WHERE template_id = ?1 ORDER BY sort_order",
     [params.id]
   );
 
@@ -53,6 +58,7 @@ export async function GET(
         ...c,
         config_json: JSON.parse(c.config_json || "{}"),
       })),
+      rules: rules.map((rule: Record<string, unknown>) => ({ ...rule, definition_json: JSON.parse(String(rule.definition_json || "{}")) })),
     },
   });
 }
@@ -80,7 +86,7 @@ export async function PUT(
   }
 
   const body = await request.json();
-  const { name, description, game_id, is_public, cells } = body;
+  const { name, description, game_id, is_public, cells, rules } = body;
 
   await execute(
     db,
@@ -89,33 +95,44 @@ export async function PUT(
   );
 
   if (cells && Array.isArray(cells)) {
-    // Delete existing cells and re-insert
-    await execute(db, "DELETE FROM template_cells WHERE template_id = ?1", [params.id]);
-
+    // Retain old rows rather than deleting them: score values reference these
+    // IDs and historical layouts use snapshots. Removed rows are hidden from
+    // future games, while supplied IDs are updated in place.
+    const existingCells = await queryAll<{ id: string }>(db, "SELECT id FROM template_cells WHERE template_id = ?1", [params.id]);
+    const existingIds = new Set(existingCells.map((cell) => cell.id));
+    await execute(db, "UPDATE template_cells SET sort_order = -1 WHERE template_id = ?1", [params.id]);
     const stmt = db.prepare(
       `INSERT INTO template_cells (id, template_id, row_pos, col_pos, row_span, col_span, cell_type, cell_key, label, formula_expr, per_player, config_json, sort_order)
-       VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)`
+       VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)
+       ON CONFLICT(id) DO UPDATE SET
+         row_pos = excluded.row_pos, col_pos = excluded.col_pos, row_span = excluded.row_span, col_span = excluded.col_span,
+         cell_type = excluded.cell_type, cell_key = excluded.cell_key, label = excluded.label,
+         formula_expr = excluded.formula_expr, per_player = excluded.per_player, config_json = excluded.config_json,
+         sort_order = excluded.sort_order`
     );
-
     const batch = cells.map((cell: Record<string, unknown>, i: number) =>
       stmt.bind(
-        uuid(),
-        params.id,
-        (cell.row_pos as number) ?? i,
-        (cell.col_pos as number) ?? 0,
-        (cell.row_span as number) ?? 1,
-        (cell.col_span as number) ?? 1,
-        (cell.cell_type as string) ?? "input:number",
-        (cell.cell_key as string) ?? `cell_${i}`,
-        (cell.label as string) ?? "",
-        (cell.formula_expr as string) ?? null,
-        (cell.per_player as number) ?? 0,
-        JSON.stringify(cell.config_json || {}),
-        (cell.sort_order as number) ?? i
+        typeof cell.id === "string" && existingIds.has(cell.id) ? cell.id : uuid(), params.id,
+        (cell.row_pos as number) ?? i, (cell.col_pos as number) ?? 0,
+        (cell.row_span as number) ?? 1, (cell.col_span as number) ?? 1,
+        (cell.cell_type as string) ?? "input:number", (cell.cell_key as string) ?? `cell_${i}`,
+        (cell.label as string) ?? "", (cell.formula_expr as string) ?? null,
+        (cell.per_player as number) ?? 0, JSON.stringify(cell.config_json || {}), (cell.sort_order as number) ?? i
       )
     );
+    if (batch.length) await db.batch(batch);
+  }
 
-    await db.batch(batch);
+  if (rules && Array.isArray(rules)) {
+    await execute(db, "DELETE FROM template_rule_sets WHERE template_id = ?1", [params.id]);
+    const ruleStmt = db.prepare(
+      `INSERT INTO template_rule_sets (id, template_id, rule_key, label, help_text, definition_json, sort_order)
+       VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)`
+    );
+    await db.batch(rules.map((rule: Record<string, unknown>, index: number) => ruleStmt.bind(
+      uuid(), params.id, String(rule.rule_key || `rule_${index}`), String(rule.label || "Optional module"),
+      String(rule.help_text || ""), JSON.stringify(rule.definition_json || {}), Number(rule.sort_order ?? index)
+    )));
   }
 
   return NextResponse.json({ success: true });

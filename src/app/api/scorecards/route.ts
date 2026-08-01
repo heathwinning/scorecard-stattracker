@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
 
   const db = getDB();
   const body = await request.json();
-  const { name, description, game_id, is_public, cells } = body;
+  const { name, description, game_id, is_public, cells, rules } = body;
 
   if (!name || !name.trim()) {
     return NextResponse.json({ error: "Name is required" }, { status: 400 });
@@ -95,6 +95,10 @@ export async function POST(request: NextRequest) {
     );
 
     await db.batch(batch);
+  }
+  if (rules && Array.isArray(rules)) {
+    const stmt = db.prepare("INSERT INTO template_rule_sets (id, template_id, rule_key, label, help_text, definition_json, sort_order) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)");
+    await db.batch(rules.map((rule: Record<string, unknown>, index: number) => stmt.bind(uuid(), templateId, String(rule.rule_key || `module_${index}`), String(rule.label || "Module"), String(rule.help_text || ""), JSON.stringify(rule.definition_json || {}), index)));
   }
 
   return NextResponse.json({ template: { id: templateId, ...body } }, { status: 201 });

@@ -89,6 +89,30 @@ CREATE TABLE IF NOT EXISTS scorecard_visibility_settings (
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+CREATE TABLE IF NOT EXISTS scorecard_game_configurations (
+  scorecard_id TEXT PRIMARY KEY REFERENCES scorecards(id) ON DELETE CASCADE,
+  config_json TEXT NOT NULL DEFAULT '{}',
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS template_rule_sets (
+  id TEXT PRIMARY KEY,
+  template_id TEXT NOT NULL REFERENCES templates(id) ON DELETE CASCADE,
+  rule_key TEXT NOT NULL,
+  label TEXT NOT NULL,
+  help_text TEXT NOT NULL DEFAULT '',
+  definition_json TEXT NOT NULL DEFAULT '{}',
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  UNIQUE(template_id, rule_key)
+);
+
+CREATE TABLE IF NOT EXISTS scorecard_layout_snapshots (
+  scorecard_id TEXT PRIMARY KEY REFERENCES scorecards(id) ON DELETE CASCADE,
+  cells_json TEXT NOT NULL,
+  rules_json TEXT NOT NULL DEFAULT '[]',
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
 -- Individual cell values in a filled scorecard
 CREATE TABLE IF NOT EXISTS cell_values (
   id TEXT PRIMARY KEY, -- UUID

@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
-import { createTemplate, updateTemplate, getTemplate, listGames, type TemplateCell, type Game } from "@/lib/api-client";
+import { createTemplate, updateTemplate, getTemplate, listGames, type TemplateCell, type Game, type TemplateRule } from "@/lib/api-client";
 import { guestSaveTemplate, guestUpdateTemplate, guestGetTemplate } from "@/lib/guest-store";
 import GridBuilder from "@/components/GridBuilder";
 import Link from "next/link";
@@ -33,6 +33,7 @@ function TemplateNewPageInner({ params }: Props) {
   const [games, setGames] = useState<Game[]>([]);
   const [isPublic, setIsPublic] = useState(false);
   const [cells, setCells] = useState<TemplateCell[]>([]);
+  const [rules, setRules] = useState<TemplateRule[]>([]);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(isEdit || isFork);
 
@@ -58,6 +59,7 @@ function TemplateNewPageInner({ params }: Props) {
           setGameId(tpl.game_id || "");
           setIsPublic(!!tpl.is_public);
           setCells(tpl.cells || []);
+          setRules(tpl.rules || []);
         })
         .catch(() => toast.error("Template not found"))
         .finally(() => setLoading(false));
@@ -70,26 +72,26 @@ function TemplateNewPageInner({ params }: Props) {
     try {
       if (isGuest) {
         if (isEdit && templateId) {
-          guestUpdateTemplate(templateId, { name, description, cells });
+          guestUpdateTemplate(templateId, { name, description, cells, rules });
           toast.success("Template updated! (saved locally)");
         } else {
-          const tpl = guestSaveTemplate({ name, description, is_public: false, cells });
+          const tpl = guestSaveTemplate({ name, description, is_public: false, cells, rules });
           // Set game_id after creation
-          if (gameId) guestUpdateTemplate(tpl.id, { name, description, cells });
+          if (gameId) guestUpdateTemplate(tpl.id, { name, description, cells, rules });
           toast.success("Template created! Sign in to save permanently.");
           router.push(`/scorecards/${tpl.id}`);
         }
       } else if (isEdit && templateId) {
-        await updateTemplate(templateId, { name, description, game_id: gameId || undefined, is_public: isPublic, cells });
+        await updateTemplate(templateId, { name, description, game_id: gameId || undefined, is_public: isPublic, cells, rules });
         toast.success("Template updated!");
       } else {
-        const result = await createTemplate({ name, description, game_id: gameId || undefined, is_public: isPublic, cells });
+        const result = await createTemplate({ name, description, game_id: gameId || undefined, is_public: isPublic, cells, rules });
         toast.success("Template created!");
         router.push(`/scorecards/${result.template.id}`);
       }
     } catch { toast.error("Failed to save template"); }
     finally { setSaving(false); }
-  }, [name, description, isPublic, cells, isEdit, templateId, router, isGuest]);
+  }, [name, description, isPublic, cells, rules, isEdit, templateId, router, isGuest]);
 
   if (authLoading || loading) {
     return (
@@ -152,6 +154,10 @@ function TemplateNewPageInner({ params }: Props) {
 
       {/* Grid Builder */}
       <GridBuilder cells={cells} onChange={setCells} />
+      <div className="card mt-6 p-5">
+        <div className="flex items-center justify-between gap-3"><div><h2 className="text-sm font-semibold text-slate-900">Optional modules</h2><p className="mt-1 text-xs text-slate-500">Modules are selectable, data-defined scorecard overlays.</p></div><button type="button" onClick={() => setRules(current => [...current, { rule_key: `module_${current.length + 1}`, label: "New module", help_text: "", definition_json: { cells: [] }, sort_order: current.length }])} className="btn-secondary text-xs">+ Module</button></div>
+        <div className="mt-4 space-y-3">{rules.map((rule, index) => <div key={`${rule.rule_key}-${index}`} className="rounded-lg border border-slate-200 p-3"><div className="grid gap-2 sm:grid-cols-[1fr_1fr_1fr_auto]"><input className="input-field text-sm font-mono" value={rule.rule_key} placeholder="module key" onChange={e => setRules(current => current.map((item, i) => i === index ? { ...item, rule_key: e.target.value.replace(/[^a-z0-9_-]/gi, "_").toLowerCase() } : item))} /><input className="input-field text-sm" value={rule.label} placeholder="Module label" onChange={e => setRules(current => current.map((item, i) => i === index ? { ...item, label: e.target.value } : item))} /><input className="input-field text-sm" value={rule.help_text} placeholder="Help text" onChange={e => setRules(current => current.map((item, i) => i === index ? { ...item, help_text: e.target.value } : item))} /><button type="button" className="text-xs text-rose-600" onClick={() => setRules(current => current.filter((_, i) => i !== index))}>Remove</button></div><p className="mt-2 text-[11px] text-slate-500">Set the same optional module key on predeclared rows in the row properties. The JSON below can override any matching row’s label, help, formula, or layout for this module.</p><label className="mt-3 block text-[11px] font-semibold tracking-wider text-slate-500">Layout definition (JSON)<textarea className="input-field mt-1 h-24 font-mono text-xs" value={JSON.stringify(rule.definition_json, null, 2)} onChange={e => { try { const definition_json = JSON.parse(e.target.value); setRules(current => current.map((item, i) => i === index ? { ...item, definition_json } : item)); } catch {} }} placeholder='{"cells": [], "overrides": {}}' /></label></div>)}</div>
+      </div>
     </div>
   );
 }

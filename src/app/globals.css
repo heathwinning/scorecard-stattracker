@@ -135,8 +135,8 @@
   }
 
   .sg-tally { @apply inline-flex items-center gap-0.5 rounded-lg border border-slate-200 bg-white p-0.5 shadow-sm; }
-  .sg-tally-btn { @apply flex h-7 w-7 items-center justify-center rounded-md text-base font-bold text-slate-400 transition hover:bg-indigo-50 hover:text-indigo-600 active:scale-90 sm:h-6 sm:w-6 sm:text-sm; }
-  .sg-tally-value { @apply min-w-7 text-center text-[13px] font-bold tabular-nums text-slate-800; }
+  .sg-tally-btn { @apply flex h-7 w-6 items-center justify-center rounded-md text-base font-bold text-slate-400 transition hover:bg-indigo-50 hover:text-indigo-600 active:scale-90 sm:h-6 sm:w-5 sm:text-sm; }
+  .sg-tally-value { @apply min-w-6 text-center text-[13px] font-bold tabular-nums text-slate-800; }
 
   .sg-multi { @apply flex flex-col items-center gap-0.5; }
   .sg-pill { @apply inline-flex items-center rounded-full border border-indigo-100 bg-indigo-50/70 px-1 py-0; }

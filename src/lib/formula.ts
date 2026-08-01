@@ -93,6 +93,14 @@ export function evaluateFormula(
     for (const [key, value] of cellMap) {
       if (/^[A-Za-z_][A-Za-z0-9_]*$/.test(key)) scope[key] = value;
     }
+    // Optional rule cells are absent from a resolved layout when their module
+    // is not selected. Treat their references as zero so a data-defined total
+    // can safely include every optional category.
+    for (const identifier of normalized.match(/[A-Za-z_][A-Za-z0-9_]*/g) || []) {
+      if (!(identifier in scope) && !["SUM", "AVG", "MIN", "MAX", "COUNT"].includes(identifier)) {
+        scope[identifier] = 0;
+      }
+    }
     const result = parser.evaluate(normalized, scope);
     return Math.round((typeof result === "number" ? result : 0) * 100) / 100;
   } catch {

@@ -28,6 +28,7 @@ export default function ScorecardDetailPage() {
   const [cells, setCells] = useState<TemplateCell[]>([]);
   const [players, setPlayers] = useState<ScorecardPlayer[]>([]);
   const [values, setValues] = useState<CellValue[]>([]);
+  const [templateId, setTemplateId] = useState("");
   const [templateName, setTemplateName] = useState("");
   const [scorecardTitle, setScorecardTitle] = useState("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -102,6 +103,7 @@ export default function ScorecardDetailPage() {
       if (!data) { toast.error("Scorecard not found"); setLoading(false); return; }
       setPlayers(data.players || []);
       setValues(data.values || []);
+      setTemplateId(data.scorecard.template_id);
       setTemplateName(data.scorecard.template_name || "Game");
       setScorecardTitle(data.scorecard.title || "");
       setGameDate(data.scorecard.game_date || "");
@@ -121,7 +123,9 @@ export default function ScorecardDetailPage() {
             .catch(() => {});
         }
       }
-      if (data.scorecard.template_id.startsWith("guest-")) {
+      if (data.cells?.length) {
+        setCells(data.cells);
+      } else if (data.scorecard.template_id.startsWith("guest-")) {
         const tpl = guestGetTemplate(data.scorecard.template_id);
         if (tpl) setCells(tpl.cells || []);
       } else {
@@ -139,6 +143,7 @@ export default function ScorecardDetailPage() {
         setScorecardId(data.scorecard.id);
         setPlayers(data.players || []);
         setValues(data.values || []);
+        setTemplateId(data.scorecard.template_id);
         setTemplateName(data.scorecard.template_name || "Game");
         setScorecardTitle(data.scorecard.title || "");
         setGameDate(data.scorecard.game_date || "");
@@ -149,8 +154,11 @@ export default function ScorecardDetailPage() {
         setPrivatePlayerScores(data.scorecard.private_player_scores === 1);
         setIsOwner(user?.id === data.scorecard.created_by);
 
-        const tplData = await getTemplate(data.scorecard.template_id);
-        setCells(tplData.template.cells || []);
+        if (data.cells?.length) setCells(data.cells);
+        else {
+          const tplData = await getTemplate(data.scorecard.template_id);
+          setCells(tplData.template.cells || []);
+        }
 
         if (data.scorecard.share_code && user) {
           try {
@@ -312,12 +320,12 @@ export default function ScorecardDetailPage() {
 
   // Ensure either collaboration mode has a joinable link.
   useEffect(() => {
-    if (shareCode || scorecardId.startsWith("guest-")) return;
+    if (loading || shareCode || scorecardId.startsWith("guest-")) return;
     fetch(`/api/scores/${scorecardId}/share`, { method: "POST" })
       .then(r => r.json())
       .then(data => { if (data.share_code) setShareCode(data.share_code); })
       .catch(() => {});
-  }, [gameMode, shareCode, scorecardId]);
+  }, [gameMode, loading, shareCode, scorecardId]);
 
   const handleGameModeChange = useCallback(async (mode: "shared" | "live") => {
     setGameMode(mode);
@@ -435,6 +443,16 @@ export default function ScorecardDetailPage() {
           </h1>
           {gameDate && <p className="mt-0.5 text-sm font-normal text-slate-400">{new Date(gameDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</p>}
           {isLocked && <span className="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-rose-600"><HiOutlineLockClosed className="h-3.5 w-3.5" /> Locked</span>}
+          {templateId && (
+            <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs">
+              <Link href={`/scorecards/${templateId}`} className="text-indigo-600 hover:text-indigo-800 hover:underline">
+                View scorecard
+              </Link>
+              <Link href={`/history/new?template=${encodeURIComponent(templateId)}`} className="text-indigo-600 hover:text-indigo-800 hover:underline">
+                New game with this scorecard
+              </Link>
+            </div>
+          )}
         </div>
         <div className="flex w-full items-center justify-between gap-2 sm:w-auto sm:justify-end">
           {shareCode && (

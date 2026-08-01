@@ -58,6 +58,13 @@ const PREVIEW_PLAYERS: ScorecardPlayer[] = [
 
 const vKey = (cellId: string, playerId: string, entryKey = "") => `${cellId}:${playerId}:${entryKey}`;
 
+interface DisplayRow {
+  cells: TemplateCell[];
+  repeatableGroup?: string;
+  entryKey?: string;
+  label?: string;
+}
+
 export default function ScorecardGrid({
   cells, players, values,
   onPlayersChange, onValuesChange,
@@ -82,7 +89,7 @@ export default function ScorecardGrid({
       .sort((a, b) => a.sort_order - b.sort_order),
   [cells]);
 
-  const displayRows = useMemo(() => {
+  const displayRows = useMemo<DisplayRow[]>(() => {
     const rows: TemplateCell[][] = [];
     for (const cell of sortedCells) {
       const config = (cell.config_json || {}) as Record<string, unknown>;
@@ -98,8 +105,22 @@ export default function ScorecardGrid({
         rows.push([cell]);
       }
     }
-    return rows;
-  }, [sortedCells]);
+    return rows.flatMap((rowCells) => {
+      const config = (rowCells[0].config_json || {}) as Record<string, unknown>;
+      const repeatableGroup = typeof config.repeatable_group === "string" ? config.repeatable_group : null;
+      if (!repeatableGroup) return [{ cells: rowCells }];
+
+      const entryKeys = new Set<string>();
+      rowCells.forEach((rowCell) => values.forEach((value) => {
+        if (value.template_cell_id === rowCell.id) entryKeys.add(value.entry_key || "0");
+      }));
+      entryKeys.add("0");
+      const label = typeof config.repeatable_label === "string" ? config.repeatable_label : rowCells[0].label;
+      return Array.from(entryKeys)
+        .sort((left, right) => Number(left) - Number(right))
+        .map((entryKey) => ({ cells: rowCells, repeatableGroup, entryKey, label }));
+    });
+  }, [sortedCells, values]);
 
   const valueMap = useMemo(() => {
     const map = new Map<string, CellValue>();
@@ -193,6 +214,19 @@ export default function ScorecardGrid({
     onMetadataPersist?.();
   }, [players, onPlayersChange, onMetadataPersist]);
 
+  const addRepeatableRound = useCallback((rowCells: TemplateCell[]) => {
+    const nextEntryKey = String(
+      valuesRef.current
+        .filter(value => rowCells.some(cell => cell.id === value.template_cell_id))
+        .reduce((highest, value) => Math.max(highest, Number(value.entry_key || "0") || 0), 0) + 1
+    );
+    rowCells
+      .filter(cell => cell.cell_type !== "formula" && cell.cell_type !== "heading")
+      .forEach((cell) => players.forEach((player) => {
+        if (player.id) commit(cell, player.id, "", nextEntryKey);
+      }));
+  }, [commit, players]);
+
   // ---- spreadsheet keyboard navigation -------------------------------------
   // Tab moves through editable cells in row order (left/right, then wraps to
   // the next/previous row); Enter stays in the current player column and moves
@@ -251,6 +285,7 @@ export default function ScorecardGrid({
   [values]);
 
   const canManagePlayers = !readOnly && !isPreview && !playersLocked && (isOwner || !isMultiplayer);
+  const repeatableRow = displayRows.find(row => row.repeatableGroup);
 
   useEffect(() => {
     if (isPreview || readOnly) return;
@@ -294,6 +329,9 @@ export default function ScorecardGrid({
         <div className="sg-toolbar-actions">
           {canManagePlayers && (
             <button onClick={addPlayer} className="sg-btn sg-btn-primary" type="button">+ Player</button>
+          )}
+          {repeatableRow && !readOnly && !isPreview && (isOwner || !isMultiplayer) && (
+            <button onClick={() => addRepeatableRound(repeatableRow.cells)} className="sg-btn sg-btn-primary" type="button">+ Round</button>
           )}
           {!readOnly && !isPreview && (isOwner || !isMultiplayer) && players.length > 0 && (
             <button
@@ -339,14 +377,15 @@ export default function ScorecardGrid({
             </tr>
           </thead>
           <tbody>
-            {displayRows.map((rowCells, rowIndex) => {
+            {displayRows.map((displayRow, rowIndex) => {
+              const { cells: rowCells, entryKey, repeatableGroup } = displayRow;
               const cell = rowCells[0];
               const isInlineRow = rowCells.length > 1;
               const config = (cell.config_json || {}) as Record<string, unknown>;
               const isSection = !!config.section;
               const isChild = !!config.child;
               const isTotal = /total/i.test(cell.label || cell.cell_key);
-              const label = displayCategoryLabel(cell);
+              const label = repeatableGroup ? `${displayRow.label || "Round"} ${Number(entryKey) + 1}` : displayCategoryLabel(cell);
               const help = typeof config.help === "string"
                 ? config.help
                 : cell.formula_expr
@@ -414,6 +453,8 @@ export default function ScorecardGrid({
                                     onRemoveEntry={removeEntry}
                                     onKeyDownNav={handleGridKeyDown}
                                     onBlurFlush={onFlushPoll}
+                                    repeatableEntryKey={entryKey}
+                                    repeatableCells={repeatableGroup ? rowCells : undefined}
                                   />
                                 </div>
                               );
@@ -438,6 +479,8 @@ export default function ScorecardGrid({
                             onRemoveEntry={removeEntry}
                             onKeyDownNav={handleGridKeyDown}
                             onBlurFlush={onFlushPoll}
+                            repeatableEntryKey={entryKey}
+                            repeatableCells={repeatableGroup ? rowCells : undefined}
                           />
                         )}
                       </td>
@@ -568,10 +611,12 @@ interface GridCellProps {
   onRemoveEntry: (cell: TemplateCell, playerId: string, entryKey: string) => void;
   onKeyDownNav: (e: KeyboardEvent<HTMLInputElement>) => void;
   onBlurFlush?: () => void;
+  repeatableEntryKey?: string;
+  repeatableCells?: TemplateCell[];
 }
 
 function GridCell(props: GridCellProps) {
-  const { cell, player, isPreview, canEdit, faded, mine, valueMap, entriesFor, formulaResults, flashKeys, onCommit, onAddEntry, onRemoveEntry, onKeyDownNav, onBlurFlush, rowIndex, colId } = props;
+  const { cell, player, isPreview, canEdit, faded, mine, valueMap, entriesFor, formulaResults, flashKeys, onCommit, onAddEntry, onRemoveEntry, onKeyDownNav, onBlurFlush, rowIndex, colId, repeatableEntryKey, repeatableCells } = props;
   const config = (cell.config_json || {}) as Record<string, unknown>;
   const allowMultiple = !!config.allow_multiple;
 
@@ -582,6 +627,14 @@ function GridCell(props: GridCellProps) {
   }
 
   if (cell.cell_type === "formula") {
+    if (config.repeatable_running_total && repeatableEntryKey !== undefined && repeatableCells) {
+      const total = repeatableCells
+        .filter(groupCell => groupCell.cell_type !== "formula" && groupCell.cell_type !== "heading")
+        .flatMap(groupCell => entriesFor(groupCell.id!, player.id!))
+        .filter(entry => Number(entry.entry_key || "0") <= Number(repeatableEntryKey))
+        .reduce((sum, entry) => sum + (Number(entry.value) || 0), 0);
+      return <span className={`sg-formula ${faded ? "is-faded" : ""} ${mine ? "is-mine" : ""}`}>{total}</span>;
+    }
     const result = formulaResults[cell.per_player ? `${cell.id}:${player.id}` : cell.id!];
     return <span className={`sg-formula ${faded ? "is-faded" : ""} ${mine ? "is-mine" : ""}`}>{result ?? "—"}</span>;
   }
@@ -625,8 +678,9 @@ function GridCell(props: GridCellProps) {
   }
 
   const record = valueMap.get(vKey(cell.id!, player.id!, ""));
-  const value = record?.value || "";
-  const hidden = record?.is_hidden === 1;
+  const repeatableRecord = repeatableEntryKey === undefined ? record : valueMap.get(vKey(cell.id!, player.id!, repeatableEntryKey));
+  const value = repeatableRecord?.value || "";
+  const hidden = repeatableRecord?.is_hidden === 1;
 
   if (faded && hidden) {
     return <span className="sg-hidden" title="This player's value is hidden until revealed">•••</span>;
@@ -640,10 +694,10 @@ function GridCell(props: GridCellProps) {
     return (
       <span className="sg-tally">
         <button type="button" className="sg-tally-btn" aria-label={`Decrease ${cell.label || cell.cell_key}`}
-          onClick={() => onCommit(cell, player.id!, String(Math.max(min, current - step)), "", hidden ? 1 : 0)}>−</button>
+          onClick={() => onCommit(cell, player.id!, String(Math.max(min, current - step)), repeatableEntryKey || "", hidden ? 1 : 0)}>−</button>
         <span className="sg-tally-value">{value || "0"}</span>
         <button type="button" className="sg-tally-btn" aria-label={`Increase ${cell.label || cell.cell_key}`}
-          onClick={() => onCommit(cell, player.id!, String(current + step), "", hidden ? 1 : 0)}>+</button>
+          onClick={() => onCommit(cell, player.id!, String(current + step), repeatableEntryKey || "", hidden ? 1 : 0)}>+</button>
       </span>
     );
   }
@@ -659,10 +713,10 @@ function GridCell(props: GridCellProps) {
       placeholder={cell.cell_type === "input:text" ? "" : "0"}
       disabled={false}
       className="sg-input"
-      cellKey={vKey(cell.id!, player.id!, "")}
+      cellKey={vKey(cell.id!, player.id!, repeatableEntryKey || "")}
       rowIndex={rowIndex}
       colId={colId}
-      onCommit={v => onCommit(cell, player.id!, v, "", hidden ? 1 : 0)}
+      onCommit={v => onCommit(cell, player.id!, v, repeatableEntryKey || "", hidden ? 1 : 0)}
       onKeyDownNav={onKeyDownNav}
       onBlurFlush={onBlurFlush}
     />

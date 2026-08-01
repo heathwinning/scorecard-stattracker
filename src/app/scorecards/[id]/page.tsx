@@ -4,7 +4,7 @@ export const runtime = 'edge';
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { getTemplate, Template, deleteTemplate, createScorecard, updateScorecard, type TemplateCell } from "@/lib/api-client";
+import { getTemplate, Template, deleteTemplate } from "@/lib/api-client";
 import { guestGetTemplate, guestDeleteTemplate } from "@/lib/guest-store";
 import { useAuth } from "@/components/AuthProvider";
 import Link from "next/link";
@@ -19,7 +19,6 @@ export default function TemplateDetailPage() {
   const { user, isGuest } = useAuth();
   const [template, setTemplate] = useState<Template | null>(null);
   const [loading, setLoading] = useState(true);
-  const [starting, setStarting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const id = params.id as string;
 
@@ -47,20 +46,6 @@ export default function TemplateDetailPage() {
       }
       toast.success("Scorecard deleted"); router.push("/scorecards");
     } catch { toast.error("Failed to delete"); }
-  };
-
-  const handleStartGame = async () => {
-    setStarting(true);
-    try {
-      const result = await createScorecard({ template_id: id, title: template?.name || "Game" });
-      const shareRes = await fetch(`/api/scores/${result.scorecard.id}/share`, { method: "POST" }).then(r => r.json());
-      // Auto-create a player slot for the host
-      await updateScorecard(result.scorecard.id, {
-        players: [{ id: crypto.randomUUID(), player_name: "You", sort_order: 0 }],
-      });
-      if (shareRes.share_code) router.push(`/scores/${shareRes.share_code}`);
-    } catch { toast.error("Failed to start game"); }
-    finally { setStarting(false); }
   };
 
   if (loading) {
@@ -117,9 +102,9 @@ export default function TemplateDetailPage() {
               <HiOutlinePencil className="w-4 h-4" /> Copy & Edit
             </Link>
           )}
-          <button onClick={handleStartGame} disabled={starting} className="btn-primary text-sm">
-            <HiOutlinePlay className="w-4 h-4" /> {starting ? "Starting..." : "Use Scorecard"}
-          </button>
+          <Link href={`/history/new?template=${encodeURIComponent(id)}`} className="btn-primary text-sm">
+            <HiOutlinePlay className="w-4 h-4" /> Use Scorecard
+          </Link>
         </div>
       </div>
 

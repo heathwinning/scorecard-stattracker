@@ -19,6 +19,24 @@ const ROW_TYPES = [
   { value: "formula", label: "Formula", icon: "🧮" },
 ] as const;
 
+function fieldLabel(cell: TemplateCell) {
+  return cell.label || "Untitled field";
+}
+
+function formulaPreview(expression: string, fields: TemplateCell[]) {
+  const knownKeys = new Set(fields.map(field => field.cell_key));
+  const safeExpression = expression.replace(/\b[A-Za-z_][A-Za-z0-9_]*\*?\b/g, identifier =>
+    knownKeys.has(identifier) || ["SUM", "AVG", "MIN", "MAX", "COUNT"].includes(identifier) ? identifier : "[Field]"
+  );
+  return fields
+    .slice()
+    .sort((left, right) => right.cell_key.length - left.cell_key.length)
+    .reduce((preview, field) => {
+      const escapedKey = field.cell_key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      return preview.replace(new RegExp(`\\b${escapedKey}\\b`, "g"), `[${fieldLabel(field)}]`);
+    }, safeExpression);
+}
+
 function SortableRow({ row, isSelected, onClick, onDelete }: {
   row: Row<BuilderRow>; isSelected: boolean; onClick: () => void; onDelete: () => void;
 }) {
@@ -34,7 +52,7 @@ function SortableRow({ row, isSelected, onClick, onDelete }: {
       </td>
       {isHeading ? (
         <td colSpan={1 + PREVIEW_PLAYERS + 1} className="px-3 py-1.5 font-semibold text-[13px] text-indigo-700">
-          {row.original.label || row.original.cell_key}
+          {row.original.label || "Untitled section"}
         </td>
       ) : (
         <>
@@ -55,10 +73,18 @@ function SortableRow({ row, isSelected, onClick, onDelete }: {
   );
 }
 
-function RowProperties({ cell, allKeys, onChange, onDelete }: {
-  cell: TemplateCell; allKeys: string[]; onChange: (u: TemplateCell) => void; onDelete: () => void;
+function RowProperties({ cell, allFields, onChange, onDelete }: {
+  cell: TemplateCell; allFields: TemplateCell[]; onChange: (u: TemplateCell) => void; onDelete: () => void;
 }) {
   const [formulaError, setFormulaError] = useState<string | null>(null);
+  const [selectedFieldKey, setSelectedFieldKey] = useState("");
+  const [numberToken, setNumberToken] = useState("");
+  const formulaFields = allFields.filter(field => field.cell_key !== cell.cell_key && field.cell_type !== "heading");
+  const updateFormula = (formula: string) => {
+    setFormulaError(validateFormula(formula));
+    onChange({ ...cell, formula_expr: formula || null });
+  };
+  const appendFormula = (token: string) => updateFormula(`${cell.formula_expr || ""}${token}`);
   return (
     <div className="card p-4 space-y-3">
       <div className="flex items-center justify-between">
@@ -77,11 +103,14 @@ function RowProperties({ cell, allKeys, onChange, onDelete }: {
         <input type="text" value={cell.label} onChange={e => onChange({ ...cell, label: e.target.value })}
           className="input-field text-sm" placeholder={cell.cell_type === "heading" ? "Section title" : "e.g. Score"} />
       </div>
-      <div>
-        <label className="text-[11px] font-semibold text-slate-500 tracking-wider block mb-1">Key <span className="text-slate-300 font-normal">(formula ref)</span></label>
-        <input type="text" value={cell.cell_key} onChange={e => onChange({ ...cell, cell_key: e.target.value })}
-          className="input-field text-sm font-mono" placeholder="e.g. bird_points" />
-      </div>
+      {cell.cell_type !== "heading" && (
+        <div>
+          <label className="text-[11px] font-semibold text-slate-500 tracking-wider block mb-1">Help text <span className="font-normal text-slate-300">(optional)</span></label>
+          <textarea value={String((cell.config_json as Record<string, unknown>)?.help || "")}
+            onChange={e => onChange({ ...cell, config_json: { ...cell.config_json, help: e.target.value || undefined } })}
+            className="input-field h-16 resize-none text-sm" placeholder="Explain how this score is recorded" />
+        </div>
+      )}
       {(cell.cell_type === "input:number" || cell.cell_type === "tally") && (
         <div>
           <label className="flex items-center gap-2 cursor-pointer">
@@ -91,7 +120,7 @@ function RowProperties({ cell, allKeys, onChange, onDelete }: {
               className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" />
             <span className="text-[11px] font-semibold text-slate-500 tracking-wider">Allow multiple entries</span>
           </label>
-          <p className="text-[11px] text-slate-400 mt-0.5 ml-6">Players can add/remove entries (e.g. bonus cards). Key_0, key_1, etc.</p>
+          <p className="text-[11px] text-slate-400 mt-0.5 ml-6">Players can add or remove entries, such as completed bonus cards.</p>
         </div>
       )}
       {cell.cell_type !== "heading" && (
@@ -112,19 +141,62 @@ function RowProperties({ cell, allKeys, onChange, onDelete }: {
             <span className="text-[11px] font-semibold text-slate-500 tracking-wider">Nested under above</span>
           </label>
           <p className="text-[11px] text-slate-400 ml-6">Indented under the previous section heading.</p>
+          <div className="grid grid-cols-2 gap-2 pt-1">
+            <label className="text-[11px] font-semibold text-slate-500 tracking-wider">
+              Repeatable group
+              <input
+                value={String((cell.config_json as Record<string, unknown>)?.repeatable_group || "")}
+                onChange={e => onChange({ ...cell, config_json: { ...cell.config_json, repeatable_group: e.target.value || undefined, inline_group: e.target.value || undefined } })}
+                className="input-field mt-1 text-xs"
+                placeholder="e.g. rounds"
+              />
+            </label>
+            <label className="text-[11px] font-semibold text-slate-500 tracking-wider">
+              Inline label
+              <input
+                value={String((cell.config_json as Record<string, unknown>)?.inline_label || "")}
+                onChange={e => onChange({ ...cell, config_json: { ...cell.config_json, inline_label: e.target.value || undefined } })}
+                className="input-field mt-1 text-xs"
+                placeholder="e.g. Score"
+              />
+            </label>
+          </div>
+          <label className="block text-[11px] font-semibold text-slate-500 tracking-wider">Optional module key
+            <input value={String((cell.config_json as Record<string, unknown>)?.rule_key || "")} onChange={e => onChange({ ...cell, config_json: { ...cell.config_json, rule_key: e.target.value || undefined } })} className="input-field mt-1 text-xs" placeholder="e.g. oceania" />
+          </label>
+          <p className="text-[11px] text-slate-400">This row is shown only when the matching optional module is selected.</p>
+          <p className="text-[11px] text-slate-400">Give related fields the same group name to create addable rows.</p>
         </div>
       )}
       {cell.cell_type === "formula" && (
-        <div>
-          <label className="text-[11px] font-semibold text-slate-500 tracking-wider block mb-1">Formula</label>
-          <textarea value={cell.formula_expr || ""}
-            onChange={e => { const err = validateFormula(e.target.value); setFormulaError(err); onChange({ ...cell, formula_expr: e.target.value || null }); }}
-            className="input-field text-sm font-mono h-20 resize-none" placeholder="e.g. SUM(bird_points, bonus)" />
-          {formulaError && <p className="text-xs text-rose-500 mt-1">{formulaError}</p>}
-          <div className="text-[11px] text-slate-400 mt-1.5">
-            Keys: {allKeys.filter(k => k !== cell.cell_key).map(k => <code key={k} className="bg-amber-50 text-amber-700 px-1 rounded mr-1">{k}</code>)}
-            {allKeys.filter(k => k !== cell.cell_key).length === 0 && <span className="text-slate-300">none yet</span>}
+        <div className="space-y-2">
+          <label className="text-[11px] font-semibold text-slate-500 tracking-wider block">Formula</label>
+          <div className="min-h-12 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 font-mono text-xs leading-5 text-slate-700 break-words">
+            {cell.formula_expr ? formulaPreview(cell.formula_expr, allFields) : <span className="font-sans text-slate-400">Build a calculation using fields below.</span>}
           </div>
+          <div className="flex gap-2">
+            <select value={selectedFieldKey} onChange={event => setSelectedFieldKey(event.target.value)} className="input-field min-w-0 flex-1 text-xs">
+              <option value="">Choose a field</option>
+              {formulaFields.map(field => <option key={field.cell_key} value={field.cell_key}>{fieldLabel(field)}</option>)}
+            </select>
+            <button type="button" disabled={!selectedFieldKey} onClick={() => appendFormula(selectedFieldKey)} className="btn-secondary shrink-0 px-2 text-xs disabled:opacity-40">Insert</button>
+          </div>
+          <div className="flex flex-wrap gap-1">
+            {[" + ", " - ", " * ", " / ", "(", ")", "SUM(", "AVG(", "MIN(", "MAX("].map(token => (
+              <button key={token} type="button" onClick={() => appendFormula(token)} className="rounded border border-slate-200 bg-white px-2 py-1 font-mono text-xs text-slate-600 hover:border-indigo-300 hover:text-indigo-700">{token.trim() || "+"}</button>
+            ))}
+            <input value={numberToken} onChange={event => setNumberToken(event.target.value.replace(/[^0-9.\-]/g, ""))} className="w-16 rounded border border-slate-200 px-2 py-1 text-xs" inputMode="decimal" placeholder="Number" />
+            <button type="button" disabled={!numberToken} onClick={() => { appendFormula(numberToken); setNumberToken(""); }} className="rounded border border-slate-200 bg-white px-2 py-1 text-xs text-slate-600 disabled:opacity-40">Insert</button>
+            <button type="button" onClick={() => updateFormula("")} className="ml-auto text-xs text-rose-600 hover:text-rose-700">Clear</button>
+          </div>
+          {formulaError && <p className="text-xs text-rose-500">{formulaError}</p>}
+          <label className="mt-3 flex items-center gap-2 cursor-pointer">
+            <input type="checkbox"
+              checked={!!(cell.config_json as Record<string, unknown>)?.repeatable_running_total}
+              onChange={e => onChange({ ...cell, config_json: { ...cell.config_json, repeatable_running_total: e.target.checked } })}
+              className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" />
+            <span className="text-[11px] font-semibold text-slate-500 tracking-wider">Running total for repeatable group</span>
+          </label>
         </div>
       )}
     </div>
@@ -133,10 +205,8 @@ function RowProperties({ cell, allKeys, onChange, onDelete }: {
 
 export default function GridBuilder({ cells, onChange }: { cells: TemplateCell[]; onChange: (c: TemplateCell[]) => void }) {
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
-  const nextSortRef = useRef(cells.length);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
   const selectedCell = cells.find(c => c.cell_key === selectedKey) ?? null;
-  const allKeys = cells.map(c => c.cell_key);
 
   const data = useMemo(() =>
     [...cells].sort((a, b) => a.sort_order - b.sort_order).map((c, i) => ({ ...c, _idx: i })),
@@ -151,9 +221,9 @@ export default function GridBuilder({ cells, onChange }: { cells: TemplateCell[]
         const c = row.original;
         const ti = ROW_TYPES.find(t => t.value === c.cell_type);
         return (
-          <span className="inline-flex items-center gap-1.5 text-[13px] font-medium text-slate-700 truncate max-w-[180px]" title={c.formula_expr ? `=${c.formula_expr}` : c.cell_type}>
+          <span className="inline-flex items-center gap-1.5 text-[13px] font-medium text-slate-700 truncate max-w-[180px]" title={c.cell_type === "formula" ? "Formula" : c.cell_type}>
             <span className="text-xs opacity-50 shrink-0">{ti?.icon}</span>
-            <span className="truncate">{c.label || c.cell_key}</span>
+            <span className="truncate">{fieldLabel(c)}</span>
           </span>
         );
       },
@@ -176,7 +246,7 @@ export default function GridBuilder({ cells, onChange }: { cells: TemplateCell[]
   const table = useReactTable({ data, columns, getCoreRowModel: getCoreRowModel() });
 
   const addRow = useCallback((type: TemplateCell["cell_type"]) => {
-    const key = `row_${nextSortRef.current++}`;
+    const key = `field_${crypto.randomUUID().replaceAll("-", "")}`;
     onChange([...cells, {
       row_pos: 0, col_pos: 0, row_span: 1, col_span: 1,
       cell_type: type, cell_key: key,
@@ -248,7 +318,7 @@ export default function GridBuilder({ cells, onChange }: { cells: TemplateCell[]
       </div>
       <div className="w-full lg:w-64 shrink-0">
         {selectedCell ? (
-          <RowProperties cell={selectedCell} allKeys={allKeys} onChange={updateCell} onDelete={() => deleteCell(selectedCell.cell_key)} />
+          <RowProperties cell={selectedCell} allFields={cells} onChange={updateCell} onDelete={() => deleteCell(selectedCell.cell_key)} />
         ) : (
           <div className="card p-4 text-center text-xs text-slate-400">👆 Click a row to edit</div>
         )}

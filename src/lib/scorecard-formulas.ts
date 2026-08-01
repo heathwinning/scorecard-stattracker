@@ -41,6 +41,10 @@ export function computeFormulaResults(
   const inputCells = cells.filter(c => c.cell_type !== "formula" && c.cell_type !== "heading");
   const perPlayerInputs = inputCells.filter(c => c.per_player);
   const staticInputs = inputCells.filter(c => !c.per_player);
+  const hasMultipleEntries = (cell: TemplateCell) => {
+    const config = cell.config_json as Record<string, unknown>;
+    return !!config.allow_multiple || typeof config.repeatable_group === "string";
+  };
 
   const results: Record<string, number> = {};
 
@@ -51,13 +55,13 @@ export function computeFormulaResults(
     // Base context shared by every evaluation this pass.
     const base: CellContext[] = [];
     perPlayerInputs.forEach(cell => {
-      const allowMultiple = !!(cell.config_json as Record<string, unknown>)?.allow_multiple;
+      const multipleEntries = hasMultipleEntries(cell);
       let total = 0;
       players.forEach(p => {
         const entries = entriesFor(cell.id!, p.id!);
         const sum = entries.reduce((s, e) => s + num(e.value), 0);
         total += sum;
-        base.push({ key: `${cell.cell_key}_${p.id}`, value: allowMultiple ? sum : num(entries[0]?.value) });
+        base.push({ key: `${cell.cell_key}_${p.id}`, value: multipleEntries ? sum : num(entries[0]?.value) });
       });
       base.push({ key: cell.cell_key, value: total });
     });
@@ -82,9 +86,9 @@ export function computeFormulaResults(
           const ctx = [...base];
           // Unqualified keys resolve to the current player's values.
           perPlayerInputs.forEach(cell => {
-            const allowMultiple = !!(cell.config_json as Record<string, unknown>)?.allow_multiple;
+            const multipleEntries = hasMultipleEntries(cell);
             const entries = entriesFor(cell.id!, p.id!);
-            if (allowMultiple) {
+            if (multipleEntries) {
               entries.forEach(e =>
                 ctx.push({ key: `${cell.cell_key}_${e.entry_key || "0"}`, value: num(e.value) })
               );

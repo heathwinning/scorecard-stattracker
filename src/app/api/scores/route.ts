@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getUserFromCookies } from "@/lib/auth";
-import { getDB, queryAll, uuid } from "@/lib/db";
+import { getDB, queryAll, uuid, execute } from "@/lib/db";
+import { resolveLayout } from "@/lib/layout-rules";
 
 export const runtime = "edge";
 
@@ -34,7 +35,7 @@ export async function POST(request: NextRequest) {
 
   const db = getDB();
   const body = await request.json();
-  const { template_id, title, game_date, notes } = body;
+  const { template_id, title, game_date, notes, rule_keys = [] } = body;
 
   if (!template_id) {
     return NextResponse.json({ error: "template_id is required" }, { status: 400 });
@@ -64,6 +65,21 @@ export async function POST(request: NextRequest) {
       (notes || "").trim()
     )
     .run();
+
+  const cells = await queryAll(db, "SELECT * FROM template_cells WHERE template_id = ?1 AND sort_order >= 0 ORDER BY sort_order", [template_id]);
+  const rules = await queryAll(db, "SELECT * FROM template_rule_sets WHERE template_id = ?1 ORDER BY sort_order", [template_id]);
+  const parsedCells = cells.map((cell: Record<string, unknown>) => ({ ...cell, config_json: JSON.parse(String(cell.config_json || "{}")) }));
+  const parsedRules = rules.map((rule: Record<string, unknown>) => ({ ...rule, rule_key: String(rule.rule_key), definition_json: JSON.parse(String(rule.definition_json || "{}")) }));
+  const allowedRuleKeys = new Set(parsedRules.map((rule: { rule_key: string }) => rule.rule_key));
+  const selectedRuleKeys = Array.isArray(rule_keys)
+    ? rule_keys.filter((key): key is string => typeof key === "string" && allowedRuleKeys.has(key))
+    : [];
+  const resolved = resolveLayout(parsedCells as any, parsedRules as any, selectedRuleKeys);
+  await execute(
+    db,
+    "INSERT INTO scorecard_layout_snapshots (scorecard_id, cells_json, rules_json) VALUES (?1, ?2, ?3)",
+    [scorecardId, JSON.stringify(resolved.cells), JSON.stringify(resolved.selectedRules.map(rule => rule.rule_key))]
+  );
 
   return NextResponse.json({ scorecard: { id: scorecardId, ...body } }, { status: 201 });
 }

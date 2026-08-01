@@ -20,10 +20,12 @@ export async function GET(
        COALESCE(ss.host_only_editing, 0) as host_only_editing,
        COALESCE(ss.is_locked, 0) as is_locked,
        COALESCE(svs.private_player_scores, 0) as private_player_scores
+       , COALESCE(sgc.config_json, '{}') as game_config
      FROM scorecards s
      JOIN templates t ON s.template_id = t.id
      LEFT JOIN scorecard_settings ss ON ss.scorecard_id = s.id
      LEFT JOIN scorecard_visibility_settings svs ON svs.scorecard_id = s.id
+     LEFT JOIN scorecard_game_configurations sgc ON sgc.scorecard_id = s.id
      WHERE s.id = ?1`,
     [lookupId]
   );
@@ -35,10 +37,12 @@ export async function GET(
          COALESCE(ss.host_only_editing, 0) as host_only_editing,
          COALESCE(ss.is_locked, 0) as is_locked,
          COALESCE(svs.private_player_scores, 0) as private_player_scores
+         , COALESCE(sgc.config_json, '{}') as game_config
        FROM scorecards s
        JOIN templates t ON s.template_id = t.id
        LEFT JOIN scorecard_settings ss ON ss.scorecard_id = s.id
        LEFT JOIN scorecard_visibility_settings svs ON svs.scorecard_id = s.id
+       LEFT JOIN scorecard_game_configurations sgc ON sgc.scorecard_id = s.id
        WHERE s.share_code = ?1`,
       [lookupId.toUpperCase()]
     );
@@ -75,8 +79,9 @@ export async function GET(
       : "SELECT * FROM cell_values WHERE scorecard_id = ?1",
     restrictToOwnScores ? [id, playerSlotId] : [id]
   );
+  const snapshot = await queryFirst<{ cells_json: string }>(db, "SELECT cells_json FROM scorecard_layout_snapshots WHERE scorecard_id = ?1", [id]);
 
-  return NextResponse.json({ scorecard, players, values });
+  return NextResponse.json({ scorecard: { ...scorecard, game_config: JSON.parse((scorecard.game_config as string) || "{}") }, players, values, cells: snapshot ? JSON.parse(snapshot.cells_json) : undefined });
 }
 
 // PUT /api/scorecards/[id] - update scorecard (save values)
@@ -92,7 +97,7 @@ export async function PUT(
 
   const db = getDB();
   const body = await request.json();
-  const { title, game_date, notes, sharing_mode, host_only_editing, is_locked, private_player_scores, players, values } = body;
+  const { title, game_date, notes, sharing_mode, host_only_editing, is_locked, private_player_scores, game_config, players, values } = body;
 
   // Partial updates are used by the scorecard autosave. Do not clear fields
   // that were not included in the request.
@@ -147,6 +152,16 @@ export async function PUT(
          private_player_scores = excluded.private_player_scores,
          updated_at = excluded.updated_at`,
       [params.id, private_player_scores ? 1 : 0]
+    );
+  }
+
+  if (game_config !== undefined) {
+    await execute(
+      db,
+      `INSERT INTO scorecard_game_configurations (scorecard_id, config_json, updated_at)
+       VALUES (?1, ?2, datetime('now'))
+       ON CONFLICT(scorecard_id) DO UPDATE SET config_json = excluded.config_json, updated_at = excluded.updated_at`,
+      [params.id, JSON.stringify(game_config)]
     );
   }
 

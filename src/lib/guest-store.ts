@@ -1,7 +1,7 @@
 // localStorage-backed store for guest users
 // Mirrors the server API so pages don't need to change much
 
-import type { Template, TemplateCell, Scorecard, ScorecardPlayer, CellValue } from "./api-client";
+import type { Template, TemplateCell, TemplateRule, Scorecard, ScorecardPlayer, CellValue } from "./api-client";
 
 const KEYS = {
   templates: "guest_templates",
@@ -39,6 +39,7 @@ export function guestSaveTemplate(template: {
   description?: string;
   is_public?: boolean;
   cells?: TemplateCell[];
+  rules?: TemplateRule[];
 }): Template {
   const tpl: Template = {
     id: `guest-${uid()}`,
@@ -55,6 +56,7 @@ export function guestSaveTemplate(template: {
       template_id: "",
       sort_order: c.sort_order ?? i,
     })),
+    rules: template.rules || [],
   };
 
   const all = read<Template>(KEYS.templates);
@@ -67,6 +69,7 @@ export function guestUpdateTemplate(id: string, data: {
   name: string;
   description?: string;
   cells?: TemplateCell[];
+  rules?: TemplateRule[];
 }): boolean {
   const all = read<Template>(KEYS.templates);
   const idx = all.findIndex((t) => t.id === id);
@@ -83,6 +86,7 @@ export function guestUpdateTemplate(id: string, data: {
       sort_order: c.sort_order ?? i,
     })),
     updated_at: new Date().toISOString(),
+    rules: data.rules || all[idx].rules || [],
   };
   write(KEYS.templates, all);
   return true;
@@ -112,6 +116,8 @@ export function guestCreateScorecard(data: {
   template_name?: string;
   title?: string;
   game_date?: string;
+  cells?: TemplateCell[];
+  rule_keys?: string[];
 }): Scorecard {
   // Use provided template name, or look up guest template
   let templateName = data.template_name || "";
@@ -133,6 +139,7 @@ export function guestCreateScorecard(data: {
     host_only_editing: 0,
     is_locked: 0,
     private_player_scores: 0,
+    game_config: {},
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   };
@@ -140,6 +147,7 @@ export function guestCreateScorecard(data: {
   const all = read<Scorecard>(KEYS.scorecards);
   all.push(sc);
   write(KEYS.scorecards, all);
+  if (data.cells) write(KEYS.scoreData(sc.id), [{ players: [], values: [], cells: data.cells, rule_keys: data.rule_keys || [] }]);
   return sc;
 }
 
@@ -147,15 +155,17 @@ export function guestGetScorecard(id: string): {
   scorecard: Scorecard;
   players: ScorecardPlayer[];
   values: CellValue[];
+  cells?: TemplateCell[];
 } | null {
   const sc = read<Scorecard>(KEYS.scorecards).find((s) => s.id === id);
   if (!sc) return null;
 
-  const data = read<{ players: ScorecardPlayer[]; values: CellValue[] }>(KEYS.scoreData(id));
+  const data = read<{ players: ScorecardPlayer[]; values: CellValue[]; cells?: TemplateCell[] }>(KEYS.scoreData(id));
   return {
     scorecard: sc,
     players: data.length > 0 ? data[0].players : [],
     values: data.length > 0 ? data[0].values : [],
+    cells: data.length > 0 ? data[0].cells : undefined,
   };
 }
 
@@ -176,12 +186,13 @@ export function guestUpdateScorecard(id: string, data: {
   if ((data as any).host_only_editing !== undefined) (all[idx] as any).host_only_editing = (data as any).host_only_editing ? 1 : 0;
   if ((data as any).is_locked !== undefined) (all[idx] as any).is_locked = (data as any).is_locked ? 1 : 0;
   if ((data as any).private_player_scores !== undefined) (all[idx] as any).private_player_scores = (data as any).private_player_scores ? 1 : 0;
+  if ((data as any).game_config !== undefined) (all[idx] as any).game_config = (data as any).game_config;
   all[idx].updated_at = new Date().toISOString();
   write(KEYS.scorecards, all);
 
   // Save score data
   if (data.players || data.values) {
-    const existing = read<{ players: ScorecardPlayer[]; values: CellValue[] }>(KEYS.scoreData(id));
+    const existing = read<{ players: ScorecardPlayer[]; values: CellValue[]; cells?: TemplateCell[] }>(KEYS.scoreData(id));
     const current = existing.length > 0 ? existing[0] : { players: [], values: [] };
 
     if (data.players) current.players = data.players.map((p, i) => ({

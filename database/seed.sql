@@ -50,7 +50,12 @@ INSERT OR IGNORE INTO games (id, name, slug, category, player_count, icon) VALUE
   ('game-ping-pong', 'Ping Pong', 'ping-pong', 'sport', '2-4', '🏓'),
   ('game-pickleball', 'Pickleball', 'pickleball', 'sport', '2-4', '🏸'),
   ('game-code-names-duet', 'Codenames Duet', 'codenames-duet', 'party', '2', '🤝'),
-  ('game-telestrations', 'Telestrations', 'telestrations', 'party', '4-8', '✏️');
+  ('game-telestrations', 'Telestrations', 'telestrations', 'party', '4-8', '✏️'),
+  ('game-romanian-whist', 'Romanian Whist', 'romanian-whist', 'card', '3-6', '🃏'),
+  ('game-five-hundred', '500', '500', 'card', '4', '🂡'),
+  ('game-liverpool-rummy', 'Liverpool Rummy', 'liverpool-rummy', 'card', '2-6', '🃏'),
+  ('game-cascadia', 'Cascadia', 'cascadia', 'board', '1-4', '🏔️'),
+  ('game-mus', 'Mus', 'mus', 'card', '4', '🃏');
 
 
 -- ============================================================
@@ -421,6 +426,34 @@ UPDATE template_cells
 SET config_json = json_set(COALESCE(config_json, '{}'), '$.default_entries', 1)
 WHERE id = 'ws-bi2';
 
+-- Wingspan variants are declarative optional modules. Their rows are
+-- predeclared so score values retain stable IDs in every resolved snapshot.
+INSERT OR IGNORE INTO template_cells
+  (id, template_id, row_pos, col_pos, row_span, col_span, cell_type, cell_key, label, formula_expr, per_player, config_json, sort_order)
+VALUES
+  ('ws-oceania-nectar', 'wingspan', 0, 0, 1, 1, 'input:number', 'nectar', 'Nectar', NULL, 1, '{"default":0,"section":true,"rule_key":"oceania","help":"Enter the end-game nectar score from the Oceania player mat."}', 10),
+  ('ws-americas-hummingbirds', 'wingspan', 0, 0, 1, 1, 'input:number', 'hummingbirds', 'Hummingbirds', NULL, 1, '{"default":0,"section":true,"rule_key":"americas","help":"Enter points from the Hummingbirds expansion scoring rules."}', 10),
+  ('ws-asia-duet-map', 'wingspan', 0, 0, 1, 1, 'input:number', 'duet_map_bonus', 'Duet Map Bonus', NULL, 1, '{"default":0,"section":true,"rule_key":"asia_duet","help":"Enter the bonus scored from the Asia Duet map."}', 10);
+
+UPDATE template_cells
+SET formula_expr = 'bird_points + SUM(bonus_*) + round_1 + round_2 + round_3 + round_4 + eggs + cached_food + tucked_cards + nectar + hummingbirds + duet_map_bonus',
+    sort_order = 100
+WHERE id = 'ws-ft';
+
+INSERT OR IGNORE INTO template_rule_sets (id, template_id, rule_key, label, help_text, definition_json, sort_order) VALUES
+  ('ws-rule-oceania', 'wingspan', 'oceania', 'Oceania', 'Adds Nectar scoring from the Oceania player mat.', '{}', 1),
+  ('ws-rule-americas', 'wingspan', 'americas', 'Americas', 'Adds the Hummingbirds scoring category.', '{}', 2),
+  ('ws-rule-asia-duet', 'wingspan', 'asia_duet', 'Asia Duet', 'Adds the Duet Map Bonus scoring category.', '{}', 3);
+
+UPDATE template_cells
+SET sort_order = CASE id
+  WHEN 'ws-oceania-nectar' THEN 11
+  WHEN 'ws-americas-hummingbirds' THEN 12
+  WHEN 'ws-asia-duet-map' THEN 13
+  ELSE sort_order
+END
+WHERE id IN ('ws-oceania-nectar', 'ws-americas-hummingbirds', 'ws-asia-duet-map');
+
 -- ============================================================
 -- Round layouts: keep a round's related fields together inside each player
 -- column. The unified grid renders matching inline_group values side-by-side.
@@ -515,3 +548,120 @@ VALUES
   ('crib-p-4','cribbage',0,0,1,1,'tally','pegging_4','',NULL,1,'{"inline_group":"crib-4","inline_label":"Pegging","min":0,"default":0}',41),
   ('crib-hnd-4','cribbage',0,0,1,1,'tally','hand_4','',NULL,1,'{"inline_group":"crib-4","inline_label":"Hand","min":0,"default":0}',42),
   ('crib-run-4','cribbage',0,0,1,1,'formula','running_4','', 'running_3 + pegging_4 + hand_4',1,'{"inline_group":"crib-4","inline_label":"Total"}',43);
+
+-- Cribbage uses a repeatable round group instead of a fixed number of rounds.
+-- Keep the original rows hidden for existing local seed databases, then add
+-- the reusable Pegging / Hand / running-total row definition.
+UPDATE template_cells
+SET sort_order = -1
+WHERE template_id = 'cribbage'
+  AND id NOT IN ('crib-round-pegging', 'crib-round-hand', 'crib-round-total');
+
+INSERT OR IGNORE INTO template_cells
+  (id, template_id, row_pos, col_pos, row_span, col_span, cell_type, cell_key, label, formula_expr, per_player, config_json, sort_order)
+VALUES
+  ('crib-round-pegging','cribbage',0,0,1,1,'tally','pegging','',NULL,1,'{"inline_group":"cribbage-round","repeatable_group":"cribbage-round","repeatable_label":"Round","inline_label":"Pegging","min":0,"default":0}',1),
+  ('crib-round-hand','cribbage',0,0,1,1,'tally','hand','',NULL,1,'{"inline_group":"cribbage-round","repeatable_group":"cribbage-round","repeatable_label":"Round","inline_label":"Hand","min":0,"default":0}',2),
+  ('crib-round-total','cribbage',0,0,1,1,'formula','running_total','',NULL,1,'{"inline_group":"cribbage-round","repeatable_group":"cribbage-round","repeatable_label":"Round","inline_label":"Total","repeatable_running_total":true}',3);
+
+-- ============================================================
+-- Additional data-designed scorecards
+-- ============================================================
+-- Scrabble moves from a fixed twelve-word sheet to a repeatable word row.
+-- This keeps the historic rows available for existing snapshots while new
+-- games can record every word played.
+UPDATE template_cells
+SET sort_order = -1
+WHERE template_id = 'scrabble'
+  AND id NOT IN ('sc-total', 'sc-word', 'sc-points');
+
+INSERT OR IGNORE INTO template_cells
+  (id, template_id, row_pos, col_pos, row_span, col_span, cell_type, cell_key, label, formula_expr, per_player, config_json, sort_order)
+VALUES
+  ('sc-total','scrabble',0,0,1,1,'formula','total_score','Total Score','SUM(word_points)',1,'{"section":true,"help":"Calculated from all recorded word scores."}',1),
+  ('sc-word','scrabble',0,0,1,1,'input:text','word','',NULL,1,'{"inline_group":"scrabble-word","repeatable_group":"scrabble-word","repeatable_label":"Word","inline_label":"Word","placeholder":"Word played"}',2),
+  ('sc-points','scrabble',0,0,1,1,'input:number','word_points','',NULL,1,'{"inline_group":"scrabble-word","repeatable_group":"scrabble-word","repeatable_label":"Word","inline_label":"Points","default":0,"help":"Include letter, premium-square, and bingo points."}',3);
+
+INSERT OR IGNORE INTO templates (id, name, description, game_id, is_public, created_by) VALUES
+  ('romanian-whist', 'Romanian Whist', 'Record each round score with an automatically updated running total.', 'game-romanian-whist', 1, 'system'),
+  ('five-hundred', '500', 'Track each team''s contract result per hand and its running score.', 'game-five-hundred', 1, 'system'),
+  ('liverpool-rummy', 'Liverpool Rummy', 'Record remaining-card points each round. The lowest total wins.', 'game-liverpool-rummy', 1, 'system');
+
+INSERT OR IGNORE INTO template_cells
+  (id, template_id, row_pos, col_pos, row_span, col_span, cell_type, cell_key, label, formula_expr, per_player, config_json, sort_order)
+VALUES
+  ('rw-total','romanian-whist',0,0,1,1,'formula','total_score','Total Score','SUM(round_score)',1,'{"section":true,"help":"Calculated from every recorded round."}',1),
+  ('rw-score','romanian-whist',0,0,1,1,'input:number','round_score','',NULL,1,'{"inline_group":"romanian-whist-round","repeatable_group":"romanian-whist-round","repeatable_label":"Round","inline_label":"Score","default":0,"help":"Enter the score awarded for this round."}',2),
+  ('rw-running','romanian-whist',0,0,1,1,'formula','running_total','',NULL,1,'{"inline_group":"romanian-whist-round","repeatable_group":"romanian-whist-round","repeatable_label":"Round","inline_label":"Total","repeatable_running_total":true}',3),
+  ('fh-total','five-hundred',0,0,1,1,'formula','total_score','Total Score','SUM(hand_score)',1,'{"section":true,"help":"Calculated from every recorded hand."}',1),
+  ('fh-score','five-hundred',0,0,1,1,'input:number','hand_score','',NULL,1,'{"inline_group":"five-hundred-hand","repeatable_group":"five-hundred-hand","repeatable_label":"Hand","inline_label":"Contract score","default":0,"help":"Enter the positive or negative contract score for this hand."}',2),
+  ('fh-running','five-hundred',0,0,1,1,'formula','running_total','',NULL,1,'{"inline_group":"five-hundred-hand","repeatable_group":"five-hundred-hand","repeatable_label":"Hand","inline_label":"Total","repeatable_running_total":true}',3),
+  ('lr-total','liverpool-rummy',0,0,1,1,'formula','total_points','Total Points','SUM(round_points)',1,'{"section":true,"help":"Calculated from every recorded round. Lowest score wins."}',1),
+  ('lr-score','liverpool-rummy',0,0,1,1,'input:number','round_points','',NULL,1,'{"inline_group":"liverpool-rummy-round","repeatable_group":"liverpool-rummy-round","repeatable_label":"Round","inline_label":"Points","default":0,"help":"Enter the value of cards left in hand at the end of the round."}',2),
+  ('lr-running','liverpool-rummy',0,0,1,1,'formula','running_total','',NULL,1,'{"inline_group":"liverpool-rummy-round","repeatable_group":"liverpool-rummy-round","repeatable_label":"Round","inline_label":"Total","repeatable_running_total":true}',3);
+
+INSERT OR IGNORE INTO templates (id, name, description, game_id, is_public, created_by) VALUES
+  ('euchre', 'Euchre', 'Track each hand''s points with running totals. The first team to 10 wins.', 'game-euchre', 1, 'system'),
+  ('bridge', 'Bridge', 'Record each board''s score with running totals for each partnership.', 'game-bridge', 1, 'system'),
+  ('azul', 'Azul', 'Record each round''s score and track the running total.', 'game-azul', 1, 'system'),
+  ('rummy', 'Rummy', 'Record remaining-card points each round. The lowest total wins.', 'game-rummy', 1, 'system'),
+  ('terraforming-mars', 'Terraforming Mars', 'Calculate final points from Terraform Rating, awards, milestones, board tiles, and card points.', 'game-terraforming-mars', 1, 'system'),
+  ('cascadia', 'Cascadia', 'Calculate end-game points from wildlife, habitat corridors, and nature tokens.', 'game-cascadia', 1, 'system'),
+  ('mus', 'Mus', 'Track Grande, Chica, Pares, and Juego/Punto over each hand. First team to the agreed target wins.', 'game-mus', 1, 'system');
+
+INSERT OR IGNORE INTO template_cells
+  (id, template_id, row_pos, col_pos, row_span, col_span, cell_type, cell_key, label, formula_expr, per_player, config_json, sort_order)
+VALUES
+  ('eu-total','euchre',0,0,1,1,'formula','total_score','Total Score','SUM(hand_score)',1,'{"section":true,"help":"Calculated from every recorded hand. First to 10 wins."}',1),
+  ('eu-score','euchre',0,0,1,1,'input:number','hand_score','',NULL,1,'{"inline_group":"euchre-hand","repeatable_group":"euchre-hand","repeatable_label":"Hand","inline_label":"Points","default":0,"help":"Enter points won for this hand."}',2),
+  ('eu-running','euchre',0,0,1,1,'formula','running_total','',NULL,1,'{"inline_group":"euchre-hand","repeatable_group":"euchre-hand","repeatable_label":"Hand","inline_label":"Total","repeatable_running_total":true}',3),
+  ('br-total','bridge',0,0,1,1,'formula','total_score','Total Score','SUM(board_score)',1,'{"section":true,"help":"Calculated from every recorded board."}',1),
+  ('br-score','bridge',0,0,1,1,'input:number','board_score','',NULL,1,'{"inline_group":"bridge-board","repeatable_group":"bridge-board","repeatable_label":"Board","inline_label":"Score","default":0,"help":"Enter the positive or negative score for this partnership."}',2),
+  ('br-running','bridge',0,0,1,1,'formula','running_total','',NULL,1,'{"inline_group":"bridge-board","repeatable_group":"bridge-board","repeatable_label":"Board","inline_label":"Total","repeatable_running_total":true}',3),
+  ('az-total','azul',0,0,1,1,'formula','total_score','Total Score','SUM(round_score)',1,'{"section":true,"help":"Calculated from every recorded round."}',1),
+  ('az-score','azul',0,0,1,1,'input:number','round_score','',NULL,1,'{"inline_group":"azul-round","repeatable_group":"azul-round","repeatable_label":"Round","inline_label":"Score","default":0,"help":"Enter the points gained or lost in this round."}',2),
+  ('az-running','azul',0,0,1,1,'formula','running_total','',NULL,1,'{"inline_group":"azul-round","repeatable_group":"azul-round","repeatable_label":"Round","inline_label":"Total","repeatable_running_total":true}',3),
+  ('ru-total','rummy',0,0,1,1,'formula','total_points','Total Points','SUM(round_points)',1,'{"section":true,"help":"Calculated from every recorded round. Lowest score wins."}',1),
+  ('ru-score','rummy',0,0,1,1,'input:number','round_points','',NULL,1,'{"inline_group":"rummy-round","repeatable_group":"rummy-round","repeatable_label":"Round","inline_label":"Points","default":0,"help":"Enter the value of cards left in hand at the end of the round."}',2),
+  ('ru-running','rummy',0,0,1,1,'formula','running_total','',NULL,1,'{"inline_group":"rummy-round","repeatable_group":"rummy-round","repeatable_label":"Round","inline_label":"Total","repeatable_running_total":true}',3),
+  ('tm-total','terraforming-mars',0,0,1,1,'formula','total_score','Total Score','terraform_rating + awards * 5 + milestones * 5 + greenery + city_points + card_points',1,'{"section":true,"help":"Calculated from all final scoring categories."}',1),
+  ('tm-rating','terraforming-mars',0,0,1,1,'input:number','terraform_rating','Terraform Rating',NULL,1,'{"section":true,"default":20,"help":"Enter your final Terraform Rating."}',2),
+  ('tm-awards','terraforming-mars',0,0,1,1,'tally','awards','Awards',NULL,1,'{"section":true,"min":0,"default":0,"help":"Number of funded awards. Each is worth 5 points."}',3),
+  ('tm-milestones','terraforming-mars',0,0,1,1,'tally','milestones','Milestones',NULL,1,'{"section":true,"min":0,"default":0,"help":"Number of claimed milestones. Each is worth 5 points."}',4),
+  ('tm-greenery','terraforming-mars',0,0,1,1,'input:number','greenery','Greenery Tiles',NULL,1,'{"section":true,"default":0,"help":"One point per greenery tile."}',5),
+  ('tm-city','terraforming-mars',0,0,1,1,'input:number','city_points','City Points',NULL,1,'{"section":true,"default":0,"help":"Total points from city tiles, including adjacent greenery."}',6),
+  ('tm-cards','terraforming-mars',0,0,1,1,'input:number','card_points','Card Points',NULL,1,'{"section":true,"default":0,"help":"Total victory points shown on played cards."}',7),
+  ('ca-total','cascadia',0,0,1,1,'formula','total_score','Total Score','wildlife + habitats + nature_tokens',1,'{"section":true,"help":"Calculated from all final scoring categories."}',1),
+  ('ca-wildlife','cascadia',0,0,1,1,'input:number','wildlife','Wildlife',NULL,1,'{"section":true,"default":0,"help":"Total points from all wildlife scoring cards."}',2),
+  ('ca-habitats','cascadia',0,0,1,1,'input:number','habitats','Habitat Corridors',NULL,1,'{"section":true,"default":0,"help":"Total points from habitat corridor scoring."}',3),
+  ('ca-nature','cascadia',0,0,1,1,'tally','nature_tokens','Nature Tokens',NULL,1,'{"section":true,"min":0,"default":0,"help":"One point per unspent nature token."}',4),
+  ('mu-total','mus',0,0,1,1,'formula','total_score','Total Score','SUM(grande) + SUM(chica) + SUM(pares) + SUM(juego_punto)',1,'{"section":true,"help":"Calculated from every recorded hand."}',1),
+  ('mu-grande','mus',0,0,1,1,'input:number','grande','',NULL,1,'{"inline_group":"mus-hand","repeatable_group":"mus-hand","repeatable_label":"Hand","inline_label":"Grande","default":0,"help":"Points won for Grande in this hand."}',2),
+  ('mu-chica','mus',0,0,1,1,'input:number','chica','',NULL,1,'{"inline_group":"mus-hand","repeatable_group":"mus-hand","repeatable_label":"Hand","inline_label":"Chica","default":0,"help":"Points won for Chica in this hand."}',3),
+  ('mu-pares','mus',0,0,1,1,'input:number','pares','',NULL,1,'{"inline_group":"mus-hand","repeatable_group":"mus-hand","repeatable_label":"Hand","inline_label":"Pares","default":0,"help":"Points won for Pares in this hand."}',4),
+  ('mu-juego','mus',0,0,1,1,'input:number','juego_punto','',NULL,1,'{"inline_group":"mus-hand","repeatable_group":"mus-hand","repeatable_label":"Hand","inline_label":"Juego/Punto","default":0,"help":"Points won for Juego or Punto in this hand."}',5),
+  ('mu-running','mus',0,0,1,1,'formula','running_total','',NULL,1,'{"inline_group":"mus-hand","repeatable_group":"mus-hand","repeatable_label":"Hand","inline_label":"Total","repeatable_running_total":true}',6);
+
+-- Final scorecard totals belong after the scoring rows. Inline running totals
+-- and sectional subtotals intentionally stay with the rows they explain.
+UPDATE template_cells
+SET sort_order = 1000
+WHERE cell_key IN ('total_score', 'total_points', 'total_vp', 'grand_total', 'player_total')
+  AND sort_order >= 0
+  AND COALESCE(json_extract(config_json, '$.inline_group'), '') = '';
+
+-- Each Cornhole round has its own section heading. The heading's per-player
+-- formula presents that round's score (hole bags × 3 plus board bags) before
+-- the Hole and Board inputs in the subsection.
+UPDATE template_cells
+SET formula_expr = CASE id
+      WHEN 'ch-round-1' THEN 'hole_1 * 3 + board_1'
+      WHEN 'ch-round-2' THEN 'hole_2 * 3 + board_2'
+      WHEN 'ch-round-3' THEN 'hole_3 * 3 + board_3'
+      WHEN 'ch-round-4' THEN 'hole_4 * 3 + board_4'
+      WHEN 'ch-round-5' THEN 'hole_5 * 3 + board_5'
+      WHEN 'ch-round-6' THEN 'hole_6 * 3 + board_6'
+    END,
+    per_player = 1,
+    config_json = json_set(COALESCE(config_json, '{}'), '$.help', 'Calculated: hole bags × 3 plus board bags.')
+WHERE id IN ('ch-round-1', 'ch-round-2', 'ch-round-3', 'ch-round-4', 'ch-round-5', 'ch-round-6');

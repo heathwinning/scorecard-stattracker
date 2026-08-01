@@ -64,6 +64,16 @@ export interface Template {
   created_at: string;
   updated_at: string;
   cells: TemplateCell[];
+  rules?: TemplateRule[];
+}
+
+export interface TemplateRule {
+  id?: string;
+  rule_key: string;
+  label: string;
+  help_text: string;
+  definition_json: { cells?: TemplateCell[]; overrides?: Record<string, Partial<TemplateCell>>; [key: string]: unknown };
+  sort_order: number;
 }
 
 export interface Game {
@@ -99,6 +109,7 @@ export async function createTemplate(data: {
   game_id?: string;
   is_public?: boolean;
   cells?: TemplateCell[];
+  rules?: TemplateRule[];
 }) {
   return api<{ template: { id: string } }>("/api/scorecards", {
     method: "POST",
@@ -112,6 +123,7 @@ export async function updateTemplate(id: string, data: {
   game_id?: string;
   is_public?: boolean;
   cells?: TemplateCell[];
+  rules?: TemplateRule[];
 }) {
   return api<{ success: boolean }>(`/api/scorecards/${id}`, {
     method: "PUT",
@@ -153,6 +165,7 @@ export interface Scorecard {
   host_only_editing?: number;
   is_locked?: number;
   private_player_scores?: number;
+  game_config?: Record<string, boolean>;
   share_code?: string | null;
   created_at: string;
   updated_at: string;
@@ -177,6 +190,7 @@ export async function getScorecard(id: string) {
     scorecard: Scorecard;
     players: ScorecardPlayer[];
     values: CellValue[];
+    cells?: TemplateCell[];
   }>(`/api/scores/${id}`);
 }
 
@@ -185,6 +199,7 @@ export async function createScorecard(data: {
   title?: string;
   game_date?: string;
   notes?: string;
+  rule_keys?: string[];
 }) {
   return api<{ scorecard: { id: string } }>("/api/scores", {
     method: "POST",
@@ -200,6 +215,7 @@ export async function updateScorecard(id: string, data: {
   host_only_editing?: boolean;
   is_locked?: boolean;
   private_player_scores?: boolean;
+  game_config?: Record<string, boolean>;
   players?: ScorecardPlayer[];
   values?: CellValue[];
 }) {

@@ -3,8 +3,9 @@
 import { useEffect, useState, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
-import { getTemplate, createScorecard, updateScorecard, type TemplateCell, type ScorecardPlayer, type CellValue } from "@/lib/api-client";
+import { getTemplate, createScorecard, updateScorecard, type TemplateCell, type ScorecardPlayer, type CellValue, type TemplateRule } from "@/lib/api-client";
 import { guestGetTemplate, guestCreateScorecard, guestUpdateScorecard } from "@/lib/guest-store";
+import { resolveLayout } from "@/lib/layout-rules";
 import ScorecardGrid from "@/components/ScorecardGrid";
 import Modal from "@/components/Modal";
 import Link from "next/link";
@@ -18,6 +19,9 @@ function NewScorecardPageInner() {
   const { user, loading: authLoading, isGuest } = useAuth();
 
   const [cells, setCells] = useState<TemplateCell[]>([]);
+  const [templateRules, setTemplateRules] = useState<TemplateRule[]>([]);
+  const [selectedRuleKeys, setSelectedRuleKeys] = useState<string[]>([]);
+  const [creationStarted, setCreationStarted] = useState(false);
   const [templateName, setTemplateName] = useState("");
   const [players, setPlayers] = useState<ScorecardPlayer[]>([]);
   const [values, setValues] = useState<CellValue[]>([]);
@@ -36,11 +40,11 @@ function NewScorecardPageInner() {
   useEffect(() => {
     if (authLoading) return;
     if (!user && !isGuest) { router.push("/login"); return; }
-    if (!templateId) { router.push("/history"); return; }
+    if (!templateId) { router.push("/scores"); return; }
     (async () => {
       if (templateId.startsWith("guest-")) {
         const tpl = guestGetTemplate(templateId);
-        if (tpl) { setCells(tpl.cells || []); setTemplateName(tpl.name); }
+        if (tpl) { setCells(tpl.cells || []); setTemplateName(tpl.name); setTemplateRules(tpl.rules || []); }
         setLoading(false);
         return;
       }
@@ -48,6 +52,7 @@ function NewScorecardPageInner() {
         const data = await getTemplate(templateId);
         setCells(data.template.cells || []);
         setTemplateName(data.template.name);
+        setTemplateRules(data.template.rules || []);
       } catch { toast.error("Scorecard not found"); }
       setLoading(false);
     })();
@@ -55,27 +60,37 @@ function NewScorecardPageInner() {
 
   // Auto-create scorecard + auto-share
   useEffect(() => {
-    if (!templateId || loading || cells.length === 0) return;
+    if (!templateId || loading || cells.length === 0 || !creationStarted) return;
     const create = async () => {
       if (isGuest) {
-        const sc = guestCreateScorecard({ template_id: templateId, title: "" });
+        const sc = guestCreateScorecard({ template_id: templateId, template_name: templateName, title: "", cells, rule_keys: selectedRuleKeys });
+        const hostPlayer = { id: crypto.randomUUID(), player_name: "You", sort_order: 0 };
+        guestUpdateScorecard(sc.id, { players: [hostPlayer] });
+        setPlayers([hostPlayer]);
         setScorecardId(sc.id);
         // Auto-generate share code for guest
         const code = generateCode();
         guestUpdateScorecard(sc.id, { share_code: code } as any);
         setShareCode(code);
+        router.replace(`/scores/${code}`);
       } else {
         try {
-          const result = await createScorecard({ template_id: templateId });
+          const result = await createScorecard({ template_id: templateId, rule_keys: selectedRuleKeys });
+          const hostPlayer = { id: crypto.randomUUID(), player_name: "You", sort_order: 0 };
+          await updateScorecard(result.scorecard.id, { players: [hostPlayer] });
+          setPlayers([hostPlayer]);
           setScorecardId(result.scorecard.id);
           // Auto-share
           const shareResult = await fetch(`/api/scorecards/${result.scorecard.id}/share`, { method: "POST" }).then(r => r.json());
-          if (shareResult.share_code) setShareCode(shareResult.share_code);
+          if (shareResult.share_code) {
+            setShareCode(shareResult.share_code);
+            router.replace(`/scores/${shareResult.share_code}`);
+          }
         } catch { toast.error("Failed to create game"); }
       }
     };
     create();
-  }, [templateId, cells.length, loading, isGuest]);
+  }, [templateId, cells.length, loading, isGuest, creationStarted, selectedRuleKeys]);
 
   const handleSave = useCallback(async () => {
     setSaving(true);
@@ -111,12 +126,24 @@ function NewScorecardPageInner() {
   if (!isGuest && !user) return null;
   if (!templateId) return null;
 
+  if (!creationStarted) {
+    return (
+      <div className="max-w-2xl mx-auto px-4 py-6 page-enter">
+        <Link href="/scorecards" className="inline-flex items-center gap-1 text-xs text-slate-400 hover:text-slate-600">← Scorecards</Link>
+        <h1 className="mt-3 text-xl font-bold tracking-tight text-slate-900">Configure {templateName}</h1>
+        <p className="mt-1 text-sm text-slate-500">Choose optional modules for this scorecard. The selected layout is saved with the game.</p>
+        {templateRules.length > 0 && <div className="mt-5 space-y-3">{templateRules.map(rule => <label key={rule.rule_key} className="flex cursor-pointer items-start justify-between gap-3 rounded-xl border border-slate-200 bg-white p-4"><span><span className="block text-sm font-semibold text-slate-800">{rule.label}</span>{rule.help_text && <span className="mt-1 block text-xs text-slate-500">{rule.help_text}</span>}</span><input type="checkbox" checked={selectedRuleKeys.includes(rule.rule_key)} onChange={event => setSelectedRuleKeys(current => event.target.checked ? [...current, rule.rule_key] : current.filter(key => key !== rule.rule_key))} className="mt-1 h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" /></label>)}</div>}
+        <button onClick={() => { setCells(resolveLayout(cells, templateRules, selectedRuleKeys).cells); setCreationStarted(true); }} className="btn-primary mt-6">Start scorecard</button>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-4xl mx-auto px-4 py-6 page-enter">
       {/* Top bar: title + share + settings */}
       <div className="flex flex-wrap items-start gap-3 mb-4">
         <div className="basis-full min-w-0 sm:flex-1 sm:basis-auto">
-          <Link href="/history" className="inline-flex items-center gap-1 text-xs text-slate-400 hover:text-slate-600 mb-0.5 transition-colors">
+          <Link href="/scores" className="inline-flex items-center gap-1 text-xs text-slate-400 hover:text-slate-600 mb-0.5 transition-colors">
             ← My Scores
           </Link>
           <div className="flex items-center gap-2">
@@ -149,6 +176,7 @@ function NewScorecardPageInner() {
           onPlayersChange={setPlayers}
           onValuesChange={setValues}
           readOnly={false}
+          isOwner={true}
         />
       )}
 
