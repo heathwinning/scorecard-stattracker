@@ -368,8 +368,8 @@ export default function ScorecardDetailPage() {
   return (
     <div className="max-w-6xl mx-auto px-4 py-6 page-enter">
       {/* Top bar: game name + share code + settings */}
-      <div className="flex flex-wrap items-center gap-3 mb-4">
-        <div className="flex-1 min-w-0">
+      <div className="flex flex-wrap items-start gap-3 mb-4">
+        <div className="basis-full min-w-0 sm:flex-1 sm:basis-auto">
           <Link href="/scores" className="inline-flex items-center gap-1 text-xs text-slate-400 hover:text-slate-600 mb-0.5 transition-colors">
             ← My Scores
           </Link>
@@ -386,7 +386,7 @@ export default function ScorecardDetailPage() {
             {gameDate && <span className="text-sm font-normal text-slate-400 ml-2">{new Date(gameDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>}
           </h1>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex w-full items-center justify-between gap-2 sm:w-auto sm:justify-end">
           {shareCode && (
             <div className="flex items-center gap-1.5 bg-indigo-50 border border-indigo-200 rounded-lg px-3 py-1.5">
               <HiOutlineShare className="w-3.5 h-3.5 text-indigo-500" />

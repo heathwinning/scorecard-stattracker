@@ -78,7 +78,7 @@ Or go to Cloudflare Dashboard → Workers & Pages → Create → Pages → Conne
 - Build command: `npx @cloudflare/next-on-pages`
 - Build output directory: `.vercel/output/static`
 
-## 8. Push to Deploy
+## 8. Deploy with GitHub Actions (recommended)
 
 ```bash
 git add .
@@ -95,16 +95,29 @@ GitHub Actions will:
 ## Local Development
 
 ```bash
-npm run dev                    # Next.js dev server
-npm run db:migrate:local       # Set up local D1
-npm run db:seed:local          # Seed default templates
+npm run db:migrate:local       # Create/update the local D1 schema
+npm run db:seed:local          # Seed local public scorecards
+npm run dev                    # Cloudflare Pages emulator at http://localhost:3000
 ```
+
+`npm run dev` is the required local server. It builds the Cloudflare Pages output and runs Wrangler with the local D1 binding. Do **not** run `next dev`: Next.js does not provide the `DB` binding, so API routes such as `/api/scorecards` return `500` and the public gallery appears empty.
+
+If port `3000` is already in use, rebuild and choose another port:
+
+```bash
+npm run cf:build
+npx wrangler pages dev .vercel/output/static --port 8788
+```
+
+## Manual Deployment (exception only)
+
+Use GitHub Actions for ordinary releases. `npm run cf:deploy` builds and uploads the Pages app, but does **not** run production D1 schema, data migrations, or seed steps. Only use it when the required production database work has already been completed deliberately.
 
 ## Useful Commands
 
 ```bash
 npm run cf:build               # Build for Cloudflare (without deploying)
-npm run cf:deploy              # Build + deploy manually
+npm run cf:deploy              # Build + deploy manually; does not migrate or seed D1
 npm run db:migrate:prod        # Run migrations on production D1
 npm run db:seed:prod           # Seed production D1
 ```

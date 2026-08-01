@@ -19,6 +19,9 @@ export default function Navbar() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   const hasAccess = !!(user || isGuest);
+  const visibleNavLinks = isGuest
+    ? navLinks.filter((link) => link.href !== "/dashboard")
+    : navLinks;
 
   return (
     <nav className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-slate-200/60">
@@ -43,7 +46,7 @@ export default function Navbar() {
           {/* Desktop nav links */}
           {hasAccess && (
             <div className="hidden sm:flex items-center gap-1">
-              {navLinks.map((link) => {
+              {visibleNavLinks.map((link) => {
                 const isActive = pathname.startsWith(link.href);
                 const Icon = link.icon;
                 return (
@@ -110,7 +113,7 @@ export default function Navbar() {
           <div className="fixed inset-0 z-40 bg-black/20" onClick={() => setMobileNavOpen(false)} />
           <div className="absolute left-0 top-full w-64 bg-white border-b border-r border-slate-200 shadow-xl z-50 animate-fade-in rounded-br-2xl">
             <div className="p-3 space-y-1">
-              {navLinks.map((link) => {
+              {visibleNavLinks.map((link) => {
                 const isActive = pathname.startsWith(link.href);
                 const Icon = link.icon;
                 return (

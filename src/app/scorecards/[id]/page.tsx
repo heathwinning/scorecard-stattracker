@@ -88,13 +88,13 @@ export default function TemplateDetailPage() {
       </Link>
 
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
-        <div>
-          <div className="flex items-center gap-3 mb-1">
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900">{template.name}</h1>
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2 mb-1">
+            <h1 className="min-w-0 break-words text-2xl font-bold tracking-tight text-slate-900">{template.name}</h1>
             {template.is_public ? <span className="badge-public">Public</span> : <span className="badge-private">Private</span>}
           </div>
           <p className="text-sm text-slate-500">{template.description || "No description"}</p>
-          <div className="flex items-center gap-2 mt-2 text-xs text-slate-400">
+          <div className="flex flex-wrap items-center gap-2 mt-2 text-xs text-slate-400">
             <span>by {template.creator_name}</span>
             <span>·</span>
             {template.game_icon && <span>{template.game_icon} {template.game_name}</span>}
@@ -102,7 +102,7 @@ export default function TemplateDetailPage() {
             <span className="badge-count">{template.cells.length} cells</span>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {isOwner ? (
             <>
               <Link href={`/scorecards/${id}/edit`} className="btn-secondary text-sm">
