@@ -130,6 +130,9 @@ export function guestCreateScorecard(data: {
     notes: "",
     share_code: null,
     sharing_mode: "shared",
+    host_only_editing: 0,
+    is_locked: 0,
+    private_player_scores: 0,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   };
@@ -170,6 +173,9 @@ export function guestUpdateScorecard(id: string, data: {
   if (data.game_date !== undefined) all[idx].game_date = data.game_date;
   if ((data as any).share_code !== undefined) all[idx].share_code = (data as any).share_code;
   if ((data as any).sharing_mode !== undefined) (all[idx] as any).sharing_mode = (data as any).sharing_mode;
+  if ((data as any).host_only_editing !== undefined) (all[idx] as any).host_only_editing = (data as any).host_only_editing ? 1 : 0;
+  if ((data as any).is_locked !== undefined) (all[idx] as any).is_locked = (data as any).is_locked ? 1 : 0;
+  if ((data as any).private_player_scores !== undefined) (all[idx] as any).private_player_scores = (data as any).private_player_scores ? 1 : 0;
   all[idx].updated_at = new Date().toISOString();
   write(KEYS.scorecards, all);
 

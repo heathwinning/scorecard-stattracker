@@ -31,41 +31,58 @@ export async function GET(
     if (resolved) scorecardId = resolved.id;
   }
 
-  // Verify participant
-  const participant = await queryFirst<{ player_slot_id: string | null }>(
-    db,
-    "SELECT player_slot_id FROM scorecard_participants WHERE scorecard_id = ?1 AND user_id = ?2",
-    [scorecardId, user.id]
-  );
-  if (!participant) {
-    return NextResponse.json({ error: "Not a participant" }, { status: 403 });
-  }
-
   // Get scorecard
   const scorecard = await queryFirst(
     db,
-    `SELECT s.*, t.name as template_name FROM scorecards s
-     JOIN templates t ON s.template_id = t.id WHERE s.id = ?1`,
+    `SELECT s.*, t.name as template_name,
+       COALESCE(ss.host_only_editing, 0) as host_only_editing,
+       COALESCE(ss.is_locked, 0) as is_locked,
+       COALESCE(svs.private_player_scores, 0) as private_player_scores
+     FROM scorecards s
+     JOIN templates t ON s.template_id = t.id
+     LEFT JOIN scorecard_settings ss ON ss.scorecard_id = s.id
+     LEFT JOIN scorecard_visibility_settings svs ON svs.scorecard_id = s.id
+     WHERE s.id = ?1`,
     [scorecardId]
   );
   if (!scorecard) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
+  // Verify participant after loading the scorecard so privacy restrictions can
+  // distinguish the host from a player assigned to a slot.
+  const participant = await queryFirst<{ player_slot_id: string | null; role: string }>(
+    db,
+    "SELECT player_slot_id, role FROM scorecard_participants WHERE scorecard_id = ?1 AND user_id = ?2",
+    [scorecardId, user.id]
+  );
+  if (!participant) {
+    return NextResponse.json({ error: "Not a participant" }, { status: 403 });
+  }
+  const restrictToOwnScores = scorecard.private_player_scores === 1
+    && scorecard.sharing_mode === "slots"
+    && participant.role !== "owner"
+    && scorecard.created_by !== user.id;
+
   // Get players
   const players = await queryAll(
     db,
-    "SELECT * FROM scorecard_players WHERE scorecard_id = ?1 ORDER BY sort_order",
-    [scorecardId]
+    restrictToOwnScores
+      ? "SELECT * FROM scorecard_players WHERE scorecard_id = ?1 AND id = ?2 ORDER BY sort_order"
+      : "SELECT * FROM scorecard_players WHERE scorecard_id = ?1 ORDER BY sort_order",
+    restrictToOwnScores ? [scorecardId, participant.player_slot_id] : [scorecardId]
   );
 
   // Get values (only those updated since the last poll)
-  let valuesQuery = "SELECT * FROM cell_values WHERE scorecard_id = ?1";
+  let valuesQuery = restrictToOwnScores
+    ? "SELECT * FROM cell_values WHERE scorecard_id = ?1 AND player_id = ?2"
+    : "SELECT * FROM cell_values WHERE scorecard_id = ?1";
   const queryParams: unknown[] = [scorecardId];
+  if (restrictToOwnScores) queryParams.push(participant.player_slot_id);
   if (since) {
       // Inclusive comparison is intentional: SQLite timestamps have second
       // precision, so several edits can legitimately share one timestamp.
-      valuesQuery += " AND updated_at >= ?2";
+      valuesQuery += ` AND updated_at >= ?${queryParams.length + 1}`;
     queryParams.push(since);
   }
   const values = await queryAll(db, valuesQuery, queryParams);
@@ -73,10 +90,14 @@ export async function GET(
   // Get participants
   const participants = await queryAll(
     db,
-    `SELECT sp.*, u.name as user_name FROM scorecard_participants sp
-     JOIN users u ON sp.user_id = u.id
-     WHERE sp.scorecard_id = ?1`,
-    [scorecardId]
+    restrictToOwnScores
+      ? `SELECT sp.*, u.name as user_name FROM scorecard_participants sp
+         JOIN users u ON sp.user_id = u.id
+         WHERE sp.scorecard_id = ?1 AND sp.user_id = ?2`
+      : `SELECT sp.*, u.name as user_name FROM scorecard_participants sp
+         JOIN users u ON sp.user_id = u.id
+         WHERE sp.scorecard_id = ?1`,
+    restrictToOwnScores ? [scorecardId, user.id] : [scorecardId]
   );
 
   const latest = await queryFirst<{ last_updated: string | null }>(

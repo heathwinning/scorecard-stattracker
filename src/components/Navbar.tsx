@@ -67,7 +67,6 @@ export default function Navbar() {
             <div className="w-8 h-8 rounded-full bg-slate-200 animate-pulse" />
           ) : isGuest ? (
             <div className="flex items-center gap-2">
-              <span className="hidden sm:inline text-xs font-medium text-slate-400 bg-slate-100 px-2.5 py-1 rounded-full">Guest</span>
               <Link href="/login" className="btn-primary text-sm">Sign in</Link>
             </div>
           ) : user ? (

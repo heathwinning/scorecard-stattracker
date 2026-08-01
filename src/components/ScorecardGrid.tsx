@@ -40,6 +40,7 @@ export interface ScorecardGridProps {
   myPlayerSlotId?: string | null;
   isOwner?: boolean;
   isLive?: boolean;
+  privatePlayerScores?: boolean;
   onCellUpdate?: (cellId: string, playerId: string, value: string, isHidden: number, entryKey?: string) => void;
   onCellDelete?: (cellId: string, playerId: string, entryKey: string) => void;
   onPersist?: () => void;
@@ -60,7 +61,7 @@ const vKey = (cellId: string, playerId: string, entryKey = "") => `${cellId}:${p
 export default function ScorecardGrid({
   cells, players, values,
   onPlayersChange, onValuesChange,
-  readOnly = false, myPlayerSlotId, isOwner = false, isLive = false,
+  readOnly = false, myPlayerSlotId, isOwner = false, isLive = false, privatePlayerScores = false,
   onCellUpdate, onCellDelete, onPersist, onMetadataPersist,
   onPlayerNameEditingChange, onFlushPoll, saveState = "idle",
 }: ScorecardGridProps) {
@@ -69,15 +70,36 @@ export default function ScorecardGrid({
   const valuesRef = useRef(values);
   valuesRef.current = values;
   const tableRef = useRef<HTMLTableElement>(null);
+  const initializedDefaultEntriesRef = useRef(new Set<string>());
 
   const isPreview = players.length === 0;
   const isMultiplayer = isLive || !!myPlayerSlotId;
+  const restrictToOwnScores = privatePlayerScores && isMultiplayer && !isOwner && !!myPlayerSlotId;
 
   const sortedCells = useMemo(() =>
     cells
       .filter(c => (c.cell_type as string) !== "label" && c.sort_order >= 0)
       .sort((a, b) => a.sort_order - b.sort_order),
   [cells]);
+
+  const displayRows = useMemo(() => {
+    const rows: TemplateCell[][] = [];
+    for (const cell of sortedCells) {
+      const config = (cell.config_json || {}) as Record<string, unknown>;
+      const inlineGroup = typeof config.inline_group === "string" ? config.inline_group : null;
+      const previous = rows[rows.length - 1];
+      const previousConfig = previous
+        ? (previous[0].config_json || {}) as Record<string, unknown>
+        : null;
+
+      if (inlineGroup && previousConfig?.inline_group === inlineGroup) {
+        previous.push(cell);
+      } else {
+        rows.push([cell]);
+      }
+    }
+    return rows;
+  }, [sortedCells]);
 
   const valueMap = useMemo(() => {
     const map = new Map<string, CellValue>();
@@ -212,7 +234,9 @@ export default function ScorecardGrid({
   // ---- render helpers -------------------------------------------------------
   const displayPlayers = isPreview
     ? PREVIEW_PLAYERS
-    : (mineOnly && myPlayerSlotId ? players.filter(p => p.id === myPlayerSlotId) : players);
+    : (restrictToOwnScores || (mineOnly && myPlayerSlotId)
+      ? players.filter(p => p.id === myPlayerSlotId)
+      : players);
 
   const canEditPlayer = useCallback((playerId: string) => {
     if (readOnly || isPreview) return false;
@@ -227,6 +251,35 @@ export default function ScorecardGrid({
   [values]);
 
   const canManagePlayers = !readOnly && !isPreview && !playersLocked && (isOwner || !isMultiplayer);
+
+  useEffect(() => {
+    if (isPreview || readOnly) return;
+
+    sortedCells.forEach(cell => {
+      const config = (cell.config_json || {}) as Record<string, unknown>;
+      const defaultEntries = Number(config.default_entries) || 0;
+      if (!config.allow_multiple || defaultEntries < 1) return;
+
+      players.forEach(player => {
+        if (!player.id || !canEditPlayer(player.id)) return;
+
+        for (let entryIndex = 0; entryIndex < defaultEntries; entryIndex += 1) {
+          const entryKey = String(entryIndex);
+          const entryId = `${cell.id}:${player.id}:${entryKey}`;
+          const hasEntry = values.some(value =>
+            value.template_cell_id === cell.id
+            && (value.player_id || "") === player.id
+            && (value.entry_key || "") === entryKey
+          );
+
+          if (!hasEntry && !initializedDefaultEntriesRef.current.has(entryId)) {
+            initializedDefaultEntriesRef.current.add(entryId);
+            commit(cell, player.id, String(config.default ?? ""), entryKey);
+          }
+        }
+      });
+    });
+  }, [canEditPlayer, commit, isPreview, players, readOnly, sortedCells, values]);
 
   return (
     <section className="sg-shell">
@@ -253,7 +306,7 @@ export default function ScorecardGrid({
               <span className="sg-btn-label">{playersLocked ? "Locked" : "Lock"}</span>
             </button>
           )}
-          {isMultiplayer && myPlayerSlotId && players.length > 1 && (
+          {isMultiplayer && !restrictToOwnScores && myPlayerSlotId && players.length > 1 && (
             <div className="sg-toggle" role="tablist" aria-label="Scorecard view">
               <button type="button" onClick={() => setMineOnly(false)} className={!mineOnly ? "is-active" : ""}>All</button>
               <button type="button" onClick={() => setMineOnly(true)} className={mineOnly ? "is-active" : ""}>Mine</button>
@@ -286,7 +339,9 @@ export default function ScorecardGrid({
             </tr>
           </thead>
           <tbody>
-            {sortedCells.map((cell, rowIndex) => {
+            {displayRows.map((rowCells, rowIndex) => {
+              const cell = rowCells[0];
+              const isInlineRow = rowCells.length > 1;
               const config = (cell.config_json || {}) as Record<string, unknown>;
               const isSection = !!config.section;
               const isChild = !!config.child;
@@ -330,29 +385,61 @@ export default function ScorecardGrid({
                   {displayPlayers.map((player, colIndex) => {
                     const mine = !isPreview && !!myPlayerSlotId && player.id === myPlayerSlotId;
                     const faded = !isPreview && !!myPlayerSlotId && !isOwner && player.id !== myPlayerSlotId;
-                    const key = vKey(cell.id!, player.id!, "");
-                    const flash = flashKeys.has(key) ? "sg-flash" : "";
+                    const flash = rowCells.some(rowCell => flashKeys.has(vKey(rowCell.id!, player.id!, ""))) ? "sg-flash" : "";
                     return (
                       <td key={player.id} className={`sg-td sg-td-value ${mine ? "is-mine" : ""} ${flash}`}>
-                        <GridCell
-                          cell={cell}
-                          player={player}
-                          rowIndex={rowIndex}
-                          colId={player.id!}
-                          isPreview={isPreview}
-                          canEdit={canEditPlayer(player.id!)}
-                          faded={faded}
-                          mine={mine}
-                          valueMap={valueMap}
-                          entriesFor={entriesFor}
-                          formulaResults={formulaResults}
-                          flashKeys={flashKeys}
-                          onCommit={commit}
-                          onAddEntry={addEntry}
-                          onRemoveEntry={removeEntry}
-                          onKeyDownNav={handleGridKeyDown}
-                          onBlurFlush={onFlushPoll}
-                        />
+                        {isInlineRow ? (
+                          <div className="sg-inline-fields">
+                            {rowCells.map((inlineCell, fieldIndex) => {
+                              const inlineConfig = (inlineCell.config_json || {}) as Record<string, unknown>;
+                              const inlineLabel = typeof inlineConfig.inline_label === "string" ? inlineConfig.inline_label : inlineCell.label;
+                              return (
+                                <div key={inlineCell.id} className="sg-inline-field">
+                                  {inlineLabel && <span className="sg-inline-label">{inlineLabel}</span>}
+                                  <GridCell
+                                    cell={inlineCell}
+                                    player={player}
+                                    rowIndex={rowIndex}
+                                    colId={`${player.id!}-${fieldIndex}`}
+                                    isPreview={isPreview}
+                                    canEdit={canEditPlayer(player.id!)}
+                                    faded={faded}
+                                    mine={mine}
+                                    valueMap={valueMap}
+                                    entriesFor={entriesFor}
+                                    formulaResults={formulaResults}
+                                    flashKeys={flashKeys}
+                                    onCommit={commit}
+                                    onAddEntry={addEntry}
+                                    onRemoveEntry={removeEntry}
+                                    onKeyDownNav={handleGridKeyDown}
+                                    onBlurFlush={onFlushPoll}
+                                  />
+                                </div>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <GridCell
+                            cell={cell}
+                            player={player}
+                            rowIndex={rowIndex}
+                            colId={player.id!}
+                            isPreview={isPreview}
+                            canEdit={canEditPlayer(player.id!)}
+                            faded={faded}
+                            mine={mine}
+                            valueMap={valueMap}
+                            entriesFor={entriesFor}
+                            formulaResults={formulaResults}
+                            flashKeys={flashKeys}
+                            onCommit={commit}
+                            onAddEntry={addEntry}
+                            onRemoveEntry={removeEntry}
+                            onKeyDownNav={handleGridKeyDown}
+                            onBlurFlush={onFlushPoll}
+                          />
+                        )}
                       </td>
                     );
                   })}
@@ -364,13 +451,13 @@ export default function ScorecardGrid({
       </div>
 
       <div className="sg-footer">
-        <span className="sg-footer-hint">
-          {readOnly || isPreview ? (isPreview ? "Layout preview" : "Read-only view") : (
-            saveState === "saving" ? "Saving…"
-            : saveState === "error" ? "Couldn't save — check your connection"
-            : "Changes save automatically"
-          )}
-        </span>
+        {(readOnly || isPreview || saveState === "saving" || saveState === "error") && (
+          <span className="sg-footer-hint">
+            {readOnly || isPreview ? (isPreview ? "Layout preview" : "Read-only view") : (
+              saveState === "saving" ? "Saving…" : "Couldn't save — check your connection"
+            )}
+          </span>
+        )}
         {saveState === "saved" && !readOnly && !isPreview && <span className="sg-footer-saved">✓ Saved</span>}
         {saveState === "error" && <span className="sg-footer-error">!</span>}
       </div>

@@ -320,7 +320,7 @@ INSERT OR IGNORE INTO templates (id, name, description, game_id, is_public, crea
 
 INSERT OR IGNORE INTO template_cells (id, template_id, row_pos, col_pos, row_span, col_span, cell_type, cell_key, label, formula_expr, per_player, config_json, sort_order) VALUES
 ('ws-bi', 'wingspan', 4, 0, 1, 1, 'input:number', 'bird_points', 'Bird Points', NULL, 1, '{"default":0,"section":true}', 1),
-('ws-bi2', 'wingspan', 6, 0, 1, 1, 'input:number', 'bonus', 'Bonus Cards', NULL, 1, '{"default":0,"allow_multiple":true,"section":true}', 2),
+('ws-bi2', 'wingspan', 6, 0, 1, 1, 'input:number', 'bonus', 'Bonus Cards', NULL, 1, '{"default":0,"default_entries":1,"allow_multiple":true,"section":true}', 2),
 ('ws-rh', 'wingspan', 7, 0, 1, 2, 'heading', 'round_total', 'End-of-Round Goals', 'SUM(round_1, round_2, round_3, round_4)', 1, '{"section":true}', 3),
 ('ws-r1i', 'wingspan', 8, 0, 1, 1, 'input:number', 'round_1', 'Round 1', NULL, 1, '{"default":0,"child":true}', 4),
 ('ws-r2i', 'wingspan', 9, 0, 1, 1, 'input:number', 'round_2', 'Round 2', NULL, 1, '{"default":0,"child":true}', 5),
@@ -416,3 +416,102 @@ END)
 WHERE id IN ('y-us-h','y-us-fb','y-ls-h','y-gt-f','uno-rh','p10-rh','p10-ip','gf-hh',
   'cat-h-vp','cat-flr','cat-fla','sp-h-round','sp-fs','sc-wh','ch-rh','pk-h-player','pk-fh',
   'ttr-h-score','ttr-iuf','ws-bi','ws-bi2','ws-rh','ws-ft');
+
+UPDATE template_cells
+SET config_json = json_set(COALESCE(config_json, '{}'), '$.default_entries', 1)
+WHERE id = 'ws-bi2';
+
+-- ============================================================
+-- Round layouts: keep a round's related fields together inside each player
+-- column. The unified grid renders matching inline_group values side-by-side.
+-- ============================================================
+UPDATE template_cells
+SET sort_order = CASE id
+  WHEN 'ch-r1h' THEN 21 WHEN 'ch-r1b' THEN 22 WHEN 'ch-r2h' THEN 31 WHEN 'ch-r2b' THEN 32
+  WHEN 'ch-r3h' THEN 41 WHEN 'ch-r3b' THEN 42 WHEN 'ch-r4h' THEN 51 WHEN 'ch-r4b' THEN 52
+  WHEN 'ch-r5h' THEN 61 WHEN 'ch-r5b' THEN 62 WHEN 'ch-r6h' THEN 71 WHEN 'ch-r6b' THEN 72
+  WHEN 'ch-fs' THEN 100 ELSE sort_order END,
+  label = CASE WHEN id GLOB 'ch-r*h' THEN 'Hole' WHEN id GLOB 'ch-r*b' THEN 'Board' ELSE label END,
+  config_json = json_set(COALESCE(config_json, '{}'), '$.inline_group',
+    'cornhole_' || substr(id, 5, 1), '$.inline_label',
+    CASE WHEN id GLOB 'ch-r*h' THEN 'Hole' ELSE 'Board' END)
+WHERE id GLOB 'ch-r[1-6][hb]';
+
+INSERT OR IGNORE INTO template_cells
+  (id, template_id, row_pos, col_pos, row_span, col_span, cell_type, cell_key, label, formula_expr, per_player, config_json, sort_order)
+VALUES
+  ('ch-round-1', 'cornhole', 0, 0, 1, 1, 'heading', 'cornhole_round_1', 'Round 1', NULL, 0, '{"section":true}', 20),
+  ('ch-round-2', 'cornhole', 0, 0, 1, 1, 'heading', 'cornhole_round_2', 'Round 2', NULL, 0, '{"section":true}', 30),
+  ('ch-round-3', 'cornhole', 0, 0, 1, 1, 'heading', 'cornhole_round_3', 'Round 3', NULL, 0, '{"section":true}', 40),
+  ('ch-round-4', 'cornhole', 0, 0, 1, 1, 'heading', 'cornhole_round_4', 'Round 4', NULL, 0, '{"section":true}', 50),
+  ('ch-round-5', 'cornhole', 0, 0, 1, 1, 'heading', 'cornhole_round_5', 'Round 5', NULL, 0, '{"section":true}', 60),
+  ('ch-round-6', 'cornhole', 0, 0, 1, 1, 'heading', 'cornhole_round_6', 'Round 6', NULL, 0, '{"section":true}', 70);
+
+UPDATE template_cells
+SET sort_order = CASE id
+  WHEN 'uno-r1' THEN 20 WHEN 'uno-r2' THEN 30 WHEN 'uno-r3' THEN 40 WHEN 'uno-r4' THEN 50
+  WHEN 'uno-r5' THEN 60 WHEN 'uno-r6' THEN 70 WHEN 'uno-r7' THEN 80 WHEN 'uno-r8' THEN 90
+  WHEN 'uno-ft' THEN 110 ELSE sort_order END,
+  config_json = json_set(COALESCE(config_json, '{}'), '$.inline_group', id, '$.inline_label', 'Score')
+WHERE id GLOB 'uno-r[1-8]';
+
+INSERT OR IGNORE INTO template_cells
+  (id, template_id, row_pos, col_pos, row_span, col_span, cell_type, cell_key, label, formula_expr, per_player, config_json, sort_order)
+VALUES
+  ('uno-run-1','uno',0,0,1,1,'formula','running_1','', 'round_1',1,'{"inline_group":"uno-r1","inline_label":"Total"}',21),
+  ('uno-run-2','uno',0,0,1,1,'formula','running_2','', 'running_1 + round_2',1,'{"inline_group":"uno-r2","inline_label":"Total"}',31),
+  ('uno-run-3','uno',0,0,1,1,'formula','running_3','', 'running_2 + round_3',1,'{"inline_group":"uno-r3","inline_label":"Total"}',41),
+  ('uno-run-4','uno',0,0,1,1,'formula','running_4','', 'running_3 + round_4',1,'{"inline_group":"uno-r4","inline_label":"Total"}',51),
+  ('uno-run-5','uno',0,0,1,1,'formula','running_5','', 'running_4 + round_5',1,'{"inline_group":"uno-r5","inline_label":"Total"}',61),
+  ('uno-run-6','uno',0,0,1,1,'formula','running_6','', 'running_5 + round_6',1,'{"inline_group":"uno-r6","inline_label":"Total"}',71),
+  ('uno-run-7','uno',0,0,1,1,'formula','running_7','', 'running_6 + round_7',1,'{"inline_group":"uno-r7","inline_label":"Total"}',81),
+  ('uno-run-8','uno',0,0,1,1,'formula','running_8','', 'running_7 + round_8',1,'{"inline_group":"uno-r8","inline_label":"Total"}',91);
+
+UPDATE template_cells
+SET sort_order = CASE id
+  WHEN 'p10-r1' THEN 20 WHEN 'p10-r2' THEN 30 WHEN 'p10-r3' THEN 40 WHEN 'p10-r4' THEN 50 WHEN 'p10-r5' THEN 60
+  WHEN 'p10-r6' THEN 70 WHEN 'p10-r7' THEN 80 WHEN 'p10-r8' THEN 90 WHEN 'p10-r9' THEN 100 WHEN 'p10-r10' THEN 110
+  WHEN 'p10-ft' THEN 130 ELSE sort_order END,
+  config_json = json_set(COALESCE(config_json, '{}'), '$.inline_group', id, '$.inline_label', 'Score')
+WHERE id GLOB 'p10-r*' AND cell_type = 'input:number';
+
+INSERT OR IGNORE INTO template_cells
+  (id, template_id, row_pos, col_pos, row_span, col_span, cell_type, cell_key, label, formula_expr, per_player, config_json, sort_order)
+VALUES
+  ('p10-run-1','phase10',0,0,1,1,'formula','running_1','', 'round_1',1,'{"inline_group":"p10-r1","inline_label":"Total"}',21),
+  ('p10-run-2','phase10',0,0,1,1,'formula','running_2','', 'running_1 + round_2',1,'{"inline_group":"p10-r2","inline_label":"Total"}',31),
+  ('p10-run-3','phase10',0,0,1,1,'formula','running_3','', 'running_2 + round_3',1,'{"inline_group":"p10-r3","inline_label":"Total"}',41),
+  ('p10-run-4','phase10',0,0,1,1,'formula','running_4','', 'running_3 + round_4',1,'{"inline_group":"p10-r4","inline_label":"Total"}',51),
+  ('p10-run-5','phase10',0,0,1,1,'formula','running_5','', 'running_4 + round_5',1,'{"inline_group":"p10-r5","inline_label":"Total"}',61),
+  ('p10-run-6','phase10',0,0,1,1,'formula','running_6','', 'running_5 + round_6',1,'{"inline_group":"p10-r6","inline_label":"Total"}',71),
+  ('p10-run-7','phase10',0,0,1,1,'formula','running_7','', 'running_6 + round_7',1,'{"inline_group":"p10-r7","inline_label":"Total"}',81),
+  ('p10-run-8','phase10',0,0,1,1,'formula','running_8','', 'running_7 + round_8',1,'{"inline_group":"p10-r8","inline_label":"Total"}',91),
+  ('p10-run-9','phase10',0,0,1,1,'formula','running_9','', 'running_8 + round_9',1,'{"inline_group":"p10-r9","inline_label":"Total"}',101),
+  ('p10-run-10','phase10',0,0,1,1,'formula','running_10','', 'running_9 + round_10',1,'{"inline_group":"p10-r10","inline_label":"Total"}',111);
+
+-- ============================================================
+-- TEMPLATE 12: Cribbage
+-- ============================================================
+INSERT OR IGNORE INTO templates (id, name, description, game_id, is_public, created_by) VALUES
+  ('cribbage', 'Cribbage', 'Track pegging and hand points for each round. Running totals make it easy to race to 121.', 'game-cribbage', 1, 'system');
+
+INSERT OR IGNORE INTO template_cells
+  (id, template_id, row_pos, col_pos, row_span, col_span, cell_type, cell_key, label, formula_expr, per_player, config_json, sort_order)
+VALUES
+  ('crib-total','cribbage',0,0,1,1,'formula','game_total','Total','running_4',1,'{"section":true}',1),
+  ('crib-h-1','cribbage',0,0,1,1,'heading','crib_round_1','Round 1',NULL,0,'{"section":true}',10),
+  ('crib-p-1','cribbage',0,0,1,1,'tally','pegging_1','',NULL,1,'{"inline_group":"crib-1","inline_label":"Pegging","min":0,"default":0}',11),
+  ('crib-hnd-1','cribbage',0,0,1,1,'tally','hand_1','',NULL,1,'{"inline_group":"crib-1","inline_label":"Hand","min":0,"default":0}',12),
+  ('crib-run-1','cribbage',0,0,1,1,'formula','running_1','', 'pegging_1 + hand_1',1,'{"inline_group":"crib-1","inline_label":"Total"}',13),
+  ('crib-h-2','cribbage',0,0,1,1,'heading','crib_round_2','Round 2',NULL,0,'{"section":true}',20),
+  ('crib-p-2','cribbage',0,0,1,1,'tally','pegging_2','',NULL,1,'{"inline_group":"crib-2","inline_label":"Pegging","min":0,"default":0}',21),
+  ('crib-hnd-2','cribbage',0,0,1,1,'tally','hand_2','',NULL,1,'{"inline_group":"crib-2","inline_label":"Hand","min":0,"default":0}',22),
+  ('crib-run-2','cribbage',0,0,1,1,'formula','running_2','', 'running_1 + pegging_2 + hand_2',1,'{"inline_group":"crib-2","inline_label":"Total"}',23),
+  ('crib-h-3','cribbage',0,0,1,1,'heading','crib_round_3','Round 3',NULL,0,'{"section":true}',30),
+  ('crib-p-3','cribbage',0,0,1,1,'tally','pegging_3','',NULL,1,'{"inline_group":"crib-3","inline_label":"Pegging","min":0,"default":0}',31),
+  ('crib-hnd-3','cribbage',0,0,1,1,'tally','hand_3','',NULL,1,'{"inline_group":"crib-3","inline_label":"Hand","min":0,"default":0}',32),
+  ('crib-run-3','cribbage',0,0,1,1,'formula','running_3','', 'running_2 + pegging_3 + hand_3',1,'{"inline_group":"crib-3","inline_label":"Total"}',33),
+  ('crib-h-4','cribbage',0,0,1,1,'heading','crib_round_4','Round 4',NULL,0,'{"section":true}',40),
+  ('crib-p-4','cribbage',0,0,1,1,'tally','pegging_4','',NULL,1,'{"inline_group":"crib-4","inline_label":"Pegging","min":0,"default":0}',41),
+  ('crib-hnd-4','cribbage',0,0,1,1,'tally','hand_4','',NULL,1,'{"inline_group":"crib-4","inline_label":"Hand","min":0,"default":0}',42),
+  ('crib-run-4','cribbage',0,0,1,1,'formula','running_4','', 'running_3 + pegging_4 + hand_4',1,'{"inline_group":"crib-4","inline_label":"Total"}',43);

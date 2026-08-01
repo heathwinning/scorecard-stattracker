@@ -16,12 +16,18 @@ export async function PUT(
   }
 
   const db = getDB();
-  const scorecard = await queryFirst<{ sharing_mode: "shared" | "slots" }>(
+  const scorecard = await queryFirst<{ sharing_mode: "shared" | "slots"; created_by: string; host_only_editing: number; is_locked: number }>(
     db,
-    "SELECT sharing_mode FROM scorecards WHERE id = ?1",
+    `SELECT s.sharing_mode, s.created_by,
+       COALESCE(ss.host_only_editing, 0) as host_only_editing,
+       COALESCE(ss.is_locked, 0) as is_locked
+     FROM scorecards s
+     LEFT JOIN scorecard_settings ss ON ss.scorecard_id = s.id
+     WHERE s.id = ?1`,
     [params.id]
   );
   if (!scorecard) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (scorecard.is_locked) return NextResponse.json({ error: "This scorecard is locked" }, { status: 423 });
   const body = await request.json();
   const { cells, deletes } = body as {
     cells?: { template_cell_id: string; player_id: string; value: string; entry_key?: string; is_hidden?: number }[];
@@ -56,6 +62,11 @@ export async function PUT(
     participant = { player_slot_id: null, role: "owner" };
   }
 
+  const isOwner = participant.role === "owner" || scorecard.created_by === user.id;
+  if (scorecard.host_only_editing && !isOwner) {
+    return NextResponse.json({ error: "Only the host can edit this scorecard" }, { status: 403 });
+  }
+
   // Resolve stale player IDs from cached clients. A single-player live
   // scorecard has an unambiguous canonical row, so use it instead of creating
   // a second player when an older poll returned a different ID.
@@ -65,7 +76,7 @@ export async function PUT(
     [params.id]
   );
   const validPlayerIds = new Set(existingPlayers.map(player => player.id));
-  const fallbackPlayerId = participant.role === "owner" && existingPlayers.length === 1
+  const fallbackPlayerId = isOwner && existingPlayers.length === 1
     ? existingPlayers[0].id
     : participant.player_slot_id;
   const normalizedCells = cellList.map(cell => ({
@@ -99,7 +110,7 @@ export async function PUT(
   const batch = normalizedCells
     .filter((cell) => {
       // Players can only edit cells for their own slot
-      if (participant.role !== "owner" && scorecard.sharing_mode === "slots" && cell.player_id !== participant.player_slot_id) {
+      if (!isOwner && scorecard.sharing_mode === "slots" && cell.player_id !== participant.player_slot_id) {
         return false;
       }
       return true;
@@ -121,7 +132,7 @@ export async function PUT(
     `DELETE FROM cell_values WHERE scorecard_id = ?1 AND template_cell_id = ?2 AND player_id = ?3 AND entry_key = ?4`
   );
   const deleteBatch = deleteList
-    .filter((d) => participant.role === "owner" || scorecard.sharing_mode === "shared" || d.player_id === participant.player_slot_id)
+    .filter((d) => isOwner || scorecard.sharing_mode === "shared" || d.player_id === participant.player_slot_id)
     .map((d) => deleteStmt.bind(params.id, d.template_cell_id, d.player_id, d.entry_key ?? ""));
 
   if (batch.length > 0 || deleteBatch.length > 0) {

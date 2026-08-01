@@ -150,6 +150,9 @@ export interface Scorecard {
   game_date: string;
   notes: string;
   sharing_mode: "shared" | "slots";
+  host_only_editing?: number;
+  is_locked?: number;
+  private_player_scores?: number;
   share_code?: string | null;
   created_at: string;
   updated_at: string;
@@ -194,6 +197,9 @@ export async function updateScorecard(id: string, data: {
   game_date?: string;
   notes?: string;
   sharing_mode?: "shared" | "slots";
+  host_only_editing?: boolean;
+  is_locked?: boolean;
+  private_player_scores?: boolean;
   players?: ScorecardPlayer[];
   values?: CellValue[];
 }) {

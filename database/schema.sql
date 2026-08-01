@@ -76,6 +76,19 @@ CREATE TABLE IF NOT EXISTS scorecard_players (
 
 CREATE INDEX IF NOT EXISTS idx_scorecard_players_scorecard ON scorecard_players(scorecard_id);
 
+CREATE TABLE IF NOT EXISTS scorecard_settings (
+  scorecard_id TEXT PRIMARY KEY REFERENCES scorecards(id) ON DELETE CASCADE,
+  host_only_editing INTEGER NOT NULL DEFAULT 0 CHECK(host_only_editing IN (0, 1)),
+  is_locked INTEGER NOT NULL DEFAULT 0 CHECK(is_locked IN (0, 1)),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS scorecard_visibility_settings (
+  scorecard_id TEXT PRIMARY KEY REFERENCES scorecards(id) ON DELETE CASCADE,
+  private_player_scores INTEGER NOT NULL DEFAULT 0 CHECK(private_player_scores IN (0, 1)),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
 -- Individual cell values in a filled scorecard
 CREATE TABLE IF NOT EXISTS cell_values (
   id TEXT PRIMARY KEY, -- UUID

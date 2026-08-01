@@ -16,7 +16,7 @@ import Modal from "@/components/Modal";
 import ConfirmModal from "@/components/ConfirmModal";
 import Link from "next/link";
 import toast from "react-hot-toast";
-import { HiOutlineCog, HiOutlineClipboardCopy, HiOutlineShare, HiOutlineTrash } from "react-icons/hi";
+import { HiOutlineCog, HiOutlineClipboardCopy, HiOutlineShare, HiOutlineTrash, HiOutlineLockClosed } from "react-icons/hi";
 
 export default function ScorecardDetailPage() {
   const params = useParams();
@@ -40,6 +40,9 @@ export default function ScorecardDetailPage() {
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [liveMode, setLiveMode] = useState(false);
   const [gameMode, setGameMode] = useState<"shared" | "live">("shared");
+  const [hostOnlyEditing, setHostOnlyEditing] = useState(false);
+  const [isLocked, setIsLocked] = useState(false);
+  const [privatePlayerScores, setPrivatePlayerScores] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const lastUpdatedRef = useRef<string>("");
@@ -103,6 +106,9 @@ export default function ScorecardDetailPage() {
       setScorecardTitle(data.scorecard.title || "");
       setGameDate(data.scorecard.game_date || "");
       setShareCode(data.scorecard.share_code || null);
+      setHostOnlyEditing(data.scorecard.host_only_editing === 1);
+      setIsLocked(data.scorecard.is_locked === 1);
+      setPrivatePlayerScores(data.scorecard.private_player_scores === 1);
       setIsOwner(true);
       // If template name is missing, look it up
       if (!data.scorecard.template_name && data.scorecard.template_id) {
@@ -138,6 +144,9 @@ export default function ScorecardDetailPage() {
         setGameDate(data.scorecard.game_date || "");
         setShareCode(data.scorecard.share_code || null);
         setGameMode(data.scorecard.sharing_mode === "slots" ? "live" : "shared");
+        setHostOnlyEditing(data.scorecard.host_only_editing === 1);
+        setIsLocked(data.scorecard.is_locked === 1);
+        setPrivatePlayerScores(data.scorecard.private_player_scores === 1);
         setIsOwner(user?.id === data.scorecard.created_by);
 
         const tplData = await getTemplate(data.scorecard.template_id);
@@ -179,6 +188,9 @@ export default function ScorecardDetailPage() {
       // immediately when the host switches between Shared and Player Slots.
       const remoteMode = live.scorecard.sharing_mode === "slots" ? "live" : "shared";
       setGameMode(current => current === remoteMode ? current : remoteMode);
+      setHostOnlyEditing(live.scorecard.host_only_editing === 1);
+      setIsLocked(live.scorecard.is_locked === 1);
+      setPrivatePlayerScores(live.scorecard.private_player_scores === 1);
 
       if (live.values?.length) {
         setValues((prev) => {
@@ -321,6 +333,36 @@ export default function ScorecardDetailPage() {
     }
   }, [scorecardId]);
 
+  const updateEditingSettings = useCallback(async (nextHostOnlyEditing: boolean, nextIsLocked: boolean, nextPrivatePlayerScores: boolean) => {
+    const previousHostOnlyEditing = hostOnlyEditing;
+    const previousIsLocked = isLocked;
+    const previousPrivatePlayerScores = privatePlayerScores;
+    setHostOnlyEditing(nextHostOnlyEditing);
+    setIsLocked(nextIsLocked);
+    setPrivatePlayerScores(nextPrivatePlayerScores);
+
+    try {
+      if (scorecardId.startsWith("guest-")) {
+        guestUpdateScorecard(scorecardId, {
+          host_only_editing: nextHostOnlyEditing,
+          is_locked: nextIsLocked,
+          private_player_scores: nextPrivatePlayerScores,
+        } as any);
+      } else {
+        await updateScorecard(scorecardId, {
+          host_only_editing: nextHostOnlyEditing,
+          is_locked: nextIsLocked,
+          private_player_scores: nextPrivatePlayerScores,
+        });
+      }
+    } catch {
+      setHostOnlyEditing(previousHostOnlyEditing);
+      setIsLocked(previousIsLocked);
+      setPrivatePlayerScores(previousPrivatePlayerScores);
+      toast.error("Could not update editing settings");
+    }
+  }, [hostOnlyEditing, isLocked, privatePlayerScores, scorecardId]);
+
   const persistMetadata = useCallback(async () => {
     if (liveModeRef.current && !isOwnerRef.current) return;
     if (metadataPersistTimerRef.current) clearTimeout(metadataPersistTimerRef.current);
@@ -347,6 +389,13 @@ export default function ScorecardDetailPage() {
     } catch { toast.error("Failed to delete"); }
   };
 
+  const isReadOnly = isLocked || (hostOnlyEditing && !isOwner) || (!isOwner && gameMode === "live" && !myPlayerSlotId);
+  const readOnlyMessage = isLocked
+    ? "This completed scorecard is locked. No one can edit it until the host unlocks it."
+    : hostOnlyEditing && !isOwner
+      ? "Only the host can edit this scorecard. You can view scores as they are updated."
+      : "Choose a player slot to enter scores.";
+
   const copyLink = async () => {
     const joinUrl = `${window.location.origin}/join/${shareCode}`;
     await navigator.clipboard.writeText(joinUrl);
@@ -366,14 +415,14 @@ export default function ScorecardDetailPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-6 page-enter">
+    <div className="max-w-6xl mx-auto px-4 pb-6 pt-3 sm:pt-4 page-enter">
       {/* Top bar: game name + share code + settings */}
       <div className="flex flex-wrap items-start gap-3 mb-4">
         <div className="basis-full min-w-0 sm:flex-1 sm:basis-auto">
           <Link href="/scores" className="inline-flex items-center gap-1 text-xs text-slate-400 hover:text-slate-600 mb-0.5 transition-colors">
             ← My Scores
           </Link>
-          <h1 className="text-lg font-bold tracking-tight text-slate-900 truncate">
+          <h1 className="min-w-0 text-lg font-bold tracking-tight text-slate-900 truncate">
             {isOwner ? (
               <input
                 value={scorecardTitle}
@@ -383,8 +432,9 @@ export default function ScorecardDetailPage() {
                 className="bg-transparent outline-none border-b border-transparent focus:border-indigo-300 w-full max-w-xs"
               />
             ) : (scorecardTitle || templateName)}
-            {gameDate && <span className="text-sm font-normal text-slate-400 ml-2">{new Date(gameDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>}
           </h1>
+          {gameDate && <p className="mt-0.5 text-sm font-normal text-slate-400">{new Date(gameDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</p>}
+          {isLocked && <span className="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-rose-600"><HiOutlineLockClosed className="h-3.5 w-3.5" /> Locked</span>}
         </div>
         <div className="flex w-full items-center justify-between gap-2 sm:w-auto sm:justify-end">
           {shareCode && (
@@ -404,6 +454,12 @@ export default function ScorecardDetailPage() {
       </div>
 
       {/* Scorecard table */}
+      {isReadOnly && (
+        <div className="mb-3 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-800">
+          <HiOutlineLockClosed className="mt-0.5 h-4 w-4 shrink-0" />
+          <p>{readOnlyMessage}</p>
+        </div>
+      )}
       {cells.length > 0 && (
         <ScorecardGrid
           cells={cells}
@@ -411,10 +467,11 @@ export default function ScorecardDetailPage() {
           values={values}
           onPlayersChange={handlePlayersChange}
           onValuesChange={handleValuesChange}
-          readOnly={!isOwner && gameMode === "live" && !myPlayerSlotId}
+          readOnly={isReadOnly}
           myPlayerSlotId={gameMode === "live" ? myPlayerSlotId : undefined}
           isOwner={isOwner}
           isLive={liveMode}
+          privatePlayerScores={privatePlayerScores}
           onCellUpdate={handleCellUpdate}
           onCellDelete={handleCellDelete}
           onMetadataPersist={persistMetadata}
@@ -422,13 +479,6 @@ export default function ScorecardDetailPage() {
           onFlushPoll={doPoll}
           saveState={saveState}
         />
-      )}
-
-      {/* Timestamp */}
-      {!loading && gameDate && (
-        <p className="text-[11px] text-slate-400 text-right mt-4">
-          {new Date(gameDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-        </p>
       )}
 
       {/* Settings Modal */}
@@ -457,11 +507,71 @@ export default function ScorecardDetailPage() {
           </div>
 
           {isOwner && (
-            <button onClick={() => { setSettingsOpen(false); setShowDeleteConfirm(true); }}
-              className="w-full flex items-center justify-center gap-2 text-sm font-medium text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-lg px-4 py-2.5 transition-colors">
-              <HiOutlineTrash className="w-4 h-4" />
-              Delete Scorecard
-            </button>
+            <div className="space-y-3">
+              <div className="rounded-xl border border-slate-200 p-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-800">Host-only editing</p>
+                    <p className="mt-1 text-xs leading-relaxed text-slate-500">Only you can edit scores. Guests can still view the shared scorecard.</p>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={hostOnlyEditing}
+                    onClick={() => updateEditingSettings(!hostOnlyEditing, isLocked, privatePlayerScores)}
+                    className={`relative h-6 w-11 shrink-0 rounded-full transition ${hostOnlyEditing ? "bg-indigo-600" : "bg-slate-200"}`}
+                  >
+                    <span className={`absolute top-1 h-4 w-4 rounded-full bg-white shadow transition ${hostOnlyEditing ? "left-6" : "left-1"}`} />
+                  </button>
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-slate-200 p-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-800">Private player scores</p>
+                    <p className="mt-1 text-xs leading-relaxed text-slate-500">In Player Slots mode, players can only view and edit their own scores. You can still see every score.</p>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={privatePlayerScores}
+                    aria-disabled={gameMode !== "live"}
+                    disabled={gameMode !== "live"}
+                    onClick={() => updateEditingSettings(hostOnlyEditing, isLocked, !privatePlayerScores)}
+                    className={`relative h-6 w-11 shrink-0 rounded-full transition disabled:cursor-not-allowed disabled:opacity-50 ${privatePlayerScores ? "bg-indigo-600" : "bg-slate-200"}`}
+                  >
+                    <span className={`absolute top-1 h-4 w-4 rounded-full bg-white shadow transition ${privatePlayerScores ? "left-6" : "left-1"}`} />
+                  </button>
+                </div>
+                {gameMode !== "live" && <p className="mt-3 text-xs text-slate-400">Switch to Player Slots to enable this.</p>}
+              </div>
+
+              <div className="rounded-xl border border-slate-200 p-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-800">Lock scorecard</p>
+                    <p className="mt-1 text-xs leading-relaxed text-slate-500">Prevent everyone, including you, from changing completed scores until you unlock it.</p>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={isLocked}
+                    onClick={() => updateEditingSettings(hostOnlyEditing, !isLocked, privatePlayerScores)}
+                    className={`relative h-6 w-11 shrink-0 rounded-full transition ${isLocked ? "bg-rose-600" : "bg-slate-200"}`}
+                  >
+                    <span className={`absolute top-1 h-4 w-4 rounded-full bg-white shadow transition ${isLocked ? "left-6" : "left-1"}`} />
+                  </button>
+                </div>
+                {isLocked && <p className="mt-3 flex items-center gap-1.5 text-xs font-medium text-rose-600"><HiOutlineLockClosed className="h-3.5 w-3.5" /> Scorecard locked</p>}
+              </div>
+
+              <button onClick={() => { setSettingsOpen(false); setShowDeleteConfirm(true); }}
+                className="w-full flex items-center justify-center gap-2 text-sm font-medium text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-lg px-4 py-2.5 transition-colors">
+                <HiOutlineTrash className="w-4 h-4" />
+                Delete Scorecard
+              </button>
+            </div>
           )}
         </div>
       </Modal>

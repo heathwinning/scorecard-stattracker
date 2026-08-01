@@ -107,6 +107,9 @@
   .sg-help-popover { @apply pointer-events-none fixed z-[60] whitespace-normal break-words rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-left text-[11px] font-normal leading-relaxed text-white shadow-xl; }
 
   .sg-value { @apply text-[13px] font-medium tabular-nums text-slate-800; }
+  .sg-inline-fields { @apply flex items-start justify-center gap-1.5; }
+  .sg-inline-field { @apply flex min-w-0 flex-col items-center gap-0.5; }
+  .sg-inline-label { @apply text-[9px] font-semibold leading-none text-slate-400; }
   .sg-value.is-faded { @apply text-slate-300; }
   .sg-value.is-mine { @apply font-bold text-indigo-700; }
   .sg-formula { @apply inline-block min-w-[2.25rem] rounded-md bg-indigo-50 px-2 py-1 text-[13px] font-bold tabular-nums text-indigo-700; }
@@ -135,7 +138,7 @@
   .sg-tally-btn { @apply flex h-7 w-7 items-center justify-center rounded-md text-base font-bold text-slate-400 transition hover:bg-indigo-50 hover:text-indigo-600 active:scale-90 sm:h-6 sm:w-6 sm:text-sm; }
   .sg-tally-value { @apply min-w-7 text-center text-[13px] font-bold tabular-nums text-slate-800; }
 
-  .sg-multi { @apply flex flex-wrap items-center justify-center gap-0.5; }
+  .sg-multi { @apply flex flex-col items-center gap-0.5; }
   .sg-pill { @apply inline-flex items-center rounded-full border border-indigo-100 bg-indigo-50/70 px-1 py-0; }
   .sg-pill-remove { @apply ml-0.5 px-0.5 text-xs leading-none text-slate-300 transition hover:text-rose-500; }
   .sg-pill-add { @apply flex h-6 w-6 items-center justify-center rounded-full border border-dashed border-indigo-200 text-xs font-bold text-indigo-500 transition hover:border-indigo-400 hover:bg-indigo-50 hover:text-indigo-700; }

@@ -10,14 +10,20 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   const db = getDB();
+  const user = await getUserFromCookies(_request.headers.get("cookie"));
   const lookupId = params.id;
 
   // Try direct ID first, then fall back to share code lookup
   let scorecard = await queryFirst(
     db,
-    `SELECT s.*, t.name as template_name
+    `SELECT s.*, t.name as template_name,
+       COALESCE(ss.host_only_editing, 0) as host_only_editing,
+       COALESCE(ss.is_locked, 0) as is_locked,
+       COALESCE(svs.private_player_scores, 0) as private_player_scores
      FROM scorecards s
      JOIN templates t ON s.template_id = t.id
+     LEFT JOIN scorecard_settings ss ON ss.scorecard_id = s.id
+     LEFT JOIN scorecard_visibility_settings svs ON svs.scorecard_id = s.id
      WHERE s.id = ?1`,
     [lookupId]
   );
@@ -25,9 +31,14 @@ export async function GET(
   if (!scorecard && lookupId.length <= 10) {
     scorecard = await queryFirst(
       db,
-      `SELECT s.*, t.name as template_name
+      `SELECT s.*, t.name as template_name,
+         COALESCE(ss.host_only_editing, 0) as host_only_editing,
+         COALESCE(ss.is_locked, 0) as is_locked,
+         COALESCE(svs.private_player_scores, 0) as private_player_scores
        FROM scorecards s
        JOIN templates t ON s.template_id = t.id
+       LEFT JOIN scorecard_settings ss ON ss.scorecard_id = s.id
+       LEFT JOIN scorecard_visibility_settings svs ON svs.scorecard_id = s.id
        WHERE s.share_code = ?1`,
       [lookupId.toUpperCase()]
     );
@@ -38,16 +49,31 @@ export async function GET(
   }
 
   const id = scorecard.id as string;
+  const restrictToOwnScores = scorecard.private_player_scores === 1
+    && scorecard.sharing_mode === "slots"
+    && user?.id !== scorecard.created_by;
+  const participant = restrictToOwnScores && user
+    ? await queryFirst<{ player_slot_id: string | null }>(
+        db,
+        "SELECT player_slot_id FROM scorecard_participants WHERE scorecard_id = ?1 AND user_id = ?2",
+        [id, user.id]
+      )
+    : null;
+  const playerSlotId = participant?.player_slot_id || null;
   const players = await queryAll(
     db,
-    "SELECT * FROM scorecard_players WHERE scorecard_id = ?1 ORDER BY sort_order",
-    [id]
+    restrictToOwnScores
+      ? "SELECT * FROM scorecard_players WHERE scorecard_id = ?1 AND id = ?2 ORDER BY sort_order"
+      : "SELECT * FROM scorecard_players WHERE scorecard_id = ?1 ORDER BY sort_order",
+    restrictToOwnScores ? [id, playerSlotId] : [id]
   );
 
   const values = await queryAll(
     db,
-    "SELECT * FROM cell_values WHERE scorecard_id = ?1",
-    [id]
+    restrictToOwnScores
+      ? "SELECT * FROM cell_values WHERE scorecard_id = ?1 AND player_id = ?2"
+      : "SELECT * FROM cell_values WHERE scorecard_id = ?1",
+    restrictToOwnScores ? [id, playerSlotId] : [id]
   );
 
   return NextResponse.json({ scorecard, players, values });
@@ -66,16 +92,27 @@ export async function PUT(
 
   const db = getDB();
   const body = await request.json();
-  const { title, game_date, notes, sharing_mode, players, values } = body;
+  const { title, game_date, notes, sharing_mode, host_only_editing, is_locked, private_player_scores, players, values } = body;
 
   // Partial updates are used by the scorecard autosave. Do not clear fields
   // that were not included in the request.
-  const current = await queryFirst<{ title: string; game_date: string; notes: string; share_code: string | null; sharing_mode: "shared" | "slots" }>(
+  const current = await queryFirst<{ title: string; game_date: string; notes: string; share_code: string | null; sharing_mode: "shared" | "slots"; host_only_editing: number; is_locked: number; private_player_scores: number }>(
     db,
-    "SELECT title, game_date, notes, share_code, sharing_mode FROM scorecards WHERE id = ?1 AND created_by = ?2",
+    `SELECT s.title, s.game_date, s.notes, s.share_code, s.sharing_mode,
+       COALESCE(ss.host_only_editing, 0) as host_only_editing,
+       COALESCE(ss.is_locked, 0) as is_locked,
+       COALESCE(svs.private_player_scores, 0) as private_player_scores
+     FROM scorecards s
+     LEFT JOIN scorecard_settings ss ON ss.scorecard_id = s.id
+     LEFT JOIN scorecard_visibility_settings svs ON svs.scorecard_id = s.id
+     WHERE s.id = ?1 AND s.created_by = ?2`,
     [params.id, user.id]
   );
   if (!current) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  if (current.is_locked && (title !== undefined || game_date !== undefined || notes !== undefined || sharing_mode !== undefined || players !== undefined || values !== undefined)) {
+    return NextResponse.json({ error: "This scorecard is locked" }, { status: 423 });
+  }
 
   await execute(
     db,
@@ -86,6 +123,32 @@ export async function PUT(
       sharing_mode === "slots" || sharing_mode === "shared" ? sharing_mode : current.sharing_mode,
       params.id, user.id]
   );
+
+  if (host_only_editing !== undefined || is_locked !== undefined) {
+    await execute(
+      db,
+      `INSERT INTO scorecard_settings (scorecard_id, host_only_editing, is_locked, updated_at)
+       VALUES (?1, ?2, ?3, datetime('now'))
+       ON CONFLICT(scorecard_id) DO UPDATE SET
+         host_only_editing = excluded.host_only_editing,
+         is_locked = excluded.is_locked,
+         updated_at = excluded.updated_at`,
+      [params.id, host_only_editing === undefined ? current.host_only_editing : host_only_editing ? 1 : 0,
+        is_locked === undefined ? current.is_locked : is_locked ? 1 : 0]
+    );
+  }
+
+  if (private_player_scores !== undefined) {
+    await execute(
+      db,
+      `INSERT INTO scorecard_visibility_settings (scorecard_id, private_player_scores, updated_at)
+       VALUES (?1, ?2, datetime('now'))
+       ON CONFLICT(scorecard_id) DO UPDATE SET
+         private_player_scores = excluded.private_player_scores,
+         updated_at = excluded.updated_at`,
+      [params.id, private_player_scores ? 1 : 0]
+    );
+  }
 
   // Upsert players (avoid DELETE + CASCADE which wipes cell_values)
   if (players && Array.isArray(players)) {
