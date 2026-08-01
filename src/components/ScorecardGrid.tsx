@@ -658,6 +658,8 @@ function GridCell(props: GridCellProps) {
 
   if (allowMultiple) {
     const entries = entriesFor(cell.id!, player.id!);
+    const hasHiddenEntries = faded && entries.some(entry => entry.is_hidden === 1);
+    const entryTotal = entries.reduce((sum, entry) => sum + (Number(entry.value) || 0), 0);
     return (
       <div className="sg-multi" role="group" aria-label={`${cell.label || cell.cell_key} entries`}>
         {entries.map(entry => {
@@ -690,6 +692,11 @@ function GridCell(props: GridCellProps) {
         {canEdit && (
           <button type="button" className="sg-pill-add" aria-label={`Add ${cell.label || cell.cell_key} entry`}
             onClick={() => onAddEntry(cell, player.id!)}>+</button>
+        )}
+        {!!config.show_entry_total && (
+          <span className={`sg-entry-total ${hasHiddenEntries ? "is-hidden" : ""}`} aria-label={hasHiddenEntries ? "Total hidden" : `Total ${entryTotal}`}>
+            <span aria-hidden="true">Σ</span> {hasHiddenEntries ? "•••" : entryTotal}
+          </span>
         )}
       </div>
     );
