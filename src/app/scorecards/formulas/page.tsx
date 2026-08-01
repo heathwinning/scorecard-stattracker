@@ -3,7 +3,7 @@ import Link from "next/link";
 const examples = [
   {
     title: "Total a player’s rounds",
-    formula: "SUM(round_*)",
+    formula: "sum(round_score)",
     description: "Adds every entered round for the current player. Use this for a final total after repeatable round rows.",
   },
   {
@@ -13,13 +13,13 @@ const examples = [
   },
   {
     title: "Combine fields",
-    formula: "bird_points + SUM(bonus_*) + eggs",
+    formula: "bird_points + sum(bonus) + eggs",
     description: "Adds individual fields and all entries from a list field for the current player.",
   },
   {
     title: "Shared calculated result",
-    formula: "SUM(buy_in_*)",
-    description: "Choose “All players: Buy-in” in the field search, then enable “One shared calculated result”. This explicitly adds that field across every player.",
+    formula: "players(buy_in)",
+    description: "Choose “All players total: Buy-in” in the field search. Use player(buy_in, 1) to reference one player column directly.",
   },
 ];
 
@@ -42,7 +42,7 @@ export default function FormulaExamplesPage() {
 
       <section className="mt-6 rounded-xl border border-indigo-100 bg-indigo-50 p-4 text-sm leading-relaxed text-indigo-900">
         <h2 className="font-semibold">Available functions</h2>
-        <p className="mt-1"><code>SUM</code>, <code>AVG</code>, <code>MIN</code>, <code>MAX</code>, and <code>COUNT</code> work with selected fields and repeatable-field patterns such as <code>round_*</code>.</p>
+        <p className="mt-1"><code>sum</code>, <code>avg</code>, <code>min</code>, <code>max</code>, and <code>count</code> work with named fields. List fields can be summed with <code>sum(bonus)</code>; use <code>player(bonus, 1)</code> for one player or <code>players(bonus)</code> for everyone.</p>
       </section>
     </main>
   );

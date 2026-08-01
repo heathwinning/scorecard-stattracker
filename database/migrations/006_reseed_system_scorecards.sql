@@ -127,7 +127,7 @@ ON CONFLICT(id) DO UPDATE SET name=excluded.name, description=excluded.descripti
 INSERT INTO template_cells (id, template_id, row_pos, col_pos, row_span, col_span, cell_type, cell_key, label, formula_expr, per_player, config_json, sort_order) VALUES
 ('uno-ln', 'uno', 1, 0, 1, 1, 'label', 'lbl_name', 'Player', NULL, 0, '{}', 1),
 ('uno-lt', 'uno', 1, 1, 1, 1, 'label', 'lbl_total', 'Total', NULL, 0, '{}', 2),
-('uno-ft', 'uno', 2, 1, 1, 1, 'formula', 'player_total', 'Total', 'SUM(round_*)', 1, '{}', 14),
+('uno-ft', 'uno', 2, 1, 1, 1, 'formula', 'player_total', 'Total', 'SUM(round_1, round_2, round_3, round_4, round_5, round_6, round_7, round_8)', 1, '{}', 14),
 ('uno-rh', 'uno', 3, 0, 1, 8, 'heading', 'h_rounds', 'Rounds', NULL, 0, '{}', 5),
 ('uno-r1', 'uno', 4, 0, 1, 1, 'input:number', 'round_1', 'R1', NULL, 1, '{"default":0}', 6),
 ('uno-r2', 'uno', 4, 1, 1, 1, 'input:number', 'round_2', 'R2', NULL, 1, '{"default":0}', 7),
@@ -199,7 +199,7 @@ ON CONFLICT(id) DO UPDATE SET name=excluded.name, description=excluded.descripti
 INSERT INTO template_cells (id, template_id, row_pos, col_pos, row_span, col_span, cell_type, cell_key, label, formula_expr, per_player, config_json, sort_order) VALUES
 ('sc-ln', 'scrabble', 1, 0, 1, 1, 'label', 'lbl_name', 'Player', NULL, 0, '{}', 1),
 ('sc-lt', 'scrabble', 1, 2, 1, 1, 'label', 'lbl_total', 'Total', NULL, 0, '{}', 2),
-('sc-ft', 'scrabble', 2, 2, 1, 1, 'formula', 'player_total', 'Total', 'SUM(word_*)', 1, '{}', 21),
+('sc-ft', 'scrabble', 2, 2, 1, 1, 'formula', 'player_total', 'Total', 'SUM(word_1, word_2, word_3, word_4, word_5, word_6, word_7, word_8, word_9, word_10, word_11, word_12)', 1, '{}', 21),
 ('sc-wh', 'scrabble', 3, 0, 1, 3, 'heading', 'h_words', 'Words', NULL, 0, '{}', 5),
 ('sc-w1l', 'scrabble', 4, 0, 1, 1, 'input:text', 'word_1_name', 'Word', NULL, 1, '{"placeholder":"Word"}', 6),
 ('sc-w1s', 'scrabble', 4, 1, 1, 1, 'input:number', 'word_1', 'Score', NULL, 1, '{"default":0}', 7),
@@ -228,7 +228,7 @@ ON CONFLICT(id) DO UPDATE SET name=excluded.name, description=excluded.descripti
 INSERT INTO template_cells (id, template_id, row_pos, col_pos, row_span, col_span, cell_type, cell_key, label, formula_expr, per_player, config_json, sort_order) VALUES
 ('ch-ln', 'cornhole', 1, 0, 1, 1, 'label', 'lbl_team', 'Team', NULL, 0, '{}', 1),
 ('ch-ls', 'cornhole', 1, 1, 1, 1, 'label', 'lbl_score', 'Total Score', NULL, 0, '{}', 2),
-('ch-fs', 'cornhole', 2, 1, 1, 1, 'formula', 'total_score', 'Score', 'SUM(hole_*) * 3 + SUM(board_*)', 1, '{}', 18),
+('ch-fs', 'cornhole', 2, 1, 1, 1, 'formula', 'total_score', 'Score', 'SUM(hole_1, hole_2, hole_3, hole_4, hole_5, hole_6) * 3 + SUM(board_1, board_2, board_3, board_4, board_5, board_6)', 1, '{}', 18),
 ('ch-rh', 'cornhole', 3, 0, 1, 5, 'heading', 'h_rounds', 'Rounds', NULL, 0, '{}', 5),
 ('ch-r1h', 'cornhole', 4, 0, 1, 1, 'input:number', 'hole_1', 'R1 Hole', NULL, 1, '{"default":0}', 6),
 ('ch-r1b', 'cornhole', 4, 1, 1, 1, 'input:number', 'board_1', 'R1 Board', NULL, 1, '{"default":0}', 7),
@@ -261,9 +261,9 @@ INSERT INTO template_cells (id, template_id, row_pos, col_pos, row_span, col_spa
 ('pk-fn', 'poker', 2, 3, 1, 1, 'formula', 'net', '', 'cash_out - buy_in', 1, '{}', 8),
 ('pk-sh', 'poker', 3, 0, 1, 4, 'heading', 'h_summary', 'Summary', NULL, 0, '{}', 9),
 ('pk-sl', 'poker', 4, 0, 1, 1, 'label', 'lbl_totbuy', 'Total Buy-ins', NULL, 0, '{}', 10),
-('pk-fb', 'poker', 4, 1, 1, 1, 'formula', 'total_buyins', '', 'SUM(buy_in_*)', 0, '{}', 11),
+('pk-fb', 'poker', 4, 1, 1, 1, 'formula', 'total_buyins', '', 'PLAYERS(buy_in)', 0, '{}', 11),
 ('pk-sc', 'poker', 5, 0, 1, 1, 'label', 'lbl_totcash', 'Total Cash-outs', NULL, 0, '{}', 12),
-('pk-fc', 'poker', 5, 1, 1, 1, 'formula', 'total_cashouts', '', 'SUM(cash_out_*)', 0, '{}', 13),
+('pk-fc', 'poker', 5, 1, 1, 1, 'formula', 'total_cashouts', '', 'PLAYERS(cash_out)', 0, '{}', 13),
 ('pk-sh2', 'poker', 6, 0, 1, 1, 'label', 'lbl_house', 'House Balance', NULL, 0, '{}', 14),
 ('pk-fh', 'poker', 6, 1, 1, 1, 'formula', 'house_balance', '', 'total_buyins - total_cashouts', 0, '{}', 15)
 ON CONFLICT(id) DO UPDATE SET template_id=excluded.template_id, row_pos=excluded.row_pos, col_pos=excluded.col_pos, row_span=excluded.row_span, col_span=excluded.col_span, cell_type=excluded.cell_type, cell_key=excluded.cell_key, label=excluded.label, formula_expr=excluded.formula_expr, per_player=excluded.per_player, config_json=excluded.config_json, sort_order=excluded.sort_order;
@@ -280,7 +280,7 @@ INSERT INTO template_cells (id, template_id, row_pos, col_pos, row_span, col_spa
 ('p10-lp', 'phase10', 1, 1, 1, 1, 'label', 'lbl_phase', 'Current Phase', NULL, 0, '{}', 2),
 ('p10-lt', 'phase10', 1, 2, 1, 1, 'label', 'lbl_total', 'Total Score', NULL, 0, '{}', 3),
 ('p10-ip', 'phase10', 2, 1, 1, 1, 'tally', 'current_phase', '', NULL, 1, '{"min":1,"default":1,"step":1}', 5),
-('p10-ft', 'phase10', 2, 2, 1, 1, 'formula', 'total_score', 'Total', 'SUM(round_*)', 1, '{}', 18),
+('p10-ft', 'phase10', 2, 2, 1, 1, 'formula', 'total_score', 'Total', 'SUM(round_1, round_2, round_3, round_4, round_5, round_6, round_7, round_8, round_9, round_10)', 1, '{}', 18),
 ('p10-rh', 'phase10', 3, 0, 1, 6, 'heading', 'h_rounds', 'Round Scores', NULL, 0, '{}', 7),
 ('p10-r1', 'phase10', 4, 0, 1, 1, 'input:number', 'round_1', 'R1', NULL, 1, '{"default":0}', 8),
 ('p10-r2', 'phase10', 4, 1, 1, 1, 'input:number', 'round_2', 'R2', NULL, 1, '{"default":0}', 9),
@@ -304,7 +304,7 @@ ON CONFLICT(id) DO UPDATE SET name=excluded.name, description=excluded.descripti
 INSERT INTO template_cells (id, template_id, row_pos, col_pos, row_span, col_span, cell_type, cell_key, label, formula_expr, per_player, config_json, sort_order) VALUES
 ('gf-ln', 'golf', 1, 0, 1, 1, 'label', 'lbl_name', 'Player', NULL, 0, '{}', 1),
 ('gf-lt', 'golf', 1, 1, 1, 1, 'label', 'lbl_total', 'Total', NULL, 0, '{}', 2),
-('gf-ft', 'golf', 2, 1, 1, 1, 'formula', 'total_score', 'Total', 'SUM(hole_*)', 1, '{}', 15),
+('gf-ft', 'golf', 2, 1, 1, 1, 'formula', 'total_score', 'Total', 'SUM(hole_1, hole_2, hole_3, hole_4, hole_5, hole_6, hole_7, hole_8, hole_9)', 1, '{}', 15),
 ('gf-hh', 'golf', 3, 0, 1, 6, 'heading', 'h_holes', 'Holes', NULL, 0, '{}', 5),
 ('gf-h1', 'golf', 4, 0, 1, 1, 'input:number', 'hole_1', 'H1', NULL, 1, '{"default":0}', 6),
 ('gf-h2', 'golf', 4, 1, 1, 1, 'input:number', 'hole_2', 'H2', NULL, 1, '{"default":0}', 7),
@@ -360,7 +360,7 @@ INSERT INTO template_cells (id, template_id, row_pos, col_pos, row_span, col_spa
 ('ws-et', 'wingspan', 13, 0, 1, 1, 'input:number', 'eggs', 'Eggs', NULL, 1, '{"default":0,"section":true}', 8),
 ('ws-ft2', 'wingspan', 14, 0, 1, 1, 'input:number', 'cached_food', 'Cached Food', NULL, 1, '{"default":0,"section":true}', 9),
 ('ws-tt', 'wingspan', 15, 0, 1, 1, 'input:number', 'tucked_cards', 'Tucked Cards', NULL, 1, '{"default":0,"section":true}', 10),
-('ws-ft', 'wingspan', 2, 1, 1, 1, 'formula', 'grand_total', 'Total', 'bird_points + SUM(bonus_*) + round_1 + round_2 + round_3 + round_4 + eggs + cached_food + tucked_cards', 1, '{}', 11)
+('ws-ft', 'wingspan', 2, 1, 1, 1, 'formula', 'grand_total', 'Total', 'bird_points + SUM(bonus) + round_1 + round_2 + round_3 + round_4 + eggs + cached_food + tucked_cards', 1, '{}', 11)
 ON CONFLICT(id) DO UPDATE SET template_id=excluded.template_id, row_pos=excluded.row_pos, col_pos=excluded.col_pos, row_span=excluded.row_span, col_span=excluded.col_span, cell_type=excluded.cell_type, cell_key=excluded.cell_key, label=excluded.label, formula_expr=excluded.formula_expr, per_player=excluded.per_player, config_json=excluded.config_json, sort_order=excluded.sort_order;
 
 -- ============================================================
@@ -465,7 +465,7 @@ VALUES
 ON CONFLICT(id) DO UPDATE SET template_id=excluded.template_id, row_pos=excluded.row_pos, col_pos=excluded.col_pos, row_span=excluded.row_span, col_span=excluded.col_span, cell_type=excluded.cell_type, cell_key=excluded.cell_key, label=excluded.label, formula_expr=excluded.formula_expr, per_player=excluded.per_player, config_json=excluded.config_json, sort_order=excluded.sort_order;
 
 UPDATE template_cells
-SET formula_expr = 'bird_points + SUM(bonus_*) + round_1 + round_2 + round_3 + round_4 + eggs + cached_food + tucked_cards + nectar + hummingbirds + duet_map_bonus',
+SET formula_expr = 'bird_points + SUM(bonus) + round_1 + round_2 + round_3 + round_4 + eggs + cached_food + tucked_cards + nectar + hummingbirds + duet_map_bonus',
     sort_order = 100
 WHERE id = 'ws-ft';
 
@@ -715,8 +715,8 @@ WHERE cell_type IN ('input:text', 'input:number', 'tally');
 
 UPDATE template_cells
 SET formula_expr = CASE id
-  WHEN 'pk-fb' THEN 'SUM(buy_in_*)'
-  WHEN 'pk-fc' THEN 'SUM(cash_out_*)'
+  WHEN 'pk-fb' THEN 'PLAYERS(buy_in)'
+  WHEN 'pk-fc' THEN 'PLAYERS(cash_out)'
   ELSE formula_expr
 END
 WHERE id IN ('pk-fb', 'pk-fc');

@@ -19,8 +19,8 @@ const num = (v?: string) => {
  *
  * Context keys available inside formula expressions:
  * - `cell_key`           — for the current player (per-player evaluation)
- * - `cell_key_<playerId>`— a specific player's value
- * - `cell_key_<entryKey>`— individual entries of allow_multiple cells (current player)
+ * - `player(cell_key, 1)`— a specific player's value (one-based column index)
+ * - `players(cell_key)` — the total for that field across every player
  */
 export function computeFormulaResults(
   cells: TemplateCell[],
@@ -55,10 +55,11 @@ export function computeFormulaResults(
     const base: CellContext[] = [];
     perPlayerInputs.forEach(cell => {
       const multipleEntries = hasMultipleEntries(cell);
-      players.forEach(p => {
+      players.forEach((p, playerIndex) => {
         const entries = entriesFor(cell.id!, p.id!);
         const sum = entries.reduce((s, e) => s + num(e.value), 0);
-        base.push({ key: `${cell.cell_key}_${p.id}`, value: multipleEntries ? sum : num(entries[0]?.value) });
+        const value = multipleEntries ? sum : num(entries[0]?.value);
+        base.push({ key: `player_${playerIndex + 1}_${cell.cell_key}`, value, aggregate: false });
       });
     });
     staticInputs.forEach(cell =>
@@ -67,9 +68,9 @@ export function computeFormulaResults(
     // Previously-computed formula results under qualified keys.
     formulaCells.forEach(fc => {
       if (fc.per_player) {
-        players.forEach(p => {
+        players.forEach((p, playerIndex) => {
           const r = results[`${fc.id}:${p.id}`];
-          if (r !== undefined) base.push({ key: `${fc.cell_key}_${p.id}`, value: r, aggregate: false });
+          if (r !== undefined) base.push({ key: `player_${playerIndex + 1}_${fc.cell_key}`, value: r, aggregate: false });
         });
       } else if (results[fc.id!] !== undefined) {
         base.push({ key: fc.cell_key, value: results[fc.id!], aggregate: false });
@@ -79,12 +80,9 @@ export function computeFormulaResults(
     formulaCells.forEach(fc => {
       if (fc.per_player) {
         players.forEach(p => {
-          // Player-qualified values (for example `bonus_<playerId>`) remain
-          // available for an explicit reference, but must not participate in
-          // a wildcard such as `SUM(bonus_*)` while calculating one player's
-          // score. Otherwise that wildcard includes every player's aggregate
-          // plus the current player's individual entries, which both shares
-          // and double-counts list values.
+          // Player helper values remain available through player(field, index)
+          // and players(field), but never participate in a current player's
+          // aggregate. This keeps list totals strictly player-local.
           const ctx: CellContext[] = base.map(entry => ({ ...entry, aggregate: false }));
           // Unqualified keys resolve to the current player's values.
           perPlayerInputs.forEach(cell => {

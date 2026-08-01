@@ -26,8 +26,8 @@ function fieldLabel(cell: TemplateCell) {
 
 function formulaPreview(expression: string, fields: TemplateCell[]) {
   const knownKeys = new Set(fields.map(field => field.cell_key));
-  const safeExpression = expression.replace(/\b[A-Za-z_][A-Za-z0-9_]*\*?\b/g, identifier =>
-    knownKeys.has(identifier) || ["SUM", "AVG", "MIN", "MAX", "COUNT"].includes(identifier) ? identifier : "[Field]"
+  const safeExpression = expression.replace(/\b[A-Za-z_][A-Za-z0-9_]*\b/g, identifier =>
+    knownKeys.has(identifier) || ["SUM", "AVG", "MIN", "MAX", "COUNT", "sum", "avg", "min", "max", "count", "PLAYER", "PLAYERS", "player", "players"].includes(identifier) ? identifier : "[Field]"
   );
   return fields
     .slice()
@@ -102,8 +102,8 @@ function RowProperties({ cell, allFields, modules, onChange, onDelete }: {
     return { label: `This player: ${displayName}`, displayName, token: field.cell_key, aggregate: false };
   });
   const allPlayerSuggestions = fieldSuggestions.map(item => ({
-    label: `All players: ${item.displayName}`,
-    token: `SUM(${item.token}_*)`,
+    label: `All players total: ${item.displayName}`,
+    token: `PLAYERS(${item.token})`,
     aggregate: true,
   }));
   const functionSuggestions = [

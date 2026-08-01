@@ -3,8 +3,9 @@ import { Parser } from "expr-eval";
 /**
  * Formula engine powered by expr-eval.
  *
- * Custom aggregation functions (SUM, AVG, MIN, MAX, COUNT) resolve cell keys
- * — including wildcards like "round_*" — against the provided cell context.
+ * Custom aggregation functions resolve named fields in the provided cell
+ * context. List fields are already represented by their per-player total, so
+ * `SUM(bonus)` means "sum this player's bonus entries" without a wildcard.
  */
 
 export interface CellContext {
@@ -18,20 +19,9 @@ function buildCellMap(cells: CellContext[]): Map<string, number> {
   return new Map(cells.map((c) => [c.key, c.value]));
 }
 
-/** Expand an exact key or wildcard pattern to an array of numeric values. */
+/** Resolve one named field to its numeric value. */
 function resolveValues(key: string, cellMap: Map<string, number>): number[] {
   if (cellMap.has(key)) return [cellMap.get(key)!];
-
-  if (key.includes("*")) {
-    const regex = new RegExp(
-      "^" + key.replace(/\*/g, ".*").replace(/_/g, "_") + "$"
-    );
-    const vals: number[] = [];
-    for (const [k, v] of cellMap) {
-      if (regex.test(k)) vals.push(v);
-    }
-    return vals;
-  }
   return [];
 }
 
@@ -70,8 +60,40 @@ function createParser(cellMap: Map<string, number>, aggregateMap: Map<string, nu
 
   p.functions.COUNT = (...args: unknown[]) =>
     flattenArgs(args, aggregateMap).length;
+  p.functions.sum = p.functions.SUM;
+  p.functions.avg = p.functions.AVG;
+  p.functions.min = p.functions.MIN;
+  p.functions.max = p.functions.MAX;
+  p.functions.count = p.functions.COUNT;
+
+  const playerValue = (key: unknown, index: unknown) => {
+    if (typeof key !== "string" || typeof index !== "number" || !Number.isInteger(index) || index < 1) return 0;
+    return cellMap.get(`player_${index}_${key}`) ?? 0;
+  };
+  const allPlayersValue = (key: unknown) => {
+    if (typeof key !== "string") return 0;
+    const suffix = `_${key}`;
+    let total = 0;
+    for (const [contextKey, value] of cellMap) {
+      if (/^player_\d+_/.test(contextKey) && contextKey.endsWith(suffix)) total += value;
+    }
+    return total;
+  };
+  p.functions.PLAYER = playerValue;
+  p.functions.player = playerValue;
+  p.functions.PLAYERS = allPlayersValue;
+  p.functions.players = allPlayersValue;
 
   return p;
+}
+
+function normalizeFormulaExpression(expression: string): string {
+  // Pass a field key to player()/players() as a string rather than evaluating
+  // it in the current-player scope first. Player indexes are one-based, in
+  // the same order as scorecard columns.
+  return expression.trim()
+    .replace(/\bplayer\s*\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*,/gi, 'PLAYER("$1",')
+    .replace(/\bplayers\s*\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*\)/gi, 'PLAYERS("$1")');
 }
 
 /** Evaluate a formula expression. Returns 0 on any error. */
@@ -82,16 +104,11 @@ export function evaluateFormula(
   if (!expression?.trim()) return 0;
   try {
     const cellMap = buildCellMap(cells);
-    // Wildcard queries intentionally consider entered scores only. Formula
-    // results remain available as direct references, but are excluded so a
-    // subtotal cannot be counted again by a later wildcard total.
+    // Formula results remain addressable directly, but are excluded from
+    // aggregate functions so a subtotal cannot be counted again.
     const aggregateMap = buildCellMap(cells.filter(cell => cell.aggregate !== false));
     const parser = createParser(cellMap, aggregateMap);
-    // expr-eval treats `bonus_*` as invalid syntax unless the wildcard is
-    // passed as a string to the aggregation function. Template formulas use
-    // the concise wildcard form, so normalize only wildcard identifiers and
-    // leave ordinary variable references untouched.
-    const normalized = expression.trim().replace(/([A-Za-z_][A-Za-z0-9_]*\*)/g, '"$1"');
+    const normalized = normalizeFormulaExpression(expression);
     // Bare identifiers (e.g. `upper_subtotal + upper_bonus`) resolve against
     // the cell context. Only valid identifier keys are exposed as variables;
     // wildcard-only keys are resolved inside SUM/AVG/... via the cell map.
@@ -103,7 +120,7 @@ export function evaluateFormula(
     // is not selected. Treat their references as zero so a data-defined total
     // can safely include every optional category.
     for (const identifier of normalized.match(/[A-Za-z_][A-Za-z0-9_]*/g) || []) {
-      if (!(identifier in scope) && !["SUM", "AVG", "MIN", "MAX", "COUNT"].includes(identifier)) {
+      if (!(identifier in scope) && !["SUM", "AVG", "MIN", "MAX", "COUNT", "sum", "avg", "min", "max", "count", "PLAYER", "PLAYERS", "player", "players"].includes(identifier)) {
         scope[identifier] = 0;
       }
     }
@@ -124,7 +141,16 @@ export function validateFormula(expression: string): string | null {
     p.functions.MIN = () => 0;
     p.functions.MAX = () => 0;
     p.functions.COUNT = () => 0;
-    p.evaluate(expression.trim());
+    p.functions.sum = () => 0;
+    p.functions.avg = () => 0;
+    p.functions.min = () => 0;
+    p.functions.max = () => 0;
+    p.functions.count = () => 0;
+    p.functions.PLAYER = () => 0;
+    p.functions.player = () => 0;
+    p.functions.PLAYERS = () => 0;
+    p.functions.players = () => 0;
+    p.evaluate(normalizeFormulaExpression(expression));
     return null;
   } catch (err) {
     return err instanceof Error ? err.message : "Invalid formula";
