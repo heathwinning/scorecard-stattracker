@@ -162,7 +162,21 @@ export function validateFormula(expression: string): string | null {
     p.functions.player = () => 0;
     p.functions.PLAYERS = () => 0;
     p.functions.players = () => 0;
-    p.evaluate(normalizeFormulaExpression(expression));
+    const normalized = normalizeFormulaExpression(expression);
+    // Validation runs before a scorecard has any entered values, so formula
+    // fields such as `round_1` are not present in the evaluation scope yet.
+    // Give every identifier a harmless value while checking syntax and
+    // function calls; runtime evaluation supplies the real score context.
+    const scope: Record<string, number> = {};
+    for (const identifier of normalized.match(/[A-Za-z_][A-Za-z0-9_]*/g) || []) {
+      if (![
+        "SUM", "AVG", "MIN", "MAX", "COUNT", "sum", "avg", "min", "max", "count",
+        "PLAYER", "PLAYERS", "player", "players",
+      ].includes(identifier)) {
+        scope[identifier] = 0;
+      }
+    }
+    p.evaluate(normalized, scope);
     return null;
   } catch (err) {
     return err instanceof Error ? err.message : "Invalid formula";
