@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { listTemplates, type Template } from "@/lib/api-client";
 
 function QuickPickTemplates() {
@@ -26,6 +27,18 @@ function QuickPickTemplates() {
 }
 
 export default function Home() {
+  const router = useRouter();
+  const [joinCode, setJoinCode] = useState("");
+
+  const handleJoinGame = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const code = joinCode.trim().toUpperCase();
+
+    if (!code) return;
+
+    router.push(`/join/${encodeURIComponent(code)}`);
+  };
+
   return (
     <div>
       {/* Hero */}
@@ -39,7 +52,7 @@ export default function Home() {
           <p className="text-base sm:text-lg text-slate-500 mb-8 max-w-xl mx-auto leading-relaxed">
             Design custom scorecards with drag & drop. Track scores, tally points, and auto-calculate results for every game you play with friends.
           </p>
-          <div className="flex items-center justify-center gap-3">
+          <div className="flex flex-wrap items-center justify-center gap-3">
             <Link href="/scorecards" className="btn-primary text-base px-6 py-3 rounded-xl shadow-lg shadow-indigo-200">
               Browse Scorecards
             </Link>
@@ -47,6 +60,35 @@ export default function Home() {
               Sign in with Google
             </Link>
           </div>
+
+          <form
+            onSubmit={handleJoinGame}
+            className="mt-8 max-w-md mx-auto rounded-2xl border border-indigo-100 bg-white/90 p-3 shadow-sm backdrop-blur"
+          >
+            <label htmlFor="join-code" className="block text-sm font-semibold text-slate-800 mb-2">
+              Join a game
+            </label>
+            <div className="flex gap-2">
+              <input
+                id="join-code"
+                type="text"
+                value={joinCode}
+                onChange={event => setJoinCode(event.target.value.toUpperCase())}
+                placeholder="Enter join code"
+                autoComplete="off"
+                autoCapitalize="characters"
+                maxLength={10}
+                className="input-field min-w-0 flex-1 font-mono font-semibold tracking-widest uppercase"
+                aria-describedby="join-code-help"
+              />
+              <button type="submit" className="btn-primary shrink-0 px-4">
+                Join Game
+              </button>
+            </div>
+            <p id="join-code-help" className="mt-2 text-xs text-slate-500">
+              Enter the code shared by your game host.
+            </p>
+          </form>
         </div>
       </section>
 
