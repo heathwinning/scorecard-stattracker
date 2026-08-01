@@ -79,7 +79,13 @@ export function computeFormulaResults(
     formulaCells.forEach(fc => {
       if (fc.per_player) {
         players.forEach(p => {
-          const ctx = [...base];
+          // Player-qualified values (for example `bonus_<playerId>`) remain
+          // available for an explicit reference, but must not participate in
+          // a wildcard such as `SUM(bonus_*)` while calculating one player's
+          // score. Otherwise that wildcard includes every player's aggregate
+          // plus the current player's individual entries, which both shares
+          // and double-counts list values.
+          const ctx: CellContext[] = base.map(entry => ({ ...entry, aggregate: false }));
           // Unqualified keys resolve to the current player's values.
           perPlayerInputs.forEach(cell => {
             const multipleEntries = hasMultipleEntries(cell);
