@@ -131,7 +131,7 @@ function NewScorecardPageInner() {
       <div className="max-w-2xl mx-auto px-4 py-6 page-enter">
         <Link href="/scorecards" className="inline-flex items-center gap-1 text-xs text-slate-400 hover:text-slate-600">← Scorecards</Link>
         <h1 className="mt-3 text-xl font-bold tracking-tight text-slate-900">Configure {templateName}</h1>
-        <p className="mt-1 text-sm text-slate-500">Choose optional modules for this scorecard. The selected layout is saved with the game.</p>
+        <p className="mt-1 text-sm text-slate-500">Choose variations for this scorecard. The selected layout is saved with the game.</p>
         {templateRules.length > 0 && <div className="mt-5 space-y-3">{templateRules.map(rule => <label key={rule.rule_key} className="flex cursor-pointer items-start justify-between gap-3 rounded-xl border border-slate-200 bg-white p-4"><span><span className="block text-sm font-semibold text-slate-800">{rule.label}</span>{rule.help_text && <span className="mt-1 block text-xs text-slate-500">{rule.help_text}</span>}</span><input type="checkbox" checked={selectedRuleKeys.includes(rule.rule_key)} onChange={event => setSelectedRuleKeys(current => event.target.checked ? [...current, rule.rule_key] : current.filter(key => key !== rule.rule_key))} className="mt-1 h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" /></label>)}</div>}
         <button onClick={() => { setCells(resolveLayout(cells, templateRules, selectedRuleKeys).cells); setCreationStarted(true); }} className="btn-primary mt-6">Start scorecard</button>
       </div>

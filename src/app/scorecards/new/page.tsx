@@ -133,7 +133,7 @@ function TemplateNewPageInner({ params }: Props) {
               className="input-field text-sm">
               <option value="">No game linked</option>
               {games.map((g) => (
-                <option key={g.id} value={g.id}>{g.icon} {g.name}</option>
+                <option key={g.id} value={g.id}>{g.name}</option>
               ))}
             </select>
           </div>
@@ -152,11 +152,14 @@ function TemplateNewPageInner({ params }: Props) {
         </div>
       </div>
 
-      {/* Grid Builder */}
-      <GridBuilder cells={cells} onChange={setCells} />
       <div className="card mt-6 p-5">
-        <div className="flex items-center justify-between gap-3"><div><h2 className="text-sm font-semibold text-slate-900">Optional modules</h2><p className="mt-1 text-xs text-slate-500">Modules are selectable, data-defined scorecard overlays.</p></div><button type="button" onClick={() => setRules(current => [...current, { rule_key: `module_${current.length + 1}`, label: "New module", help_text: "", definition_json: { cells: [] }, sort_order: current.length }])} className="btn-secondary text-xs">+ Module</button></div>
-        <div className="mt-4 space-y-3">{rules.map((rule, index) => <div key={`${rule.rule_key}-${index}`} className="rounded-lg border border-slate-200 p-3"><div className="grid gap-2 sm:grid-cols-[1fr_1fr_1fr_auto]"><input className="input-field text-sm font-mono" value={rule.rule_key} placeholder="module key" onChange={e => setRules(current => current.map((item, i) => i === index ? { ...item, rule_key: e.target.value.replace(/[^a-z0-9_-]/gi, "_").toLowerCase() } : item))} /><input className="input-field text-sm" value={rule.label} placeholder="Module label" onChange={e => setRules(current => current.map((item, i) => i === index ? { ...item, label: e.target.value } : item))} /><input className="input-field text-sm" value={rule.help_text} placeholder="Help text" onChange={e => setRules(current => current.map((item, i) => i === index ? { ...item, help_text: e.target.value } : item))} /><button type="button" className="text-xs text-rose-600" onClick={() => setRules(current => current.filter((_, i) => i !== index))}>Remove</button></div><p className="mt-2 text-[11px] text-slate-500">Set the same optional module key on predeclared rows in the row properties. The JSON below can override any matching row’s label, help, formula, or layout for this module.</p><label className="mt-3 block text-[11px] font-semibold tracking-wider text-slate-500">Layout definition (JSON)<textarea className="input-field mt-1 h-24 font-mono text-xs" value={JSON.stringify(rule.definition_json, null, 2)} onChange={e => { try { const definition_json = JSON.parse(e.target.value); setRules(current => current.map((item, i) => i === index ? { ...item, definition_json } : item)); } catch {} }} placeholder='{"cells": [], "overrides": {}}' /></label></div>)}</div>
+        <div className="flex items-center justify-between gap-3"><div><h2 className="text-sm font-semibold text-slate-900">Variations</h2><p className="mt-1 text-xs text-slate-500">Use variations for expansions, alternate rules, or optional score sections.</p></div><button type="button" onClick={() => setRules(current => [...current, { rule_key: `variation_${crypto.randomUUID().replaceAll("-", "")}`, label: "New variation", help_text: "", definition_json: { cells: [] }, sort_order: current.length }])} className="btn-secondary text-xs">Add variation</button></div>
+        {rules.length === 0 ? <p className="mt-4 rounded-lg bg-slate-50 px-3 py-2 text-xs leading-relaxed text-slate-500">Create a variation, then choose it from a row’s “Show with variation” menu to make that row optional.</p> : <div className="mt-4 space-y-3">{rules.map((rule, index) => <div key={rule.rule_key} className="rounded-lg border border-slate-200 p-3"><div className="grid gap-2 sm:grid-cols-[1fr_1fr_auto]"><input className="input-field text-sm" value={rule.label} placeholder="Variation name, e.g. Oceania expansion" onChange={event => setRules(current => current.map((item, itemIndex) => itemIndex === index ? { ...item, label: event.target.value } : item))} /><input className="input-field text-sm" value={rule.help_text} placeholder="Brief explanation for players" onChange={event => setRules(current => current.map((item, itemIndex) => itemIndex === index ? { ...item, help_text: event.target.value } : item))} /><button type="button" className="text-xs text-rose-600 hover:text-rose-700" onClick={() => { setRules(current => current.filter((_, itemIndex) => itemIndex !== index)); setCells(current => current.map(cell => (cell.config_json as Record<string, unknown>)?.rule_key === rule.rule_key ? { ...cell, config_json: { ...cell.config_json, rule_key: undefined } } : cell)); }}>Remove</button></div><p className="mt-2 text-[11px] text-slate-500">Assign score rows to this variation from their “Show with variation” menu.</p></div>)}</div>}
+      </div>
+
+      {/* Grid Builder */}
+      <div className="mt-6">
+        <GridBuilder cells={cells} modules={rules} onChange={setCells} />
       </div>
     </div>
   );
