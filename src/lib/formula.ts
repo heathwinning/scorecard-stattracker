@@ -11,6 +11,8 @@ import { Parser } from "expr-eval";
 export interface CellContext {
   key: string;
   value: number;
+  /** Individual values for a repeatable/list field. */
+  items?: number[];
   /** Formula results are addressable directly, but excluded from wildcard sums. */
   aggregate?: boolean;
 }
@@ -30,14 +32,20 @@ function flattenArgs(
   args: unknown[],
   cellMap: Map<string, number>
 ): number[] {
-  return args.flatMap((arg) => {
+  const flatten = (arg: unknown): number[] => {
     if (typeof arg === "string") return resolveValues(arg, cellMap);
     if (typeof arg === "number") return [arg];
+    if (Array.isArray(arg)) return arg.flatMap(flatten);
     return [];
-  });
+  };
+  return args.flatMap(flatten);
 }
 
-function createParser(cellMap: Map<string, number>, aggregateMap: Map<string, number>): Parser {
+function createParser(
+  cellMap: Map<string, number>,
+  aggregateMap: Map<string, number>,
+  listMap: Map<string, number[]>
+): Parser {
   const p = new Parser();
 
   p.functions.SUM = (...args: unknown[]) =>
@@ -67,17 +75,20 @@ function createParser(cellMap: Map<string, number>, aggregateMap: Map<string, nu
   p.functions.count = p.functions.COUNT;
 
   const playerValue = (key: unknown, index: unknown) => {
-    if (typeof key !== "string" || typeof index !== "number" || !Number.isInteger(index) || index < 1) return 0;
-    return cellMap.get(`player_${index}_${key}`) ?? 0;
+    if (typeof key !== "string" || typeof index !== "number" || !Number.isInteger(index) || index < 1) return [];
+    const playerKey = `player_${index}_${key}`;
+    return listMap.get(playerKey) ?? [cellMap.get(playerKey) ?? 0];
   };
   const allPlayersValue = (key: unknown) => {
-    if (typeof key !== "string") return 0;
+    if (typeof key !== "string") return [];
     const suffix = `_${key}`;
-    let total = 0;
+    const values: number[] = [];
     for (const [contextKey, value] of cellMap) {
-      if (/^player_\d+_/.test(contextKey) && contextKey.endsWith(suffix)) total += value;
+      if (/^player_\d+_/.test(contextKey) && contextKey.endsWith(suffix)) {
+        values.push(...(listMap.get(contextKey) ?? [value]));
+      }
     }
-    return total;
+    return values;
   };
   p.functions.PLAYER = playerValue;
   p.functions.player = playerValue;
@@ -107,7 +118,8 @@ export function evaluateFormula(
     // Formula results remain addressable directly, but are excluded from
     // aggregate functions so a subtotal cannot be counted again.
     const aggregateMap = buildCellMap(cells.filter(cell => cell.aggregate !== false));
-    const parser = createParser(cellMap, aggregateMap);
+    const listMap = new Map(cells.flatMap(cell => cell.items ? [[cell.key, cell.items] as const] : []));
+    const parser = createParser(cellMap, aggregateMap, listMap);
     const normalized = normalizeFormulaExpression(expression);
     // Bare identifiers (e.g. `upper_subtotal + upper_bonus`) resolve against
     // the cell context. Only valid identifier keys are exposed as variables;

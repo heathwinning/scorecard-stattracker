@@ -57,9 +57,9 @@ export function computeFormulaResults(
       const multipleEntries = hasMultipleEntries(cell);
       players.forEach((p, playerIndex) => {
         const entries = entriesFor(cell.id!, p.id!);
-        const sum = entries.reduce((s, e) => s + num(e.value), 0);
-        const value = multipleEntries ? sum : num(entries[0]?.value);
-        base.push({ key: `player_${playerIndex + 1}_${cell.cell_key}`, value, aggregate: false });
+        const items = multipleEntries ? entries.map(entry => num(entry.value)) : [num(entries[0]?.value)];
+        const value = items.reduce((sum, item) => sum + item, 0);
+        base.push({ key: `player_${playerIndex + 1}_${cell.cell_key}`, value, items, aggregate: false });
       });
     });
     staticInputs.forEach(cell =>

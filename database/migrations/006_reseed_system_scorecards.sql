@@ -261,9 +261,9 @@ INSERT INTO template_cells (id, template_id, row_pos, col_pos, row_span, col_spa
 ('pk-fn', 'poker', 2, 3, 1, 1, 'formula', 'net', '', 'cash_out - buy_in', 1, '{}', 8),
 ('pk-sh', 'poker', 3, 0, 1, 4, 'heading', 'h_summary', 'Summary', NULL, 0, '{}', 9),
 ('pk-sl', 'poker', 4, 0, 1, 1, 'label', 'lbl_totbuy', 'Total Buy-ins', NULL, 0, '{}', 10),
-('pk-fb', 'poker', 4, 1, 1, 1, 'formula', 'total_buyins', '', 'PLAYERS(buy_in)', 0, '{}', 11),
+('pk-fb', 'poker', 4, 1, 1, 1, 'formula', 'total_buyins', '', 'SUM(PLAYERS(buy_in))', 0, '{}', 11),
 ('pk-sc', 'poker', 5, 0, 1, 1, 'label', 'lbl_totcash', 'Total Cash-outs', NULL, 0, '{}', 12),
-('pk-fc', 'poker', 5, 1, 1, 1, 'formula', 'total_cashouts', '', 'PLAYERS(cash_out)', 0, '{}', 13),
+('pk-fc', 'poker', 5, 1, 1, 1, 'formula', 'total_cashouts', '', 'SUM(PLAYERS(cash_out))', 0, '{}', 13),
 ('pk-sh2', 'poker', 6, 0, 1, 1, 'label', 'lbl_house', 'House Balance', NULL, 0, '{}', 14),
 ('pk-fh', 'poker', 6, 1, 1, 1, 'formula', 'house_balance', '', 'total_buyins - total_cashouts', 0, '{}', 15)
 ON CONFLICT(id) DO UPDATE SET template_id=excluded.template_id, row_pos=excluded.row_pos, col_pos=excluded.col_pos, row_span=excluded.row_span, col_span=excluded.col_span, cell_type=excluded.cell_type, cell_key=excluded.cell_key, label=excluded.label, formula_expr=excluded.formula_expr, per_player=excluded.per_player, config_json=excluded.config_json, sort_order=excluded.sort_order;
@@ -715,8 +715,8 @@ WHERE cell_type IN ('input:text', 'input:number', 'tally');
 
 UPDATE template_cells
 SET formula_expr = CASE id
-  WHEN 'pk-fb' THEN 'PLAYERS(buy_in)'
-  WHEN 'pk-fc' THEN 'PLAYERS(cash_out)'
+  WHEN 'pk-fb' THEN 'SUM(PLAYERS(buy_in))'
+  WHEN 'pk-fc' THEN 'SUM(PLAYERS(cash_out))'
   ELSE formula_expr
 END
 WHERE id IN ('pk-fb', 'pk-fc');

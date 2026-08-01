@@ -103,7 +103,7 @@ function RowProperties({ cell, allFields, modules, onChange, onDelete }: {
   });
   const allPlayerSuggestions = fieldSuggestions.map(item => ({
     label: `All players total: ${item.displayName}`,
-    token: `PLAYERS(${item.token})`,
+    token: `sum(players(${item.token}))`,
     aggregate: true,
   }));
   const functionSuggestions = [

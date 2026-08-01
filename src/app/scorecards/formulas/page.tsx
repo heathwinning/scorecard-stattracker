@@ -18,8 +18,8 @@ const examples = [
   },
   {
     title: "Shared calculated result",
-    formula: "players(buy_in)",
-    description: "Choose “All players total: Buy-in” in the field search. Use player(buy_in, 1) to reference one player column directly.",
+    formula: "sum(players(buy_in))",
+    description: "Choose “All players total: Buy-in” in the field search. Use sum(player(buy_in, 1)) to total one player’s entries.",
   },
 ];
 
@@ -42,7 +42,7 @@ export default function FormulaExamplesPage() {
 
       <section className="mt-6 rounded-xl border border-indigo-100 bg-indigo-50 p-4 text-sm leading-relaxed text-indigo-900">
         <h2 className="font-semibold">Available functions</h2>
-        <p className="mt-1"><code>sum</code>, <code>avg</code>, <code>min</code>, <code>max</code>, and <code>count</code> work with named fields. List fields can be summed with <code>sum(bonus)</code>; use <code>player(bonus, 1)</code> for one player or <code>players(bonus)</code> for everyone.</p>
+        <p className="mt-1"><code>sum</code>, <code>avg</code>, <code>min</code>, <code>max</code>, and <code>count</code> work with named fields. List fields can be summed with <code>sum(bonus)</code>; use <code>sum(player(bonus, 1))</code> for one player or <code>sum(players(bonus))</code> for everyone.</p>
       </section>
     </main>
   );
