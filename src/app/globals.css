@@ -46,6 +46,107 @@
     @apply card border-l-4 border-l-indigo-500;
   }
 
+  /* ---- Scorecard grid (unified, hand-rolled) ---- */
+  /* On desktop the card hugs its grid rather than stretching to the page
+     container. It still grows naturally for extra player columns. */
+  .sg-shell { @apply mx-auto w-fit max-w-full overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-lg shadow-slate-200/40; }
+
+  .sg-toolbar { @apply flex min-h-[38px] flex-wrap items-center justify-between gap-1.5 border-b border-slate-100 bg-white px-2 py-1; }
+  .sg-toolbar-title { @apply flex items-center gap-2 text-xs font-bold text-slate-700; }
+  .sg-live-dot { @apply h-2 w-2 rounded-full bg-emerald-400; animation: sg-pulse 2s ease-in-out infinite; }
+  .sg-player-count { @apply rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-500; }
+  .sg-toolbar-actions { @apply flex items-center gap-1.5; }
+  .sg-btn { @apply inline-flex min-h-[28px] items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-semibold text-slate-500 transition hover:bg-slate-100 hover:text-slate-800 active:scale-95; }
+  .sg-btn-primary { @apply text-indigo-600 hover:bg-indigo-50 hover:text-indigo-700; }
+  .sg-btn-label { @apply hidden sm:inline; }
+  .sg-toggle { @apply flex rounded-lg bg-slate-100 p-0.5; }
+  .sg-toggle button { @apply min-h-[24px] rounded-md px-2 text-[11px] font-medium text-slate-500 transition hover:text-slate-800; }
+  .sg-toggle button.is-active { @apply bg-white text-indigo-700 shadow-sm; }
+
+  .sg-scroll { @apply relative w-full overflow-x-auto overscroll-x-contain; -webkit-overflow-scrolling: touch; max-height: min(65dvh, 620px); overflow-y: auto; }
+  .sg-table { @apply w-max border-collapse; }
+  .sg-th { @apply sticky top-0 z-20 border-b border-slate-200 bg-slate-50/95 px-1 py-1 text-center text-[11px] font-bold text-slate-500 backdrop-blur; }
+  .sg-th-label { @apply left-0 z-30 min-w-[88px] max-w-[32vw] bg-indigo-50/95 text-left sm:min-w-[132px] sm:max-w-[260px]; }
+  .sg-th-player { @apply min-w-[64px] sm:min-w-[88px]; }
+  .sg-th-player.is-mine { @apply text-indigo-700; }
+  .sg-th-player.is-faded { @apply text-slate-300; }
+
+  .sg-player-header { @apply flex items-center justify-center gap-0.5; }
+  .sg-player-name { @apply block max-w-[110px] truncate text-[11px] font-bold text-slate-700; }
+  .sg-player-input { @apply w-12 min-w-0 max-w-full rounded-md border border-transparent bg-transparent px-0.5 py-0.5 text-center text-[11px] font-bold text-slate-700 outline-none transition hover:border-slate-200 focus:border-indigo-300 focus:bg-white focus:ring-2 focus:ring-indigo-100 sm:w-full sm:max-w-[110px] sm:px-1; }
+  .sg-player-remove { @apply flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-slate-300 transition hover:bg-rose-50 hover:text-rose-500; }
+
+  .sg-row { @apply border-b border-slate-100; }
+  .sg-row:last-child { @apply border-b-0; }
+  .sg-row:hover .sg-td { @apply bg-slate-50/70; }
+  .sg-row-heading .sg-td { @apply bg-indigo-50/50; }
+  .sg-row-section .sg-td { @apply bg-indigo-50/30; }
+  .sg-row-total .sg-td { @apply border-t-2 border-t-indigo-200 bg-indigo-50/60; }
+  /* Keep each scorecard's final calculated score in view within the scrolling
+     grid, including long templates such as Yahtzee. */
+  .sg-row-final-total .sg-td { @apply sticky bottom-0 z-20 border-t-2 border-t-indigo-300 bg-indigo-100/95 shadow-[0_-2px_8px_rgba(99,102,241,0.12)]; }
+
+  .sg-td { @apply bg-white px-1 py-0.5 text-center align-middle transition-colors; }
+  .sg-td-label { @apply sticky left-0 z-10 max-w-[32vw] whitespace-nowrap bg-white px-2 text-left sm:max-w-[45vw]; box-shadow: 1px 0 0 0 theme("colors.slate.200"); }
+  .sg-row-heading .sg-td-label, .sg-row-section .sg-td-label { background: #f2f4fe; }
+  .sg-row-total .sg-td-label { background: #eef1fd; }
+  .sg-row-final-total .sg-td-label { @apply z-30 bg-indigo-100/95; }
+  .sg-row:hover .sg-td-label { background: #f6f8fb; }
+
+  .sg-label { @apply block truncate text-[12px] font-medium text-slate-700; }
+  .sg-label-wrap { @apply flex min-w-0 items-center gap-1; }
+  .sg-label-wrap > .sg-label { @apply min-w-0; }
+  .sg-label.is-child { @apply pl-3 text-[11px] font-normal text-slate-500; }
+  .sg-label.is-section { @apply font-semibold text-indigo-700; }
+  .sg-label.is-total { @apply font-bold text-slate-900; }
+  .sg-label-heading { @apply text-[12px] font-bold text-indigo-700; }
+  .sg-help { @apply relative shrink-0; }
+  .sg-help-trigger { @apply flex h-3.5 w-3.5 items-center justify-center rounded-full border border-slate-300 bg-white text-[8px] font-bold leading-none text-slate-400 transition hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100; }
+  /* Rendered in a portal and positioned beside its triggering row, outside
+     the scroll container, so it is both obvious and never clipped. */
+  .sg-help-popover { @apply pointer-events-none fixed z-[60] whitespace-normal break-words rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-left text-[11px] font-normal leading-relaxed text-white shadow-xl; }
+
+  .sg-value { @apply text-[13px] font-medium tabular-nums text-slate-800; }
+  .sg-value.is-faded { @apply text-slate-300; }
+  .sg-value.is-mine { @apply font-bold text-indigo-700; }
+  .sg-formula { @apply inline-block min-w-[2.25rem] rounded-md bg-indigo-50 px-2 py-1 text-[13px] font-bold tabular-nums text-indigo-700; }
+  .sg-formula.is-faded { @apply bg-transparent text-slate-300; }
+  .sg-hidden { @apply text-[13px] font-bold tracking-widest text-slate-300; }
+  .sg-preview-ghost { @apply text-[12px] text-slate-300; }
+
+  /* Numeric fields only wrap the entered value; text fields retain room for
+     labels/notes. This keeps the hover and focus surface intentional rather
+     than spanning an entire score column. */
+  .sg-input { @apply max-w-full rounded-md border border-transparent bg-transparent px-0.5 py-1 text-center font-semibold tabular-nums text-slate-900 outline-none transition hover:border-slate-200 hover:bg-white focus:border-indigo-300 focus:bg-white focus:ring-2 focus:ring-indigo-100; font-size: 13px; }
+  .sg-input.sg-input-number { @apply w-10 sm:w-12; }
+  .sg-input.sg-input-text { @apply w-full; }
+  .sg-pill-input { @apply w-10 bg-transparent text-center font-semibold tabular-nums text-slate-700 outline-none; font-size: 12px; }
+  /* Mobile retains a stable, easy-to-target full-width surface even when a
+     scorecard currently has only one player. */
+  @media (max-width: 639px) {
+    /* Keep narrow score columns at their intrinsic width. The card grows for
+       more players up to the viewport and then the existing scroll area takes
+       over instead of distributing spare width into every column. */
+    .sg-shell { width: fit-content; min-width: min(300px, 100%); }
+    .sg-table { min-width: 0; }
+  }
+
+  .sg-tally { @apply inline-flex items-center gap-0.5 rounded-lg border border-slate-200 bg-white p-0.5 shadow-sm; }
+  .sg-tally-btn { @apply flex h-7 w-7 items-center justify-center rounded-md text-base font-bold text-slate-400 transition hover:bg-indigo-50 hover:text-indigo-600 active:scale-90 sm:h-6 sm:w-6 sm:text-sm; }
+  .sg-tally-value { @apply min-w-7 text-center text-[13px] font-bold tabular-nums text-slate-800; }
+
+  .sg-multi { @apply flex flex-wrap items-center justify-center gap-0.5; }
+  .sg-pill { @apply inline-flex items-center rounded-full border border-indigo-100 bg-indigo-50/70 px-1 py-0; }
+  .sg-pill-remove { @apply ml-0.5 px-0.5 text-xs leading-none text-slate-300 transition hover:text-rose-500; }
+  .sg-pill-add { @apply flex h-6 w-6 items-center justify-center rounded-full border border-dashed border-indigo-200 text-xs font-bold text-indigo-500 transition hover:border-indigo-400 hover:bg-indigo-50 hover:text-indigo-700; }
+
+  .sg-footer { @apply flex min-h-[24px] items-center justify-end gap-1.5 border-t border-slate-100 bg-slate-50/80 px-2 py-0.5; }
+  .sg-footer-hint { @apply text-[10px] text-slate-400; }
+  .sg-footer-saved { @apply text-[10px] font-semibold text-emerald-500; }
+  .sg-footer-error { @apply flex h-4 w-4 items-center justify-center rounded-full bg-rose-100 text-[10px] font-bold text-rose-600; }
+
+  .sg-flash { animation: sg-flash-bg 1.4s ease-out; }
+
   /* ---- Badges ---- */
   .badge {
     @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium;
@@ -62,7 +163,7 @@
 
   /* ---- Section Headers ---- */
   .section-header {
-    @apply text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-2;
+    @apply text-[11px] font-semibold tracking-wider text-slate-400 mb-2;
   }
 
   /* ---- Empty States ---- */
@@ -117,6 +218,14 @@
 }
 
 /* ---- Animations ---- */
+@keyframes sg-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+@keyframes sg-flash-bg {
+  0% { background-color: rgb(224 231 255); }
+  100% { background-color: transparent; }
+}
 @keyframes fade-in {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }

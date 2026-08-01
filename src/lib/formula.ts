@@ -79,8 +79,21 @@ export function evaluateFormula(
 ): number {
   if (!expression?.trim()) return 0;
   try {
-    const parser = createParser(buildCellMap(cells));
-    const result = parser.evaluate(expression.trim());
+    const cellMap = buildCellMap(cells);
+    const parser = createParser(cellMap);
+    // expr-eval treats `bonus_*` as invalid syntax unless the wildcard is
+    // passed as a string to the aggregation function. Template formulas use
+    // the concise wildcard form, so normalize only wildcard identifiers and
+    // leave ordinary variable references untouched.
+    const normalized = expression.trim().replace(/([A-Za-z_][A-Za-z0-9_]*\*)/g, '"$1"');
+    // Bare identifiers (e.g. `upper_subtotal + upper_bonus`) resolve against
+    // the cell context. Only valid identifier keys are exposed as variables;
+    // wildcard-only keys are resolved inside SUM/AVG/... via the cell map.
+    const scope: Record<string, number> = {};
+    for (const [key, value] of cellMap) {
+      if (/^[A-Za-z_][A-Za-z0-9_]*$/.test(key)) scope[key] = value;
+    }
+    const result = parser.evaluate(normalized, scope);
     return Math.round((typeof result === "number" ? result : 0) * 100) / 100;
   } catch {
     return 0;

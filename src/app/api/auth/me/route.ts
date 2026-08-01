@@ -9,6 +9,13 @@ export async function GET(request: NextRequest) {
   const user = await getUserFromCookies(cookieHeader);
 
   if (user) {
+    // Ensure user exists in DB (session may predate a DB reset)
+    const db = getDB();
+    await execute(
+      db,
+      `INSERT OR IGNORE INTO users (id, email, name, avatar_url) VALUES (?1, ?2, ?3, ?4)`,
+      [user.id, user.email, user.name, user.avatar_url]
+    );
     return NextResponse.json({
       user: {
         id: user.id,

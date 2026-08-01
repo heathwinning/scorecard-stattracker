@@ -121,12 +121,12 @@ function TemplateNewPageInner({ params }: Props) {
       <div className="card p-5 mb-6">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="sm:col-span-2">
-            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1.5">Scorecard Name</label>
+            <label className="text-xs font-semibold text-slate-500 tracking-wider block mb-1.5">Scorecard Name</label>
             <input type="text" value={name} onChange={(e) => setName(e.target.value)}
               className="input-field font-medium" placeholder="e.g. Poker Night, Team Match, Scrabble" />
           </div>
           <div>
-            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1.5">Game (optional)</label>
+            <label className="text-xs font-semibold text-slate-500 tracking-wider block mb-1.5">Game (optional)</label>
             <select value={gameId} onChange={(e) => setGameId(e.target.value)}
               className="input-field text-sm">
               <option value="">No game linked</option>
@@ -144,7 +144,7 @@ function TemplateNewPageInner({ params }: Props) {
           </label>
         </div>
         <div className="mt-3">
-          <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1.5">Description (optional)</label>
+          <label className="text-xs font-semibold text-slate-500 tracking-wider block mb-1.5">Description (optional)</label>
           <input type="text" value={description} onChange={(e) => setDescription(e.target.value)}
             className="input-field" placeholder="Brief description of this scorecard layout" />
         </div>

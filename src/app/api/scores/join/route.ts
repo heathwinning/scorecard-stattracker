@@ -4,101 +4,95 @@ import { getDB, queryFirst, queryAll, execute } from "@/lib/db";
 
 export const runtime = "edge";
 
-// POST /api/scorecards/join — join a shared scorecard via code
+type Player = { id: string; player_name: string; sort_order: number };
+type Participant = { id: string; player_slot_id: string | null };
+
+// POST /api/scores/join — become a participant and, for slots mode, claim an
+// existing host-created player seat.
 export async function POST(request: NextRequest) {
-  const cookieHeader = request.headers.get("cookie");
-  const user = await getUserFromCookies(cookieHeader);
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const user = await getUserFromCookies(request.headers.get("cookie"));
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { share_code, player_slot_id, player_name } = await request.json() as {
+    share_code?: string;
+    player_slot_id?: string;
+    player_name?: string;
+  };
+  if (!share_code?.trim()) return NextResponse.json({ error: "Share code required" }, { status: 400 });
 
   const db = getDB();
-  const body = await request.json();
-  const { share_code, player_name } = body;
-
-  if (!share_code || typeof share_code !== "string") {
-    return NextResponse.json({ error: "Share code required" }, { status: 400 });
-  }
-
-  // Find scorecard by share code
-  const scorecard = await queryFirst<{ id: string; created_by: string; title: string }>(
+  const scorecard = await queryFirst<{ id: string; sharing_mode: "shared" | "slots" }>(
     db,
-    "SELECT id, created_by, title FROM scorecards WHERE share_code = ?1",
+    "SELECT id, sharing_mode FROM scorecards WHERE share_code = ?1",
     [share_code.trim().toUpperCase()]
   );
+  if (!scorecard) return NextResponse.json({ error: "Invalid share code" }, { status: 404 });
 
-  if (!scorecard) {
-    return NextResponse.json({ error: "Invalid share code" }, { status: 404 });
-  }
+  const players = async () => queryAll<Player>(
+    db,
+    "SELECT id, player_name, sort_order FROM scorecard_players WHERE scorecard_id = ?1 ORDER BY sort_order",
+    [scorecard.id]
+  );
+  const response = async (participant: Participant) => {
+    const allPlayers = await players();
+    const taken = await queryAll<{ player_slot_id: string }>(
+      db,
+      "SELECT player_slot_id FROM scorecard_participants WHERE scorecard_id = ?1 AND player_slot_id IS NOT NULL",
+      [scorecard.id]
+    );
+    const slot = participant.player_slot_id
+      ? allPlayers.find(p => p.id === participant.player_slot_id)
+      : undefined;
+    return NextResponse.json({
+      scorecard_id: scorecard.id,
+      sharing_mode: scorecard.sharing_mode,
+      player_slot_id: participant.player_slot_id,
+      player_name: slot?.player_name || null,
+      players: allPlayers,
+      taken_slot_ids: taken.map(p => p.player_slot_id),
+    });
+  };
 
-  // Check if already a participant
-  const existing = await queryFirst<{ id: string; player_slot_id: string | null }>(
+  let participant = await queryFirst<Participant>(
     db,
     "SELECT id, player_slot_id FROM scorecard_participants WHERE scorecard_id = ?1 AND user_id = ?2",
     [scorecard.id, user.id]
   );
-
-  if (existing) {
-    let playerName: string | null = null;
-    let slotId: string | null = existing.player_slot_id;
-    if (slotId) {
-      const slot = await queryFirst<{ player_name: string }>(
-        db,
-        "SELECT player_name FROM scorecard_players WHERE id = ?1",
-        [slotId]
-      );
-      playerName = slot?.player_name || null;
-    }
-    return NextResponse.json({
-      scorecard_id: scorecard.id,
-      player_slot_id: slotId,
-      player_name: playerName,
-    });
+  if (!participant) {
+    const id = crypto.randomUUID();
+    await execute(
+      db,
+      "INSERT INTO scorecard_participants (id, scorecard_id, user_id, role) VALUES (?1, ?2, ?3, 'player')",
+      [id, scorecard.id, user.id]
+    );
+    participant = { id, player_slot_id: null };
   }
 
-  // Add as participant
-  const participantId = crypto.randomUUID();
-  await execute(
+  // Shared games require no seat: participants can immediately edit every
+  // player column, and the host retains the player roster.
+  if (scorecard.sharing_mode === "shared") return response(participant);
+
+  // Slots mode: return the available seats until the player explicitly picks
+  // one. Never silently create a new seat here.
+  if (!player_slot_id) return response(participant);
+
+  const slot = await queryFirst<Player>(
     db,
-    `INSERT OR IGNORE INTO scorecard_participants (id, scorecard_id, user_id, role)
-     VALUES (?1, ?2, ?3, 'player')`,
-    [participantId, scorecard.id, user.id]
+    "SELECT id, player_name, sort_order FROM scorecard_players WHERE id = ?1 AND scorecard_id = ?2",
+    [player_slot_id, scorecard.id]
   );
+  if (!slot) return NextResponse.json({ error: "Invalid player seat" }, { status: 400 });
 
-  // If player_name provided, create a new player slot
-  if (player_name && player_name.trim()) {
-    const chosenName = player_name.trim();
-    const slotId = crypto.randomUUID();
-    const sortOrder = await queryFirst<{ cnt: number }>(
-      db,
-      "SELECT COUNT(*) as cnt FROM scorecard_players WHERE scorecard_id = ?1",
-      [scorecard.id]
-    ).then(r => (r?.cnt ?? 0));
+  const claimed = await queryFirst<{ id: string }>(
+    db,
+    "SELECT id FROM scorecard_participants WHERE scorecard_id = ?1 AND player_slot_id = ?2 AND user_id != ?3",
+    [scorecard.id, player_slot_id, user.id]
+  );
+  if (claimed) return NextResponse.json({ error: "That seat has already been claimed" }, { status: 409 });
 
-    await execute(
-      db,
-      `INSERT INTO scorecard_players (id, scorecard_id, player_name, sort_order)
-       VALUES (?1, ?2, ?3, ?4)`,
-      [slotId, scorecard.id, chosenName, sortOrder]
-    );
-
-    // Assign the slot to the participant
-    await execute(
-      db,
-      "UPDATE scorecard_participants SET player_slot_id = ?1 WHERE id = ?2",
-      [slotId, participantId]
-    );
-
-    return NextResponse.json({
-      scorecard_id: scorecard.id,
-      player_slot_id: slotId,
-      player_name: chosenName,
-    });
+  await execute(db, "UPDATE scorecard_participants SET player_slot_id = ?1 WHERE id = ?2", [player_slot_id, participant.id]);
+  if (player_name?.trim()) {
+    await execute(db, "UPDATE scorecard_players SET player_name = ?1 WHERE id = ?2", [player_name.trim(), player_slot_id]);
   }
-
-  return NextResponse.json({
-    scorecard_id: scorecard.id,
-    player_slot_id: null,
-    player_name: null,
-  });
+  return response({ ...participant, player_slot_id });
 }

@@ -66,19 +66,19 @@ function RowProperties({ cell, allKeys, onChange, onDelete }: {
         <button onClick={onDelete} className="text-xs font-medium text-rose-500 hover:text-rose-700">Delete</button>
       </div>
       <div>
-        <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block mb-1">Type</label>
+        <label className="text-[11px] font-semibold text-slate-500 tracking-wider block mb-1">Type</label>
         <select value={cell.cell_type} onChange={e => onChange({ ...cell, cell_type: e.target.value as TemplateCell["cell_type"] })}
           className="input-field text-sm">
           {ROW_TYPES.map(t => <option key={t.value} value={t.value}>{t.icon} {t.label}</option>)}
         </select>
       </div>
       <div>
-        <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block mb-1">Label</label>
+        <label className="text-[11px] font-semibold text-slate-500 tracking-wider block mb-1">Label</label>
         <input type="text" value={cell.label} onChange={e => onChange({ ...cell, label: e.target.value })}
           className="input-field text-sm" placeholder={cell.cell_type === "heading" ? "Section title" : "e.g. Score"} />
       </div>
       <div>
-        <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block mb-1">Key <span className="text-slate-300 font-normal">(formula ref)</span></label>
+        <label className="text-[11px] font-semibold text-slate-500 tracking-wider block mb-1">Key <span className="text-slate-300 font-normal">(formula ref)</span></label>
         <input type="text" value={cell.cell_key} onChange={e => onChange({ ...cell, cell_key: e.target.value })}
           className="input-field text-sm font-mono" placeholder="e.g. bird_points" />
       </div>
@@ -89,7 +89,7 @@ function RowProperties({ cell, allKeys, onChange, onDelete }: {
               checked={!!(cell.config_json as Record<string, unknown>)?.allow_multiple}
               onChange={e => onChange({ ...cell, config_json: { ...cell.config_json, allow_multiple: e.target.checked } })}
               className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" />
-            <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Allow multiple entries</span>
+            <span className="text-[11px] font-semibold text-slate-500 tracking-wider">Allow multiple entries</span>
           </label>
           <p className="text-[11px] text-slate-400 mt-0.5 ml-6">Players can add/remove entries (e.g. bonus cards). Key_0, key_1, etc.</p>
         </div>
@@ -101,7 +101,7 @@ function RowProperties({ cell, allKeys, onChange, onDelete }: {
               checked={!!(cell.config_json as Record<string, unknown>)?.section}
               onChange={e => onChange({ ...cell, config_json: { ...cell.config_json, section: e.target.checked, child: e.target.checked ? false : (cell.config_json as any)?.child } })}
               className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" />
-            <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Section heading</span>
+            <span className="text-[11px] font-semibold text-slate-500 tracking-wider">Section heading</span>
           </label>
           <p className="text-[11px] text-slate-400 ml-6">Bold indigo label with highlighted background.</p>
           <label className="flex items-center gap-2 cursor-pointer">
@@ -109,14 +109,14 @@ function RowProperties({ cell, allKeys, onChange, onDelete }: {
               checked={!!(cell.config_json as Record<string, unknown>)?.child}
               onChange={e => onChange({ ...cell, config_json: { ...cell.config_json, child: e.target.checked, section: e.target.checked ? false : (cell.config_json as any)?.section } })}
               className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" />
-            <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Nested under above</span>
+            <span className="text-[11px] font-semibold text-slate-500 tracking-wider">Nested under above</span>
           </label>
           <p className="text-[11px] text-slate-400 ml-6">Indented under the previous section heading.</p>
         </div>
       )}
       {cell.cell_type === "formula" && (
         <div>
-          <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block mb-1">Formula</label>
+          <label className="text-[11px] font-semibold text-slate-500 tracking-wider block mb-1">Formula</label>
           <textarea value={cell.formula_expr || ""}
             onChange={e => { const err = validateFormula(e.target.value); setFormulaError(err); onChange({ ...cell, formula_expr: e.target.value || null }); }}
             className="input-field text-sm font-mono h-20 resize-none" placeholder="e.g. SUM(bird_points, bonus)" />
@@ -216,7 +216,7 @@ export default function GridBuilder({ cells, onChange }: { cells: TemplateCell[]
                     <tr key={hg.id} className="bg-slate-50 border-b border-slate-200">
                       <th className="w-8" />
                       {hg.headers.map(h => (
-                        <th key={h.id} className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider px-2 py-1.5 text-left first:pl-3">
+                        <th key={h.id} className="text-[11px] font-semibold text-slate-400 tracking-wider px-2 py-1.5 text-left first:pl-3">
                           {flexRender(h.column.columnDef.header, h.getContext())}
                         </th>
                       ))}

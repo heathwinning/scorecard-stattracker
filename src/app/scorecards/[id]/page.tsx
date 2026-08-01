@@ -10,7 +10,8 @@ import { useAuth } from "@/components/AuthProvider";
 import Link from "next/link";
 import toast from "react-hot-toast";
 import { HiOutlinePencil, HiOutlineTrash, HiOutlinePlay, HiOutlineArrowLeft, HiOutlineTemplate } from "react-icons/hi";
-import ScorecardFill from "@/components/ScorecardFill";
+import ScorecardGrid from "@/components/ScorecardGrid";
+import ConfirmModal from "@/components/ConfirmModal";
 
 export default function TemplateDetailPage() {
   const params = useParams();
@@ -19,6 +20,7 @@ export default function TemplateDetailPage() {
   const [template, setTemplate] = useState<Template | null>(null);
   const [loading, setLoading] = useState(true);
   const [starting, setStarting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const id = params.id as string;
 
   useEffect(() => {
@@ -37,7 +39,6 @@ export default function TemplateDetailPage() {
   const isOwner = user?.id === template?.created_by || (isGuest && template?.created_by === "guest");
 
   const handleDelete = async () => {
-    if (!confirm("Delete this template permanently?")) return;
     try {
       if (id.startsWith("guest-")) {
         guestDeleteTemplate(id);
@@ -107,7 +108,7 @@ export default function TemplateDetailPage() {
               <Link href={`/scorecards/${id}/edit`} className="btn-secondary text-sm">
                 <HiOutlinePencil className="w-4 h-4" /> Edit
               </Link>
-              <button onClick={handleDelete} className="btn-danger text-sm">
+              <button onClick={() => setShowDeleteConfirm(true)} className="btn-danger text-sm">
                 <HiOutlineTrash className="w-4 h-4" /> Delete
               </button>
             </>
@@ -123,13 +124,23 @@ export default function TemplateDetailPage() {
       </div>
 
       {/* Layout Preview - uses same component as live scoring */}
-      <ScorecardFill
+      <ScorecardGrid
         cells={sortedCells}
         players={[]}
         values={[]}
         onPlayersChange={() => {}}
         onValuesChange={() => {}}
         readOnly={true}
+      />
+
+      <ConfirmModal
+        open={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        onConfirm={handleDelete}
+        title="Delete Scorecard"
+        message="Delete this scorecard permanently? This cannot be undone."
+        confirmLabel="Delete"
+        danger
       />
     </div>
   );

@@ -1,12 +1,12 @@
 "use client";
 
-export const runtime = 'edge';
+export const runtime = "edge";
 
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 import { joinScorecard, type ScorecardPlayer } from "@/lib/api-client";
-import { guestFindByShareCode } from "@/lib/guest-store";
+import { guestFindByShareCode, guestGetScorecard } from "@/lib/guest-store";
 import Link from "next/link";
 import toast from "react-hot-toast";
 
@@ -17,6 +17,9 @@ export default function JoinPage() {
   const code = (params.code as string)?.toUpperCase() || "";
 
   const [scorecardId, setScorecardId] = useState<string | null>(null);
+  const [sharingMode, setSharingMode] = useState<"shared" | "slots">("shared");
+  const [players, setPlayers] = useState<ScorecardPlayer[]>([]);
+  const [takenSlots, setTakenSlots] = useState<string[]>([]);
   const [playerSlotId, setPlayerSlotId] = useState<string | null>(null);
   const [playerName, setPlayerName] = useState<string | null>(null);
   const [customName, setCustomName] = useState("");
@@ -26,144 +29,83 @@ export default function JoinPage() {
 
   useEffect(() => {
     const init = async () => {
-    if (authLoading) return;
-    if (!user && !isGuest) { router.push(`/login?redirect=/join/${code}`); return; }
-    if (!code) { setError("No code provided"); setLoading(false); return; }
+      if (authLoading) return;
+      if (!user && !isGuest) { router.push(`/login?redirect=/join/${code}`); return; }
+      if (!code) { setError("No code provided"); setLoading(false); return; }
 
-    // Check guest store first
-    const guestSc = guestFindByShareCode(code);
-    if (guestSc) {
-      setScorecardId(guestSc.id);
-      setLoading(false);
-      return;
-    }
-
-    try {
-      // Just validate the code exists — don't join yet (wait for name)
-      const result = await joinScorecard(code);
-      setScorecardId(result.scorecard_id);
-      // If they already have a slot, redirect directly
-      if (result.player_slot_id) {
-        setPlayerSlotId(result.player_slot_id);
-        setPlayerName(result.player_name);
+      const guestSc = guestFindByShareCode(code);
+      if (guestSc) {
+        const guestData = guestGetScorecard(guestSc.id);
+        setScorecardId(guestSc.id);
+        setSharingMode(guestSc.sharing_mode === "slots" ? "slots" : "shared");
+        setPlayers(guestData?.players || []);
+        setLoading(false);
+        return;
       }
-    } catch (err: any) {
-      setError(err.message || "Invalid or expired share code");
-    }
-    setLoading(false);
+
+      try {
+        // This also registers the visitor as a participant. For shared games,
+        // that is all that is needed; slots mode continues to the seat picker.
+        const result = await joinScorecard(code);
+        setScorecardId(result.scorecard_id);
+        setSharingMode(result.sharing_mode);
+        setPlayers(result.players || []);
+        setTakenSlots(result.taken_slot_ids || []);
+        if (result.player_slot_id) {
+          setPlayerSlotId(result.player_slot_id);
+          setPlayerName(result.player_name);
+        }
+      } catch (err: any) {
+        setError(err.message || "Invalid or expired share code");
+      } finally {
+        setLoading(false);
+      }
     };
     init();
   }, [user, isGuest, authLoading, code, router]);
 
-  const handleJoin = useCallback(async () => {
-    if (!scorecardId || !code) return;
-    const name = customName.trim();
-    if (!name) { toast.error("Enter your name"); return; }
+  const claimSeat = useCallback(async (seat: ScorecardPlayer) => {
+    if (!scorecardId || !code || !seat.id) return;
     setJoining(true);
     try {
       if (isGuest || scorecardId.startsWith("guest-")) {
-        // Create a player slot in guest store
-        const { guestUpdateScorecard, guestGetScorecard } = await import("@/lib/guest-store");
-        const sc = guestGetScorecard(scorecardId);
-        if (sc) {
-          const newSlotId = `slot-${crypto.randomUUID().slice(0, 8)}`;
-          const updatedPlayers = [...(sc.players || []), {
-            id: newSlotId,
-            player_name: name,
-            sort_order: sc.players?.length || 0,
-          }];
-          guestUpdateScorecard(scorecardId, { players: updatedPlayers } as any);
-          setPlayerSlotId(newSlotId);
-          setPlayerName(name);
-        }
-        toast.success("Joined!");
+        // Guest scorecards are local-only; use the existing seat in this tab.
+        setPlayerSlotId(seat.id);
+        setPlayerName(customName.trim() || seat.player_name);
       } else {
-        const result = await joinScorecard(code, name);
+        const result = await joinScorecard(code, { playerSlotId: seat.id, playerName: customName.trim() || undefined });
         setPlayerSlotId(result.player_slot_id);
         setPlayerName(result.player_name);
-        toast.success("Joined!");
+        setTakenSlots(result.taken_slot_ids || []);
       }
-    } catch { toast.error("Failed to join"); }
-    finally { setJoining(false); }
+      toast.success("Seat claimed!");
+    } catch (err: any) {
+      toast.error(err.message || "Could not claim that seat");
+    } finally {
+      setJoining(false);
+    }
   }, [scorecardId, code, customName, isGuest]);
 
-  const handleGoToScorecard = () => {
-    if (scorecardId) router.push(`/scores/${code}`);
-  };
+  const goToScorecard = () => router.push(`/scores/${code}`);
 
-  if (authLoading || loading) {
-    return (
-      <div className="max-w-md mx-auto px-4 py-20 animate-pulse">
-        <div className="h-8 w-32 bg-slate-200 rounded mb-4" />
-        <div className="h-32 bg-slate-100 rounded-2xl" />
-      </div>
-    );
+  if (authLoading || loading) return <div className="max-w-md mx-auto px-4 py-20 animate-pulse"><div className="h-8 w-32 bg-slate-200 rounded mb-4" /><div className="h-32 bg-slate-100 rounded-2xl" /></div>;
+  if (error) return <div className="max-w-md mx-auto px-4 py-20 text-center"><div className="empty-state-icon mx-auto mb-4">🔗</div><h1 className="text-xl font-bold text-slate-900 mb-2">Invalid Link</h1><p className="text-sm text-slate-500 mb-4">{error}</p><Link href="/dashboard" className="btn-primary text-sm">Go to Dashboard</Link></div>;
+
+  if (sharingMode === "shared") {
+    return <div className="max-w-md mx-auto px-4 py-20 text-center page-enter"><div className="empty-state-icon mx-auto mb-4">🤝</div><h1 className="text-xl font-bold text-slate-900 mb-2">Shared Scorecard</h1><p className="text-sm text-slate-500 mb-6">You’re in. Everyone with this link can enter and update all scores together.</p><button onClick={goToScorecard} className="btn-primary">Open Scorecard</button></div>;
   }
 
-  if (error) {
-    return (
-      <div className="max-w-md mx-auto px-4 py-20 text-center">
-        <div className="empty-state-icon mx-auto mb-4">🔗</div>
-        <h1 className="text-xl font-bold text-slate-900 mb-2">Invalid Link</h1>
-        <p className="text-sm text-slate-500 mb-4">{error}</p>
-        <Link href="/dashboard" className="btn-primary text-sm">Go to Dashboard</Link>
-      </div>
-    );
-  }
-
-  // Already has a slot assigned
   if (playerSlotId && playerName) {
-    return (
-      <div className="max-w-md mx-auto px-4 py-20 text-center page-enter">
-        <div className="empty-state-icon mx-auto mb-4">✅</div>
-        <h1 className="text-xl font-bold text-slate-900 mb-2">You're in!</h1>
-        <p className="text-sm text-slate-500 mb-2">
-          Playing as <strong>{playerName}</strong>
-        </p>
-        <p className="text-xs text-slate-400 mb-6">
-          You can now enter scores for your player slot. Other players' scores are hidden until they reveal them.
-        </p>
-        <button onClick={handleGoToScorecard} className="btn-primary">
-          Open Scorecard
-        </button>
-      </div>
-    );
+    return <div className="max-w-md mx-auto px-4 py-20 text-center page-enter"><div className="empty-state-icon mx-auto mb-4">✅</div><h1 className="text-xl font-bold text-slate-900 mb-2">Seat claimed</h1><p className="text-sm text-slate-500 mb-2">Playing as <strong>{playerName}</strong></p><p className="text-xs text-slate-400 mb-6">You can now enter scores for your seat only.</p><button onClick={goToScorecard} className="btn-primary">Open Scorecard</button></div>;
   }
 
-  // Join — enter name
+  const availableSeats = players.filter(player => player.id && !takenSlots.includes(player.id));
   return (
     <div className="max-w-md mx-auto px-4 py-12 page-enter">
-      <div className="text-center mb-8">
-        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-indigo-200 mx-auto mb-4 tracking-wider">
-          {code}
-        </div>
-        <h1 className="text-xl font-bold text-slate-900">Join Game</h1>
-        <p className="text-sm text-slate-500 mt-1">Enter your name to start scoring</p>
-      </div>
-
+      <div className="text-center mb-8"><div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-indigo-200 mx-auto mb-4 tracking-wider">{code}</div><h1 className="text-xl font-bold text-slate-900">Choose Your Seat</h1><p className="text-sm text-slate-500 mt-1">The host has enabled player slots. Pick an available seat to enter your own scores.</p></div>
       <div className="card p-5 space-y-4">
-        <div>
-          <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-2">
-            Your Name
-          </label>
-          <input
-            type="text"
-            value={customName}
-            onChange={e => setCustomName(e.target.value)}
-            onKeyDown={e => e.key === "Enter" && handleJoin()}
-            placeholder="Enter your name"
-            className="w-full px-4 py-3 text-sm border border-slate-200 rounded-xl focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
-            autoFocus
-            disabled={joining}
-          />
-        </div>
-        <button
-          onClick={handleJoin}
-          disabled={joining || !customName.trim()}
-          className="w-full py-3 text-sm font-medium text-white bg-indigo-500 hover:bg-indigo-600 rounded-xl transition-colors disabled:opacity-50"
-        >
-          {joining ? "Joining..." : "Join Game"}
-        </button>
+        <div><label className="text-xs font-semibold text-slate-500 tracking-wider block mb-2">Display Name <span className="font-normal normal-case">(optional)</span></label><input type="text" value={customName} onChange={e => setCustomName(e.target.value)} placeholder="Keep the seat name" className="input-field" disabled={joining} /></div>
+        {availableSeats.length ? <div className="grid gap-2">{availableSeats.map(seat => <button key={seat.id} type="button" onClick={() => claimSeat(seat)} disabled={joining} className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 text-left transition hover:border-indigo-300 hover:bg-indigo-50 disabled:opacity-50"><span className="font-semibold text-slate-800">{seat.player_name}</span><span className="text-xs font-medium text-indigo-600">Choose</span></button>)}</div> : <p className="rounded-lg bg-amber-50 px-3 py-3 text-sm text-amber-800">No seats are available yet. Ask the host to add a player seat.</p>}
       </div>
     </div>
   );

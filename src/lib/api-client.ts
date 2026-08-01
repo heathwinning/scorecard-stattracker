@@ -5,6 +5,7 @@ const BASE = "";
 async function api<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
     credentials: "include",
+    cache: "no-store",
     headers: { "Content-Type": "application/json", ...options?.headers },
     ...options,
   });
@@ -148,6 +149,7 @@ export interface Scorecard {
   title: string;
   game_date: string;
   notes: string;
+  sharing_mode: "shared" | "slots";
   share_code?: string | null;
   created_at: string;
   updated_at: string;
@@ -191,6 +193,7 @@ export async function updateScorecard(id: string, data: {
   title?: string;
   game_date?: string;
   notes?: string;
+  sharing_mode?: "shared" | "slots";
   players?: ScorecardPlayer[];
   values?: CellValue[];
 }) {
@@ -209,10 +212,21 @@ export async function shareScorecard(id: string) {
   return api<{ share_code: string }>(`/api/scores/${id}/share`, { method: "POST" });
 }
 
-export async function joinScorecard(shareCode: string, playerName?: string) {
-  return api<{ scorecard_id: string; player_slot_id: string | null; player_name: string | null }>(
+export async function joinScorecard(shareCode: string, options?: { playerName?: string; playerSlotId?: string }) {
+  return api<{
+    scorecard_id: string;
+    sharing_mode: "shared" | "slots";
+    player_slot_id: string | null;
+    player_name: string | null;
+    players: ScorecardPlayer[];
+    taken_slot_ids: string[];
+  }>(
     "/api/scores/join",
-    { method: "POST", body: JSON.stringify({ share_code: shareCode, player_name: playerName || undefined }) }
+    { method: "POST", body: JSON.stringify({
+      share_code: shareCode,
+      player_name: options?.playerName || undefined,
+      player_slot_id: options?.playerSlotId || undefined,
+    }) }
   );
 }
 
@@ -229,11 +243,12 @@ export async function getLiveScorecard(id: string, since?: string) {
 
 export async function updateMyCells(
   scorecardId: string,
-  cells: { template_cell_id: string; player_id: string; value: string; entry_key?: string; is_hidden?: number }[]
+  cells: { template_cell_id: string; player_id: string; value: string; entry_key?: string; is_hidden?: number }[],
+  deletes?: { template_cell_id: string; player_id: string; entry_key?: string }[]
 ) {
   return api<{ success: boolean }>(`/api/scores/${scorecardId}/cells`, {
     method: "PUT",
-    body: JSON.stringify({ cells }),
+    body: JSON.stringify({ cells, deletes }),
   });
 }
 

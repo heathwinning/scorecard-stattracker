@@ -61,6 +61,7 @@ CREATE TABLE IF NOT EXISTS scorecards (
   game_date TEXT NOT NULL DEFAULT (datetime('now')),
   notes TEXT DEFAULT '',
   share_code TEXT UNIQUE, -- null until shared; 6-char code for multiplayer
+  sharing_mode TEXT NOT NULL DEFAULT 'shared' CHECK(sharing_mode IN ('shared', 'slots')),
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );

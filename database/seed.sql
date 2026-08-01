@@ -30,7 +30,7 @@ INSERT OR IGNORE INTO games (id, name, slug, category, player_count, icon) VALUE
   ('game-chess', 'Chess', 'chess', 'board', '2', '♟️'),
   ('game-checkers', 'Checkers', 'checkers', 'board', '2', '⭕'),
   ('game-dominion', 'Dominion', 'dominion', 'card', '2-4', '👑'),
-  ('game-wingspan', 'Wingspan', 'wingspan', 'board', '1-5', '🐦'),
+  ('game-wingspan', 'Wingspan', 'wingspan', 'board', '1-5', '🦜'),
   ('game-terraforming-mars', 'Terraforming Mars', 'terraforming-mars', 'board', '1-5', '🔴'),
   ('game-splendor', 'Splendor', 'splendor', 'board', '2-4', '💎'),
   ('game-patchwork', 'Patchwork', 'patchwork', 'board', '2', '🧵'),
@@ -330,3 +330,89 @@ INSERT OR IGNORE INTO template_cells (id, template_id, row_pos, col_pos, row_spa
 ('ws-ft2', 'wingspan', 14, 0, 1, 1, 'input:number', 'cached_food', 'Cached Food', NULL, 1, '{"default":0,"section":true}', 9),
 ('ws-tt', 'wingspan', 15, 0, 1, 1, 'input:number', 'tucked_cards', 'Tucked Cards', NULL, 1, '{"default":0,"section":true}', 10),
 ('ws-ft', 'wingspan', 2, 1, 1, 1, 'formula', 'grand_total', 'Total', 'bird_points + SUM(bonus_*) + round_1 + round_2 + round_3 + round_4 + eggs + cached_food + tucked_cards', 1, '{}', 11);
+
+-- ============================================================
+-- Unified grid presentation metadata
+-- ============================================================
+-- The original seed tables used separate label cells and fixed spreadsheet
+-- columns. The unified scorecard grid is player-column based, so labels live
+-- directly on input/formula cells and headings explicitly define sections.
+UPDATE template_cells
+SET config_json = json_set(COALESCE(config_json, '{}'), '$.section', true)
+WHERE template_id IN ('yahtzee', 'uno', 'catan', 'spades', 'scrabble', 'cornhole', 'poker', 'phase10', 'golf', 'ticket', 'wingspan')
+  AND cell_type = 'heading';
+
+UPDATE template_cells
+SET label = CASE id
+  WHEN 'y-us-i1' THEN 'Ones' WHEN 'y-us-i2' THEN 'Twos' WHEN 'y-us-i3' THEN 'Threes'
+  WHEN 'y-us-i4' THEN 'Fours' WHEN 'y-us-i5' THEN 'Fives' WHEN 'y-us-i6' THEN 'Sixes'
+  WHEN 'y-us-fs' THEN 'Upper Subtotal' WHEN 'y-us-fb' THEN 'Upper Bonus' WHEN 'y-us-ft' THEN 'Upper Total'
+  WHEN 'y-ls-i1' THEN 'Three of a Kind' WHEN 'y-ls-i2' THEN 'Four of a Kind'
+  WHEN 'y-ls-i3' THEN 'Full House' WHEN 'y-ls-i4' THEN 'Small Straight'
+  WHEN 'y-ls-i5' THEN 'Large Straight' WHEN 'y-ls-i6' THEN 'Yahtzee' WHEN 'y-ls-i7' THEN 'Chance'
+  WHEN 'y-ls-ft' THEN 'Lower Total' WHEN 'y-gt-f' THEN 'Grand Total'
+  WHEN 'uno-ft' THEN 'Total Score' WHEN 'p10-ip' THEN 'Current Phase' WHEN 'p10-ft' THEN 'Total Score'
+  WHEN 'gf-ft' THEN 'Total Score' WHEN 'cat-ir' THEN 'Road Length'
+  WHEN 'cat-flr' THEN 'Longest Road Bonus' WHEN 'cat-ik' THEN 'Knights Played'
+  WHEN 'cat-fla' THEN 'Largest Army Bonus' WHEN 'cat-ts' THEN 'Settlements'
+  WHEN 'cat-tc' THEN 'Cities' WHEN 'cat-tv' THEN 'VP Development Cards'
+  WHEN 'cat-ft' THEN 'Total Victory Points' WHEN 'sp-ib' THEN 'Bid'
+  WHEN 'sp-it' THEN 'Tricks Won' WHEN 'sp-fs' THEN 'Round Score' WHEN 'sp-fb' THEN 'Bags'
+  WHEN 'sc-ft' THEN 'Total Score' WHEN 'ch-fs' THEN 'Total Score'
+  WHEN 'pk-ib' THEN 'Buy-in' WHEN 'pk-ic' THEN 'Cash-out' WHEN 'pk-fn' THEN 'Net'
+  WHEN 'pk-fb' THEN 'Total Buy-ins' WHEN 'pk-fc' THEN 'Total Cash-outs' WHEN 'pk-fh' THEN 'House Balance'
+  WHEN 'ttr-ir' THEN 'Route Points' WHEN 'ttr-itk' THEN 'Completed Tickets'
+  WHEN 'ttr-iuf' THEN 'Unfinished Tickets' WHEN 'ttr-ilp' THEN 'Longest Path Length'
+  WHEN 'ttr-flp' THEN 'Longest Path Bonus' WHEN 'ttr-ic' THEN 'Trains Remaining'
+  WHEN 'ttr-ft' THEN 'Total Score'
+  ELSE label
+END
+WHERE template_id IN ('yahtzee', 'uno', 'catan', 'spades', 'scrabble', 'cornhole', 'poker', 'phase10', 'golf', 'ticket');
+
+UPDATE template_cells
+SET config_json = json_set(COALESCE(config_json, '{}'), '$.child', true)
+WHERE id GLOB 'uno-r*' OR id GLOB 'p10-r*' OR id GLOB 'gf-h*' OR id GLOB 'ch-r*' OR id GLOB 'sc-w*';
+
+UPDATE template_cells
+SET config_json = json_set(COALESCE(config_json, '{}'), '$.section', true)
+WHERE id IN ('y-us-fs', 'y-us-fb', 'y-us-ft', 'y-ls-ft', 'y-gt-f', 'uno-ft', 'p10-ft',
+  'gf-ft', 'sc-ft', 'ch-fs', 'cat-ft', 'pk-fn', 'pk-fb', 'pk-fc', 'pk-fh', 'ttr-ft');
+
+INSERT OR IGNORE INTO template_cells
+  (id, template_id, row_pos, col_pos, row_span, col_span, cell_type, cell_key, label, formula_expr, per_player, config_json, sort_order)
+VALUES
+  ('cat-h-vp', 'catan', 0, 0, 1, 1, 'heading', 'h_victory_points', 'Victory Points', NULL, 0, '{"section":true}', 0),
+  ('sp-h-round', 'spades', 0, 0, 1, 1, 'heading', 'h_round', 'This Round', NULL, 0, '{"section":true}', 0),
+  ('pk-h-player', 'poker', 0, 0, 1, 1, 'heading', 'h_player', 'Player Results', NULL, 0, '{"section":true}', 0),
+  ('ttr-h-score', 'ticket', 0, 0, 1, 1, 'heading', 'h_score', 'Score Breakdown', NULL, 0, '{"section":true}', 0);
+
+-- Category help is displayed by the unified scorecard grid's info tooltip.
+UPDATE template_cells
+SET config_json = json_set(COALESCE(config_json, '{}'), '$.help', CASE id
+  WHEN 'y-us-h' THEN 'Score matching dice faces here. Reaching 63 points earns the upper bonus.'
+  WHEN 'y-us-fb' THEN 'Calculated automatically: earn 35 points when the upper subtotal is 63 or more.'
+  WHEN 'y-ls-h' THEN 'Score each lower-section category once. Enter 0 when a category is used without scoring.'
+  WHEN 'y-gt-f' THEN 'Calculated automatically from the upper and lower totals.'
+  WHEN 'uno-rh' THEN 'Enter cards remaining at the end of every round. The lowest total wins.'
+  WHEN 'p10-rh' THEN 'Record each player’s points at the end of a round. The lowest total wins.'
+  WHEN 'p10-ip' THEN 'Advance this when the player completes their current phase.'
+  WHEN 'gf-hh' THEN 'Enter scores for every hole. The lowest total wins.'
+  WHEN 'cat-h-vp' THEN 'Track victory-point sources. The first player to 10 points wins.'
+  WHEN 'cat-flr' THEN 'Calculated automatically: 2 VP when road length is 5 or more.'
+  WHEN 'cat-fla' THEN 'Calculated automatically: 2 VP when three or more knights have been played.'
+  WHEN 'sp-h-round' THEN 'Enter each player’s bid and tricks won for this round.'
+  WHEN 'sp-fs' THEN 'Calculated automatically from the bid and tricks won.'
+  WHEN 'sc-wh' THEN 'Record scores for words played. Add more entries as the game continues.'
+  WHEN 'ch-rh' THEN 'Record bags in the hole (3 points) and on the board (1 point) for each round.'
+  WHEN 'pk-h-player' THEN 'Record each player’s buy-in and cash-out for this session.'
+  WHEN 'pk-fh' THEN 'Calculated automatically: total buy-ins minus total cash-outs.'
+  WHEN 'ttr-h-score' THEN 'Track routes, destination tickets, the longest-path bonus, and trains remaining.'
+  WHEN 'ttr-iuf' THEN 'Enter the absolute value of points lost for unfinished destination tickets.'
+  WHEN 'ws-bi' THEN 'Enter the total point value shown on bird cards.'
+  WHEN 'ws-bi2' THEN 'Add each completed bonus-card score as a separate entry.'
+  WHEN 'ws-rh' THEN 'Calculated automatically from the four end-of-round goal scores.'
+  WHEN 'ws-ft' THEN 'Calculated automatically from all Wingspan scoring categories.'
+END)
+WHERE id IN ('y-us-h','y-us-fb','y-ls-h','y-gt-f','uno-rh','p10-rh','p10-ip','gf-hh',
+  'cat-h-vp','cat-flr','cat-fla','sp-h-round','sp-fs','sc-wh','ch-rh','pk-h-player','pk-fh',
+  'ttr-h-score','ttr-iuf','ws-bi','ws-bi2','ws-rh','ws-ft');

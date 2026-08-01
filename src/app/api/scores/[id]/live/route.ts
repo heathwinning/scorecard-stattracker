@@ -63,7 +63,9 @@ export async function GET(
   let valuesQuery = "SELECT * FROM cell_values WHERE scorecard_id = ?1";
   const queryParams: unknown[] = [scorecardId];
   if (since) {
-    valuesQuery += " AND updated_at > ?2";
+      // Inclusive comparison is intentional: SQLite timestamps have second
+      // precision, so several edits can legitimately share one timestamp.
+      valuesQuery += " AND updated_at >= ?2";
     queryParams.push(since);
   }
   const values = await queryAll(db, valuesQuery, queryParams);
@@ -77,11 +79,24 @@ export async function GET(
     [scorecardId]
   );
 
-  return NextResponse.json({
-    scorecard,
-    players,
-    values,
-    participants,
-    last_updated: new Date().toISOString(),
-  });
+  const latest = await queryFirst<{ last_updated: string | null }>(
+    db,
+    `SELECT MAX(last_updated) as last_updated FROM (
+       SELECT updated_at as last_updated FROM scorecards WHERE id = ?1
+       UNION ALL SELECT updated_at as last_updated FROM cell_values WHERE scorecard_id = ?1
+       UNION ALL SELECT joined_at as last_updated FROM scorecard_participants WHERE scorecard_id = ?1
+     )`,
+    [scorecardId]
+  );
+
+  return NextResponse.json(
+    {
+      scorecard,
+      players,
+      values,
+      participants,
+      last_updated: latest?.last_updated || scorecard.updated_at,
+    },
+    { headers: { "Cache-Control": "no-store, no-cache, must-revalidate" } }
+  );
 }

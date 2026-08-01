@@ -40,6 +40,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "template_id is required" }, { status: 400 });
   }
 
+  // Ensure the user exists in the DB (guest sessions may predate a DB reset)
+  if (user) {
+    await db
+      .prepare(`INSERT OR IGNORE INTO users (id, email, name, avatar_url) VALUES (?1, ?2, ?3, ?4)`)
+      .bind(user.id, user.email, user.name, user.avatar_url)
+      .run();
+  }
+
   const scorecardId = uuid();
 
   await db

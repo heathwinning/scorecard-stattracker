@@ -129,6 +129,7 @@ export function guestCreateScorecard(data: {
     game_date: data.game_date || new Date().toISOString(),
     notes: "",
     share_code: null,
+    sharing_mode: "shared",
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   };
@@ -168,6 +169,7 @@ export function guestUpdateScorecard(id: string, data: {
   if (data.title !== undefined) all[idx].title = data.title;
   if (data.game_date !== undefined) all[idx].game_date = data.game_date;
   if ((data as any).share_code !== undefined) all[idx].share_code = (data as any).share_code;
+  if ((data as any).sharing_mode !== undefined) (all[idx] as any).sharing_mode = (data as any).sharing_mode;
   all[idx].updated_at = new Date().toISOString();
   write(KEYS.scorecards, all);
 
@@ -196,6 +198,18 @@ export function guestUpdateScorecard(id: string, data: {
     write(KEYS.scoreData(id), [current]);
   }
 
+  return true;
+}
+
+/** Remove a single cell value (e.g. a deleted multi-entry row). */
+export function guestDeleteCellValue(id: string, cellId: string, playerId: string | null, entryKey: string): boolean {
+  const existing = read<{ players: ScorecardPlayer[]; values: CellValue[] }>(KEYS.scoreData(id));
+  if (existing.length === 0) return false;
+  const current = existing[0];
+  current.values = current.values.filter(
+    v => !(v.template_cell_id === cellId && (v.player_id || null) === (playerId || null) && (v.entry_key || "") === entryKey)
+  );
+  write(KEYS.scoreData(id), [current]);
   return true;
 }
 

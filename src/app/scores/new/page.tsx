@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getTemplate, createScorecard, updateScorecard, type TemplateCell, type ScorecardPlayer, type CellValue } from "@/lib/api-client";
-import ScorecardFill from "@/components/ScorecardFill";
+import ScorecardGrid from "@/components/ScorecardGrid";
 import toast from "react-hot-toast";
 
 function NewScorecardPageInner() {
@@ -65,7 +65,7 @@ function NewScorecardPageInner() {
     <div className="max-w-4xl mx-auto px-4 py-6 page-enter">
       <h1 className="text-lg font-bold text-slate-900 mb-4">{templateName}</h1>
       {cells.length > 0 && (
-        <ScorecardFill
+        <ScorecardGrid
           cells={cells}
           players={players}
           values={values}
