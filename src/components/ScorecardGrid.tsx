@@ -397,7 +397,11 @@ export default function ScorecardGrid({
               const config = (cell.config_json || {}) as Record<string, unknown>;
               const isSection = !!config.section;
               const isChild = !!config.child;
-              const isTotal = /total/i.test(cell.label || cell.cell_key);
+              // Visual total treatment belongs to an explicitly named total,
+              // not every formula whose internal key happens to contain
+              // "total". For example, Wingspan's End-of-Round Goals is a
+              // normal calculated score row that groups nested round inputs.
+              const isTotal = cell.cell_type === "formula" && /\btotal\b/i.test(cell.label || "");
               const label = repeatableGroup ? `${displayRow.label || "Round"} ${Number(entryKey) + 1}` : displayCategoryLabel(cell);
               const help = typeof config.help === "string"
                 ? config.help
