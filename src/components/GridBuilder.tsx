@@ -8,6 +8,7 @@ import { CSS } from "@dnd-kit/utilities";
 import type { TemplateCell } from "@/lib/api-client";
 import { validateFormula } from "@/lib/formula";
 import { HiOutlineTrash } from "react-icons/hi";
+import Link from "next/link";
 
 type BuilderRow = TemplateCell & { _idx: number };
 const PREVIEW_PLAYERS = 2;
@@ -77,14 +78,32 @@ function RowProperties({ cell, allFields, onChange, onDelete }: {
   cell: TemplateCell; allFields: TemplateCell[]; onChange: (u: TemplateCell) => void; onDelete: () => void;
 }) {
   const [formulaError, setFormulaError] = useState<string | null>(null);
-  const [selectedFieldKey, setSelectedFieldKey] = useState("");
-  const [numberToken, setNumberToken] = useState("");
+  const [fieldSearch, setFieldSearch] = useState("");
+  const [functionSearch, setFunctionSearch] = useState("");
+  const [expressionPart, setExpressionPart] = useState("");
   const formulaFields = allFields.filter(field => field.cell_key !== cell.cell_key && field.cell_type !== "heading");
   const updateFormula = (formula: string) => {
     setFormulaError(validateFormula(formula));
     onChange({ ...cell, formula_expr: formula || null });
   };
   const appendFormula = (token: string) => updateFormula(`${cell.formula_expr || ""}${token}`);
+  const fieldSuggestions = formulaFields.map((field, index) => ({
+    label: `${fieldLabel(field)}${formulaFields.findIndex(item => fieldLabel(item) === fieldLabel(field)) !== index ? ` (${index + 1})` : ""}`,
+    token: field.cell_key,
+  }));
+  const allPlayerSuggestions = fieldSuggestions.map(item => ({
+    label: `All players: ${item.label}`,
+    token: `SUM(${item.token}_*)`,
+  }));
+  const functionSuggestions = [
+    { label: "Sum matching scores", token: "SUM(" },
+    { label: "Average matching scores", token: "AVG(" },
+    { label: "Lowest matching score", token: "MIN(" },
+    { label: "Highest matching score", token: "MAX(" },
+    { label: "Count matching scores", token: "COUNT(" },
+  ];
+  const fieldListId = `formula-fields-${cell.cell_key}`;
+  const functionListId = `formula-functions-${cell.cell_key}`;
   return (
     <div className="card p-4 space-y-3">
       <div className="flex items-center justify-between">
@@ -170,30 +189,32 @@ function RowProperties({ cell, allFields, onChange, onDelete }: {
       )}
       {cell.cell_type === "formula" && (
         <div className="space-y-2">
-          <label className="text-[11px] font-semibold text-slate-500 tracking-wider block">Formula</label>
+          <div className="flex items-center gap-2">
+            <label className="text-[11px] font-semibold text-slate-500 tracking-wider">Formula</label>
+            <span title="Example: select Round score, then select Sum matching scores to calculate a player’s running total." className="cursor-help rounded-full border border-slate-300 px-1.5 py-0.5 text-[10px] font-bold text-slate-400">i</span>
+            <Link href="/scorecards/formulas" target="_blank" className="text-[11px] font-medium text-indigo-600 hover:text-indigo-800 hover:underline">Examples</Link>
+          </div>
           <div className="min-h-12 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 font-mono text-xs leading-5 text-slate-700 break-words">
             {cell.formula_expr ? formulaPreview(cell.formula_expr, allFields) : <span className="font-sans text-slate-400">Build a calculation using fields below.</span>}
           </div>
-          <div className="flex gap-2">
-            <select value={selectedFieldKey} onChange={event => setSelectedFieldKey(event.target.value)} className="input-field min-w-0 flex-1 text-xs">
-              <option value="">Choose a field</option>
-              <optgroup label="This player">
-                {formulaFields.map(field => <option key={field.cell_key} value={field.cell_key}>{fieldLabel(field)}</option>)}
-              </optgroup>
-              <optgroup label="All players (calculation)">
-                {formulaFields.map(field => <option key={`${field.cell_key}-all`} value={`SUM(${field.cell_key}_*)`}>All players: {fieldLabel(field)}</option>)}
-              </optgroup>
-            </select>
-            <button type="button" disabled={!selectedFieldKey} onClick={() => appendFormula(selectedFieldKey)} className="btn-secondary shrink-0 px-2 text-xs disabled:opacity-40">Insert</button>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <input list={fieldListId} value={fieldSearch} onChange={event => {
+              const selected = [...fieldSuggestions, ...allPlayerSuggestions].find(item => item.label === event.target.value);
+              if (selected) { appendFormula(selected.token); setFieldSearch(""); }
+              else setFieldSearch(event.target.value);
+            }} className="input-field text-xs" placeholder="Search fields…" />
+            <datalist id={fieldListId}>
+              {fieldSuggestions.map(item => <option key={item.label} value={item.label} />)}
+              {allPlayerSuggestions.map(item => <option key={item.label} value={item.label} />)}
+            </datalist>
+            <input list={functionListId} value={functionSearch} onChange={event => {
+              const selected = functionSuggestions.find(item => item.label === event.target.value);
+              if (selected) { appendFormula(selected.token); setFunctionSearch(""); }
+              else setFunctionSearch(event.target.value);
+            }} className="input-field text-xs" placeholder="Search functions…" />
+            <datalist id={functionListId}>{functionSuggestions.map(item => <option key={item.label} value={item.label} />)}</datalist>
           </div>
-          <div className="flex flex-wrap gap-1">
-            {[" + ", " - ", " * ", " / ", "(", ")", "SUM(", "AVG(", "MIN(", "MAX("].map(token => (
-              <button key={token} type="button" onClick={() => appendFormula(token)} className="rounded border border-slate-200 bg-white px-2 py-1 font-mono text-xs text-slate-600 hover:border-indigo-300 hover:text-indigo-700">{token.trim() || "+"}</button>
-            ))}
-            <input value={numberToken} onChange={event => setNumberToken(event.target.value.replace(/[^0-9.\-]/g, ""))} className="w-16 rounded border border-slate-200 px-2 py-1 text-xs" inputMode="decimal" placeholder="Number" />
-            <button type="button" disabled={!numberToken} onClick={() => { appendFormula(numberToken); setNumberToken(""); }} className="rounded border border-slate-200 bg-white px-2 py-1 text-xs text-slate-600 disabled:opacity-40">Insert</button>
-            <button type="button" onClick={() => updateFormula("")} className="ml-auto text-xs text-rose-600 hover:text-rose-700">Clear</button>
-          </div>
+          <input value={expressionPart} onChange={event => setExpressionPart(event.target.value)} onKeyDown={event => { if (event.key === "Enter" && expressionPart) { event.preventDefault(); appendFormula(expressionPart); setExpressionPart(""); } }} className="input-field text-xs" placeholder="Add an operator, bracket, or number, then press Enter" aria-label="Add formula text" />
           {formulaError && <p className="text-xs text-rose-500">{formulaError}</p>}
           <label className="flex items-center gap-2 cursor-pointer">
             <input type="checkbox"
@@ -202,7 +223,7 @@ function RowProperties({ cell, allFields, onChange, onDelete }: {
               className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" />
             <span className="text-[11px] font-semibold text-slate-500 tracking-wider">One shared calculated result</span>
           </label>
-          <p className="text-[11px] text-slate-400 ml-6">Only formulas can be shared. Use “All players” above to explicitly aggregate player scores.</p>
+          <p className="text-[11px] text-slate-400 ml-6">Only formulas can be shared. Choose “All players” in the field search to explicitly aggregate player scores.</p>
           <label className="mt-3 flex items-center gap-2 cursor-pointer">
             <input type="checkbox"
               checked={!!(cell.config_json as Record<string, unknown>)?.repeatable_running_total}
