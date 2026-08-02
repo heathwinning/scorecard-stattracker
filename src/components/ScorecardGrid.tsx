@@ -306,7 +306,8 @@ export default function ScorecardGrid({
     sortedCells.forEach(cell => {
       const config = (cell.config_json || {}) as Record<string, unknown>;
       const defaultEntries = Number(config.default_entries) || 0;
-      if (!config.allow_multiple || defaultEntries < 1) return;
+      const isList = cell.cell_type === "input:list" || !!config.allow_multiple;
+      if (!isList || defaultEntries < 1) return;
 
       players.forEach(player => {
         if (!player.id || !canEditPlayer(player.id)) return;
@@ -635,7 +636,9 @@ interface GridCellProps {
 function GridCell(props: GridCellProps) {
   const { cell, player, isPreview, canEdit, faded, mine, valueMap, entriesFor, formulaResults, flashKeys, onCommit, onAddEntry, onRemoveEntry, onKeyDownNav, onBlurFlush, rowIndex, colId, repeatableEntryKey, repeatableCells } = props;
   const config = (cell.config_json || {}) as Record<string, unknown>;
-  const allowMultiple = !!config.allow_multiple;
+  // `allow_multiple` is retained for scorecards built before List became a
+  // first-class field type.
+  const allowMultiple = cell.cell_type === "input:list" || !!config.allow_multiple;
 
   if (isPreview) {
     if (cell.cell_type === "formula") return <span className="sg-preview-ghost">Σ</span>;
@@ -772,7 +775,7 @@ function ValueInput({ cell, value, placeholder, disabled, className, cellKey, ro
     if (document.activeElement !== inputRef.current) setLocal(value);
   }, [value]);
 
-  const isNumber = cell.cell_type === "input:number" || cell.cell_type === "tally";
+  const isNumber = cell.cell_type === "input:number" || cell.cell_type === "input:list" || cell.cell_type === "tally";
   const allowDecimals = !!(cell.config_json as Record<string, unknown>)?.decimals;
 
   return (

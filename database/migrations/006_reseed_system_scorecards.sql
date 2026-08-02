@@ -351,7 +351,7 @@ ON CONFLICT(id) DO UPDATE SET name=excluded.name, description=excluded.descripti
 
 INSERT INTO template_cells (id, template_id, row_pos, col_pos, row_span, col_span, cell_type, cell_key, label, formula_expr, per_player, config_json, sort_order) VALUES
 ('ws-bi', 'wingspan', 4, 0, 1, 1, 'input:number', 'bird_points', 'Bird Points', NULL, 1, '{"default":0,"section":true}', 1),
-('ws-bi2', 'wingspan', 6, 0, 1, 1, 'input:number', 'bonus', 'Bonus Cards', NULL, 1, '{"default":0,"default_entries":1,"allow_multiple":true,"show_entry_total":true,"section":true}', 2),
+('ws-bi2', 'wingspan', 6, 0, 1, 1, 'input:list', 'bonus', 'Bonus Cards', NULL, 1, '{"default":0,"default_entries":1,"show_entry_total":true,"section":true}', 2),
 ('ws-rh', 'wingspan', 7, 0, 1, 2, 'formula', 'round_total', 'End-of-Round Goals', 'SUM(round_1, round_2, round_3, round_4)', 1, '{"help":"Calculated automatically from the four end-of-round goal scores."}', 3),
 ('ws-r1i', 'wingspan', 8, 0, 1, 1, 'input:number', 'round_1', 'Round 1', NULL, 1, '{"default":0,"child":true}', 4),
 ('ws-r2i', 'wingspan', 9, 0, 1, 1, 'input:number', 'round_2', 'Round 2', NULL, 1, '{"default":0,"child":true}', 5),

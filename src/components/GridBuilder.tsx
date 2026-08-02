@@ -16,6 +16,7 @@ const ROW_TYPES = [
   { value: "heading", label: "Heading" },
   { value: "input:text", label: "Text" },
   { value: "input:number", label: "Number" },
+  { value: "input:list", label: "List" },
   { value: "tally", label: "Tally" },
   { value: "formula", label: "Formula" },
 ] as const;
@@ -103,6 +104,20 @@ function RowProperties({ cell, allFields, modules, onChange, onDelete }: {
     setFormulaError(validateFormula(formula));
     onChange({ ...cell, formula_expr: formula || null });
   };
+  const changeCellType = (cellType: TemplateCell["cell_type"]) => {
+    const config = { ...cell.config_json } as Record<string, unknown>;
+    if (cellType === "input:list") {
+      // Existing templates retain their compatibility flag until edited;
+      // newly chosen lists are unambiguously list rows, not number rows
+      // with a checkbox.
+      delete config.allow_multiple;
+      if (config.default_entries === undefined) config.default_entries = 1;
+    } else if (cell.cell_type === "input:list") {
+      delete config.default_entries;
+      delete config.show_entry_total;
+    }
+    onChange({ ...cell, cell_type: cellType, config_json: config });
+  };
   const appendFormula = (token: string) => updateFormula(`${cell.formula_expr || ""}${token}`);
   const fieldSuggestions = formulaFields.map((field, index) => {
     const displayName = `${fieldLabel(field)}${formulaFields.findIndex(item => fieldLabel(item) === fieldLabel(field)) !== index ? ` (${index + 1})` : ""}`;
@@ -155,7 +170,7 @@ function RowProperties({ cell, allFields, modules, onChange, onDelete }: {
       </div>
       <div>
         <label className="text-[11px] font-semibold text-slate-500 tracking-wider block mb-1">Type</label>
-        <select value={cell.cell_type} onChange={e => onChange({ ...cell, cell_type: e.target.value as TemplateCell["cell_type"] })}
+        <select value={cell.cell_type} onChange={e => changeCellType(e.target.value as TemplateCell["cell_type"])}
           className="input-field text-sm">
           {ROW_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
         </select>
@@ -173,16 +188,16 @@ function RowProperties({ cell, allFields, modules, onChange, onDelete }: {
             className="input-field h-16 resize-none text-sm" placeholder="Explain how this score is recorded" />
         </div>
       )}
-      {(cell.cell_type === "input:number" || cell.cell_type === "tally") && (
+      {cell.cell_type === "input:list" && (
         <div>
           <label className="flex items-center gap-2 cursor-pointer">
             <input type="checkbox"
-              checked={!!(cell.config_json as Record<string, unknown>)?.allow_multiple}
-              onChange={e => onChange({ ...cell, config_json: { ...cell.config_json, allow_multiple: e.target.checked } })}
+              checked={!!(cell.config_json as Record<string, unknown>)?.show_entry_total}
+              onChange={e => onChange({ ...cell, config_json: { ...cell.config_json, show_entry_total: e.target.checked } })}
               className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" />
-            <span className="text-[11px] font-semibold text-slate-500 tracking-wider">Allow multiple entries</span>
+            <span className="text-[11px] font-semibold text-slate-500 tracking-wider">Show total for this field</span>
           </label>
-          <p className="text-[11px] text-slate-400 mt-0.5 ml-6">Players can add or remove entries, such as completed bonus cards.</p>
+          <p className="text-[11px] text-slate-400 mt-0.5 ml-6">Lists let players add and remove numeric entries, such as completed bonus cards.</p>
         </div>
       )}
       {cell.cell_type !== "heading" && cell.cell_type !== "formula" && (

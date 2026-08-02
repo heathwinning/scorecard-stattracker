@@ -42,7 +42,7 @@ export interface TemplateCell {
   col_pos: number;
   row_span: number;
   col_span: number;
-  cell_type: "input:text" | "input:number" | "tally" | "formula" | "heading";
+  cell_type: "input:text" | "input:number" | "input:list" | "tally" | "formula" | "heading";
   cell_key: string;
   label: string;
   formula_expr?: string | null;

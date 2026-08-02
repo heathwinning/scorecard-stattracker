@@ -40,7 +40,7 @@ CREATE TABLE IF NOT EXISTS template_cells (
   col_pos INTEGER NOT NULL,
   row_span INTEGER NOT NULL DEFAULT 1,
   col_span INTEGER NOT NULL DEFAULT 1,
-  cell_type TEXT NOT NULL CHECK(cell_type IN ('label', 'input:text', 'input:number', 'tally', 'formula', 'heading')),
+  cell_type TEXT NOT NULL CHECK(cell_type IN ('label', 'input:text', 'input:number', 'input:list', 'tally', 'formula', 'heading')),
   cell_key TEXT NOT NULL, -- Unique key within template, used for formula references
   label TEXT NOT NULL DEFAULT '',
   formula_expr TEXT, -- For formula cells: the expression like SUM(B1:B10)

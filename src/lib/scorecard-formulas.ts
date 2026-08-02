@@ -42,7 +42,7 @@ export function computeFormulaResults(
   const staticInputs = inputCells.filter(c => !c.per_player);
   const hasMultipleEntries = (cell: TemplateCell) => {
     const config = cell.config_json as Record<string, unknown>;
-    return !!config.allow_multiple || typeof config.repeatable_group === "string";
+    return cell.cell_type === "input:list" || !!config.allow_multiple || typeof config.repeatable_group === "string";
   };
 
   const results: Record<string, number> = {};
