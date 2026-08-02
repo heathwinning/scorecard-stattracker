@@ -84,7 +84,14 @@ function RowProperties({ cell, allFields, modules, onChange, onDelete }: {
   const [pendingFunction, setPendingFunction] = useState<string | null>(null);
   const [expressionPart, setExpressionPart] = useState("");
   const formulaFields = allFields.filter(field => field.cell_key !== cell.cell_key && field.cell_type !== "heading");
-  const headingFields = allFields.filter(field => field.cell_key !== cell.cell_key && field.cell_type === "heading");
+  // A parent can be a genuine heading or a score field styled as a section.
+  // The latter is useful when a scored category (for example, a numeric
+  // heading row) owns several nested entries.
+  const nestingParents = allFields.filter(field => {
+    if (field.cell_key === cell.cell_key) return false;
+    const fieldConfig = field.config_json as Record<string, unknown>;
+    return field.cell_type === "heading" || !!fieldConfig.section;
+  });
   const repeatableGroups = [...new Map(allFields
     .map(field => ({
       key: (field.config_json as Record<string, unknown>)?.repeatable_group,
@@ -191,7 +198,7 @@ function RowProperties({ cell, allFields, modules, onChange, onDelete }: {
           {!(cell.config_json as Record<string, unknown>)?.section && (
             <>
               <label className="block text-[11px] font-semibold tracking-wider text-slate-500">
-                Nested under heading
+                Nested under parent
                 <select
                   value={String((cell.config_json as Record<string, unknown>)?.parent_heading || "")}
                   onChange={event => onChange({
@@ -206,10 +213,10 @@ function RowProperties({ cell, allFields, modules, onChange, onDelete }: {
                   className="input-field mt-1 text-xs"
                 >
                   <option value="">Not nested</option>
-                  {headingFields.map(heading => <option key={heading.cell_key} value={heading.cell_key}>{fieldLabel(heading)}</option>)}
+                  {nestingParents.map(parent => <option key={parent.cell_key} value={parent.cell_key}>{fieldLabel(parent)}</option>)}
                 </select>
               </label>
-              <p className="text-[11px] text-slate-400">Links this field to a specific heading, even if rows are later reordered.</p>
+              <p className="text-[11px] text-slate-400">Choose a heading or a score field styled as a section. The relationship remains intact if rows are reordered.</p>
             </>
           )}
           <div className="grid grid-cols-2 gap-2 pt-1">
