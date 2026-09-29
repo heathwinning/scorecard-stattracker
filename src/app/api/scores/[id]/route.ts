@@ -79,9 +79,9 @@ export async function GET(
       : "SELECT * FROM cell_values WHERE scorecard_id = ?1",
     restrictToOwnScores ? [id, playerSlotId] : [id]
   );
-  const snapshot = await queryFirst<{ cells_json: string }>(db, "SELECT cells_json FROM scorecard_layout_snapshots WHERE scorecard_id = ?1", [id]);
+  const snapshot = await queryFirst<{ cells_json: string; rules_json: string }>(db, "SELECT cells_json, rules_json FROM scorecard_layout_snapshots WHERE scorecard_id = ?1", [id]);
 
-  return NextResponse.json({ scorecard: { ...scorecard, game_config: JSON.parse((scorecard.game_config as string) || "{}") }, players, values, cells: snapshot ? JSON.parse(snapshot.cells_json) : undefined });
+  return NextResponse.json({ scorecard: { ...scorecard, game_config: JSON.parse((scorecard.game_config as string) || "{}") }, players, values, cells: snapshot ? JSON.parse(snapshot.cells_json) : undefined, selected_rule_keys: snapshot ? JSON.parse(snapshot.rules_json || "[]") : [] });
 }
 
 // PUT /api/scorecards/[id] - update scorecard (save values)

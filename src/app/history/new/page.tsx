@@ -16,6 +16,7 @@ function NewScorecardPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const templateId = searchParams.get("template");
+  const requestedPlayers = searchParams.get("players");
   const { user, loading: authLoading, isGuest } = useAuth();
 
   const [cells, setCells] = useState<TemplateCell[]>([]);
@@ -74,9 +75,9 @@ function NewScorecardPageInner() {
     const create = async () => {
       if (isGuest) {
         const sc = guestCreateScorecard({ template_id: templateId, template_name: templateName, title: "", cells, rule_keys: selectedRuleKeys });
-        const hostPlayer = { id: crypto.randomUUID(), player_name: "You", sort_order: 0 };
-        guestUpdateScorecard(sc.id, { players: [hostPlayer] });
-        setPlayers([hostPlayer]);
+        const initialPlayers = makeInitialPlayers(requestedPlayers, isGuest ? "Player 1" : user?.name || "Player 1");
+        guestUpdateScorecard(sc.id, { players: initialPlayers });
+        setPlayers(initialPlayers);
         setScorecardId(sc.id);
         // Auto-generate share code for guest
         const code = generateCode();
@@ -86,9 +87,9 @@ function NewScorecardPageInner() {
       } else {
         try {
           const result = await createScorecard({ template_id: templateId, rule_keys: selectedRuleKeys });
-          const hostPlayer = { id: crypto.randomUUID(), player_name: "You", sort_order: 0 };
-          await updateScorecard(result.scorecard.id, { players: [hostPlayer] });
-          setPlayers([hostPlayer]);
+          const initialPlayers = makeInitialPlayers(requestedPlayers, user?.name || "Player 1");
+          await updateScorecard(result.scorecard.id, { players: initialPlayers });
+          setPlayers(initialPlayers);
           setScorecardId(result.scorecard.id);
           // Auto-share
           const shareResult = await fetch(`/api/scorecards/${result.scorecard.id}/share`, { method: "POST" }).then(r => r.json());
@@ -100,7 +101,7 @@ function NewScorecardPageInner() {
       }
     };
     create();
-  }, [templateId, cells.length, loading, isGuest, creationStarted, selectedRuleKeys]);
+  }, [templateId, cells.length, loading, isGuest, creationStarted, selectedRuleKeys, requestedPlayers, user?.name]);
 
   const handleSave = useCallback(async () => {
     setSaving(true);
@@ -227,6 +228,17 @@ function generateCode(): string {
   let code = "";
   for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
   return code;
+}
+
+function makeInitialPlayers(serialized: string | null, fallbackName: string): ScorecardPlayer[] {
+  const names = serialized?.split("|").map(name => name.trim()).filter(Boolean) ?? [];
+  const uniqueNames = [...new Map(names.map(name => [name.toLocaleLowerCase(), name])).values()];
+  const initialNames = uniqueNames.length ? uniqueNames : [fallbackName];
+  return initialNames.map((player_name, sort_order) => ({
+    id: crypto.randomUUID(),
+    player_name,
+    sort_order,
+  }));
 }
 
 export default function NewScorecardPage() {

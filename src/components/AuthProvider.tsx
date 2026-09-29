@@ -1,8 +1,9 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
-import { getMe, loginWithGoogle, logout as apiLogout } from "@/lib/api-client";
-import { hasGuestData } from "@/lib/guest-store";
+import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from "react";
+import { getMe, loginWithGoogle, logout as apiLogout, migrateGuestData } from "@/lib/api-client";
+import { clearGuestData, getAllGuestData, hasGuestData } from "@/lib/guest-store";
+import toast from "react-hot-toast";
 
 interface User {
   id: string;
@@ -30,6 +31,7 @@ const AuthContext = createContext<AuthContextType>({
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const migratingUser = useRef<string | null>(null);
 
   useEffect(() => {
     getMe()
@@ -37,6 +39,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .catch(() => setUser(null))
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    if (!user || user.email.startsWith("guest-") || !hasGuestData() || migratingUser.current === user.id) return;
+    migratingUser.current = user.id;
+    const guestData = getAllGuestData();
+    migrateGuestData(guestData)
+      .then(() => clearGuestData())
+      .catch((error) => {
+        migratingUser.current = null;
+        console.error("Guest scorecard migration failed; local data was retained.", error);
+        toast.error("Your guest scorecards are still saved on this device. We’ll retry migration when you sign in again.");
+      });
+  }, [user]);
 
   const isGuest = !loading && (!user || user.email?.startsWith("guest-"));
 

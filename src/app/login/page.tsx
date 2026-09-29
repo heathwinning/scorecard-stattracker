@@ -20,7 +20,7 @@ declare global {
 }
 
 export default function LoginPage() {
-  const { user, login } = useAuth();
+  const { user, isGuest, loading, login } = useAuth();
   const router = useRouter();
   const buttonRef = useRef<HTMLDivElement>(null);
   const initialized = useRef(false);
@@ -39,7 +39,7 @@ export default function LoginPage() {
   );
 
   useEffect(() => {
-    if (user) {
+    if (!loading && user && !isGuest) {
       router.push("/dashboard");
       return;
     }
@@ -78,9 +78,9 @@ export default function LoginPage() {
       }, 200);
       return () => clearInterval(interval);
     }
-  }, [user, router, handleCredentialResponse]);
+  }, [user, isGuest, loading, router, handleCredentialResponse]);
 
-  if (user) return null;
+  if (user && !isGuest) return null;
 
   return (
     <div className="min-h-[80vh] flex items-center justify-center px-4">

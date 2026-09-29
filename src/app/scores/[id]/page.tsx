@@ -7,10 +7,11 @@ import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 import {
   getScorecard, getTemplate, updateScorecard, deleteScorecard,
-  getLiveScorecard, updateMyCells,
-  type TemplateCell, type ScorecardPlayer, type CellValue, type ScorecardParticipant,
+  getLiveScorecard, updateMyCells, updateScorecardModules,
+  type TemplateCell, type TemplateRule, type ScorecardPlayer, type CellValue, type ScorecardParticipant,
 } from "@/lib/api-client";
-import { guestGetScorecard, guestUpdateScorecard, guestDeleteScorecard, guestGetTemplate, guestFindByShareCode, guestDeleteCellValue } from "@/lib/guest-store";
+import { guestGetScorecard, guestUpdateScorecard, guestUpdateScorecardLayout, guestDeleteScorecard, guestGetTemplate, guestFindByShareCode, guestDeleteCellValue } from "@/lib/guest-store";
+import { resolveLayout } from "@/lib/layout-rules";
 import ScorecardGrid, { type SaveState } from "@/components/ScorecardGrid";
 import Modal from "@/components/Modal";
 import ConfirmModal from "@/components/ConfirmModal";
@@ -26,6 +27,10 @@ export default function ScorecardDetailPage() {
 
   const [scorecardId, setScorecardId] = useState<string>(id);
   const [cells, setCells] = useState<TemplateCell[]>([]);
+  const [moduleBaseCells, setModuleBaseCells] = useState<TemplateCell[]>([]);
+  const [moduleRules, setModuleRules] = useState<TemplateRule[]>([]);
+  const [selectedRuleKeys, setSelectedRuleKeys] = useState<string[]>([]);
+  const [updatingModules, setUpdatingModules] = useState(false);
   const [players, setPlayers] = useState<ScorecardPlayer[]>([]);
   const [values, setValues] = useState<CellValue[]>([]);
   const [templateId, setTemplateId] = useState("");
@@ -112,6 +117,7 @@ export default function ScorecardDetailPage() {
       setIsLocked(data.scorecard.is_locked === 1);
       setPrivatePlayerScores(data.scorecard.private_player_scores === 1);
       setIsOwner(true);
+      setSelectedRuleKeys(data.rule_keys || []);
       // If template name is missing, look it up
       if (!data.scorecard.template_name && data.scorecard.template_id) {
         if (data.scorecard.template_id.startsWith("guest-")) {
@@ -127,12 +133,33 @@ export default function ScorecardDetailPage() {
         setCells(data.cells);
       } else if (data.scorecard.template_id.startsWith("guest-")) {
         const tpl = guestGetTemplate(data.scorecard.template_id);
-        if (tpl) setCells(tpl.cells || []);
+        if (tpl) {
+          setCells(tpl.cells || []);
+          setModuleBaseCells(tpl.cells || []);
+          setModuleRules(tpl.rules || []);
+        }
       } else {
         getTemplate(data.scorecard.template_id)
-          .then((tplData) => setCells(tplData.template.cells || []))
+          .then((tplData) => {
+            setModuleBaseCells(tplData.template.cells || []);
+            setModuleRules(tplData.template.rules || []);
+            if (!data.cells?.length) setCells(tplData.template.cells || []);
+          })
           .finally(() => setLoading(false));
         return;
+      }
+      if (!data.scorecard.template_id.startsWith("guest-") && data.cells?.length) {
+        getTemplate(data.scorecard.template_id).then(tplData => {
+          setModuleBaseCells(tplData.template.cells || []);
+          setModuleRules(tplData.template.rules || []);
+        }).catch(() => {});
+      }
+      if (data.scorecard.template_id.startsWith("guest-")) {
+        const tpl = guestGetTemplate(data.scorecard.template_id);
+        if (tpl) {
+          setModuleBaseCells(tpl.cells || []);
+          setModuleRules(tpl.rules || []);
+        }
       }
       setLoading(false);
       return;
@@ -153,12 +180,12 @@ export default function ScorecardDetailPage() {
         setIsLocked(data.scorecard.is_locked === 1);
         setPrivatePlayerScores(data.scorecard.private_player_scores === 1);
         setIsOwner(user?.id === data.scorecard.created_by);
+        setSelectedRuleKeys(data.selected_rule_keys || []);
 
-        if (data.cells?.length) setCells(data.cells);
-        else {
-          const tplData = await getTemplate(data.scorecard.template_id);
-          setCells(tplData.template.cells || []);
-        }
+        const tplData = await getTemplate(data.scorecard.template_id);
+        setModuleBaseCells(tplData.template.cells || []);
+        setModuleRules(tplData.template.rules || []);
+        setCells(data.cells?.length ? data.cells : tplData.template.cells || []);
 
         if (data.scorecard.share_code && user) {
           try {
@@ -190,6 +217,8 @@ export default function ScorecardDetailPage() {
     const focusedCellKey = activeInput instanceof HTMLInputElement ? activeInput.getAttribute("data-cell-key") : null;
     try {
       const live = await getLiveScorecard(scorecardId, lastUpdatedRef.current);
+      setCells(current => JSON.stringify(current) === JSON.stringify(live.cells) ? current : live.cells);
+      setSelectedRuleKeys(current => current.join("\u0000") === live.selected_rule_keys.join("\u0000") ? current : live.selected_rule_keys);
 
       // Collaboration mode is host-owned metadata. Apply it from the same
       // live response as players/values so every participant changes behavior
@@ -371,6 +400,26 @@ export default function ScorecardDetailPage() {
     }
   }, [hostOnlyEditing, isLocked, privatePlayerScores, scorecardId]);
 
+  const saveModules = useCallback(async (nextKeys: string[]) => {
+    setUpdatingModules(true);
+    try {
+      if (scorecardId.startsWith("guest-")) {
+        const layout = resolveLayout(moduleBaseCells, moduleRules, nextKeys);
+        guestUpdateScorecardLayout(scorecardId, layout.cells, nextKeys);
+        setCells(layout.cells);
+      } else {
+        const result = await updateScorecardModules(scorecardId, nextKeys);
+        setCells(result.cells);
+      }
+      setSelectedRuleKeys(nextKeys);
+      toast.success("Scorecard options updated");
+    } catch {
+      toast.error("Could not update scorecard options");
+    } finally {
+      setUpdatingModules(false);
+    }
+  }, [moduleBaseCells, moduleRules, scorecardId]);
+
   const persistMetadata = useCallback(async () => {
     if (liveModeRef.current && !isOwnerRef.current) return;
     if (metadataPersistTimerRef.current) clearTimeout(metadataPersistTimerRef.current);
@@ -449,8 +498,11 @@ export default function ScorecardDetailPage() {
               <Link href={`/scorecards/${templateId}`} className="text-indigo-600 hover:text-indigo-800 hover:underline">
                 View scorecard
               </Link>
-              <Link href={`/history/new?template=${encodeURIComponent(templateId)}`} className="text-indigo-600 hover:text-indigo-800 hover:underline">
+              <Link href={`/history/new?template=${encodeURIComponent(templateId)}&players=${encodeURIComponent(players.map(player => player.player_name).join("|"))}`} className="text-indigo-600 hover:text-indigo-800 hover:underline">
                 New game with this scorecard
+              </Link>
+              <Link href={`/history/new?template=${encodeURIComponent(templateId)}`} className="text-slate-500 hover:text-slate-700 hover:underline">
+                New game, clear players
               </Link>
             </div>
           )}
@@ -504,6 +556,34 @@ export default function ScorecardDetailPage() {
       {/* Settings Modal */}
       <Modal open={settingsOpen} onClose={() => setSettingsOpen(false)} title="Game Settings">
         <div className="space-y-6">
+          {isOwner && moduleRules.length > 0 && (
+            <section>
+              <label className="text-xs font-semibold text-slate-500 tracking-wider block mb-2">Scorecard Options</label>
+              <div className="space-y-2">
+                {moduleRules.map(rule => (
+                  <label key={rule.rule_key} className="flex cursor-pointer items-start justify-between gap-3 rounded-xl border border-slate-200 bg-white p-3">
+                    <span>
+                      <span className="block text-sm font-semibold text-slate-800">{rule.label}</span>
+                      {rule.help_text && <span className="mt-1 block text-xs text-slate-500">{rule.help_text}</span>}
+                    </span>
+                    <input
+                      type="checkbox"
+                      checked={selectedRuleKeys.includes(rule.rule_key)}
+                      disabled={updatingModules || isLocked}
+                      onChange={event => {
+                        const nextKeys = event.target.checked
+                          ? [...selectedRuleKeys, rule.rule_key]
+                          : selectedRuleKeys.filter(key => key !== rule.rule_key);
+                        void saveModules(nextKeys);
+                      }}
+                      className="mt-1 h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                    />
+                  </label>
+                ))}
+              </div>
+              <p className="mt-2 text-[11px] text-slate-400">Options update this scorecard in place; entered scores are retained.</p>
+            </section>
+          )}
           {/* Game Mode */}
           <div>
             <label className="text-xs font-semibold text-slate-500 tracking-wider block mb-2">Game Mode</label>

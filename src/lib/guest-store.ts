@@ -156,6 +156,7 @@ export function guestGetScorecard(id: string): {
   players: ScorecardPlayer[];
   values: CellValue[];
   cells?: TemplateCell[];
+  rule_keys?: string[];
 } | null {
   const sc = read<Scorecard>(KEYS.scorecards).find((s) => s.id === id);
   if (!sc) return null;
@@ -166,6 +167,7 @@ export function guestGetScorecard(id: string): {
     players: data.length > 0 ? data[0].players : [],
     values: data.length > 0 ? data[0].values : [],
     cells: data.length > 0 ? data[0].cells : undefined,
+    rule_keys: (data.length > 0 ? (data[0] as any).rule_keys : []) || [],
   };
 }
 
@@ -218,6 +220,14 @@ export function guestUpdateScorecard(id: string, data: {
   return true;
 }
 
+export function guestUpdateScorecardLayout(id: string, cells: TemplateCell[], ruleKeys: string[]) {
+  const existing = read<{ players: ScorecardPlayer[]; values: CellValue[]; cells?: TemplateCell[]; rule_keys?: string[] }>(KEYS.scoreData(id));
+  const current = existing[0] || { players: [], values: [] };
+  current.cells = cells;
+  current.rule_keys = ruleKeys;
+  write(KEYS.scoreData(id), [current]);
+}
+
 /** Remove a single cell value (e.g. a deleted multi-entry row). */
 export function guestDeleteCellValue(id: string, cellId: string, playerId: string | null, entryKey: string): boolean {
   const existing = read<{ players: ScorecardPlayer[]; values: CellValue[] }>(KEYS.scoreData(id));
@@ -247,14 +257,14 @@ export function guestFindByShareCode(code: string): Scorecard | null {
 export interface GuestData {
   templates: Template[];
   scorecards: Scorecard[];
-  scores: Record<string, { players: ScorecardPlayer[]; values: CellValue[] }>;
+  scores: Record<string, { players: ScorecardPlayer[]; values: CellValue[]; cells?: TemplateCell[]; rule_keys?: string[] }>;
 }
 
 export function getAllGuestData(): GuestData {
   const scorecards = read<Scorecard>(KEYS.scorecards);
   const scores: GuestData["scores"] = {};
   for (const sc of scorecards) {
-    const data = read<{ players: ScorecardPlayer[]; values: CellValue[] }>(KEYS.scoreData(sc.id));
+    const data = read<{ players: ScorecardPlayer[]; values: CellValue[]; cells?: TemplateCell[]; rule_keys?: string[] }>(KEYS.scoreData(sc.id));
     if (data.length > 0) scores[sc.id] = data[0];
   }
   return {

@@ -111,12 +111,19 @@ export async function GET(
      )`,
     [scorecardId]
   );
+  const layout = await queryFirst<{ cells_json: string; rules_json: string }>(
+    db,
+    "SELECT cells_json, rules_json FROM scorecard_layout_snapshots WHERE scorecard_id = ?1",
+    [scorecardId]
+  );
 
   return NextResponse.json(
     {
       scorecard: { ...scorecard, game_config: JSON.parse((scorecard.game_config as string) || "{}") },
       players,
       values,
+      cells: layout ? JSON.parse(layout.cells_json) : [],
+      selected_rule_keys: layout ? JSON.parse(layout.rules_json || "[]") : [],
       participants,
       last_updated: latest?.last_updated || scorecard.updated_at,
     },

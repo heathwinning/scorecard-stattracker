@@ -34,6 +34,13 @@ export async function getMe() {
   );
 }
 
+export async function migrateGuestData(data: import("./guest-store").GuestData) {
+  return api<{ success: boolean; templates: number; scorecards: number }>("/api/auth/migrate", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
 // Templates
 export interface TemplateCell {
   id?: string;
@@ -191,6 +198,7 @@ export async function getScorecard(id: string) {
     players: ScorecardPlayer[];
     values: CellValue[];
     cells?: TemplateCell[];
+    selected_rule_keys?: string[];
   }>(`/api/scores/${id}`);
 }
 
@@ -222,6 +230,13 @@ export async function updateScorecard(id: string, data: {
   return api<{ success: boolean }>(`/api/scores/${id}`, {
     method: "PUT",
     body: JSON.stringify(data),
+  });
+}
+
+export async function updateScorecardModules(id: string, rule_keys: string[]) {
+  return api<{ cells: TemplateCell[]; rule_keys: string[] }>(`/api/scores/${id}/modules`, {
+    method: "PUT",
+    body: JSON.stringify({ rule_keys }),
   });
 }
 
@@ -260,6 +275,8 @@ export async function getLiveScorecard(id: string, since?: string) {
     players: ScorecardPlayer[];
     values: CellValue[];
     participants: ScorecardParticipant[];
+    cells: TemplateCell[];
+    selected_rule_keys: string[];
     last_updated: string;
   }>(`/api/scores/${id}/live${qs}`);
 }

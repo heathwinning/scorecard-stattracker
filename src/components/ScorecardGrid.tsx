@@ -592,14 +592,28 @@ function PlayerHeaderCell({ player, canEdit, canRemove, onCommit, onRemove, onEd
       <input
         ref={inputRef}
         value={local}
+        list="scorecard-player-name-options"
         aria-label="Player name"
         data-player-name-input=""
         className="sg-player-input"
         onFocus={() => { onEditingChange?.(true); inputRef.current?.select(); }}
         onChange={e => setLocal(e.target.value)}
-        onBlur={e => { onCommit(e.currentTarget.value); onEditingChange?.(false); }}
+        onBlur={e => {
+          const name = e.currentTarget.value.trim();
+          if (name && typeof window !== "undefined") {
+            const names = getSavedPlayerNames();
+            if (!names.some(saved => saved.toLocaleLowerCase() === name.toLocaleLowerCase())) {
+              localStorage.setItem("scorecard_player_names", JSON.stringify([...names, name].slice(-100)));
+            }
+          }
+          onCommit(name);
+          onEditingChange?.(false);
+        }}
         onKeyDown={e => { if (e.key === "Enter") e.currentTarget.blur(); }}
       />
+      <datalist id="scorecard-player-name-options">
+        {getSavedPlayerNames().map(name => <option key={name} value={name} />)}
+      </datalist>
       {canRemove && (
         <button type="button" onClick={onRemove} className="sg-player-remove" aria-label={`Remove ${player.player_name}`} title="Remove player">
           <HiOutlineX className="h-3 w-3" />
@@ -607,6 +621,16 @@ function PlayerHeaderCell({ player, canEdit, canRemove, onCommit, onRemove, onEd
       )}
     </span>
   );
+}
+
+function getSavedPlayerNames(): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const names = JSON.parse(localStorage.getItem("scorecard_player_names") || "[]");
+    return Array.isArray(names) ? names.filter((name): name is string => typeof name === "string") : [];
+  } catch {
+    return [];
+  }
 }
 
 // ---------------------------------------------------------------------------
