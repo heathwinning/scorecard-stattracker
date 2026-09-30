@@ -26,6 +26,7 @@ export default function ScorecardDetailPage() {
   const id = params.id as string;
 
   const [scorecardId, setScorecardId] = useState<string>(id);
+  const [isLocalGuestScorecard, setIsLocalGuestScorecard] = useState(false);
   const [cells, setCells] = useState<TemplateCell[]>([]);
   const [moduleBaseCells, setModuleBaseCells] = useState<TemplateCell[]>([]);
   const [moduleRules, setModuleRules] = useState<TemplateRule[]>([]);
@@ -92,20 +93,17 @@ export default function ScorecardDetailPage() {
 
   // Initial load
   useEffect(() => {
-    // Resolve share code to guest scorecard ID
-    let resolvedId = id;
-    if (id.startsWith("guest-")) {
-      // Direct guest ID
-    } else if (id.length <= 10 && !id.includes("-")) {
-      // Looks like a share code — try guest store
-      const guestSc = guestFindByShareCode(id);
-      if (guestSc) resolvedId = guestSc.id;
+    let localData = id.startsWith("guest-") ? guestGetScorecard(id) : null;
+    if (!localData && id.length <= 10 && !id.includes("-")) {
+      const guestScorecard = guestFindByShareCode(id);
+      if (guestScorecard) localData = guestGetScorecard(guestScorecard.id);
     }
 
-    if (resolvedId.startsWith("guest-")) {
+    if (localData) {
+      const data = localData;
+      const resolvedId = data.scorecard.id;
+      setIsLocalGuestScorecard(true);
       setScorecardId(resolvedId);
-      const data = guestGetScorecard(resolvedId);
-      if (!data) { toast.error("Scorecard not found"); setLoading(false); return; }
       setPlayers(data.players || []);
       setValues(data.values || []);
       setTemplateId(data.scorecard.template_id);
@@ -165,7 +163,8 @@ export default function ScorecardDetailPage() {
       return;
     }
 
-    getScorecard(resolvedId)
+    setIsLocalGuestScorecard(false);
+    getScorecard(id)
       .then(async (data) => {
         setScorecardId(data.scorecard.id);
         setPlayers(data.players || []);
@@ -310,7 +309,7 @@ export default function ScorecardDetailPage() {
       if (existing) return prev.map(v => v.template_cell_id === cellId && v.player_id === playerId && (v.entry_key || '') === ek ? { ...v, value, is_hidden: isHidden } : v);
       return [...prev, { template_cell_id: cellId, player_id: playerId, entry_key: ek, value, is_hidden: isHidden }];
     });
-    if (scorecardId.startsWith("guest-")) {
+    if (isLocalGuestScorecard) {
       guestUpdateScorecard(scorecardId, { values: [{ template_cell_id: cellId, player_id: playerId, entry_key: ek, value, is_hidden: isHidden }] } as any);
       setSaveState("saved");
     } else {
@@ -333,33 +332,33 @@ export default function ScorecardDetailPage() {
         } catch { setSaveState("error"); }
       }, 300);
     }
-  }, [scorecardId]);
+  }, [scorecardId, isLocalGuestScorecard]);
 
   const handleCellDelete = useCallback(async (cellId: string, playerId: string, entryKey: string) => {
     // The grid already removed the value from local state via onValuesChange.
     pendingCellsRef.current.delete(`${cellId}:${playerId}:${entryKey}`);
-    if (scorecardId.startsWith("guest-")) {
+    if (isLocalGuestScorecard) {
       guestDeleteCellValue(scorecardId, cellId, playerId || null, entryKey);
       return;
     }
     try {
       await updateMyCells(scorecardId, [], [{ template_cell_id: cellId, player_id: playerId, entry_key: entryKey }]);
     } catch { setSaveState("error"); }
-  }, [scorecardId]);
+  }, [scorecardId, isLocalGuestScorecard]);
 
   // Ensure either collaboration mode has a joinable link.
   useEffect(() => {
-    if (loading || shareCode || scorecardId.startsWith("guest-")) return;
+    if (loading || shareCode || isLocalGuestScorecard) return;
     fetch(`/api/scores/${scorecardId}/share`, { method: "POST" })
       .then(r => r.json())
       .then(data => { if (data.share_code) setShareCode(data.share_code); })
       .catch(() => {});
-  }, [gameMode, loading, shareCode, scorecardId]);
+  }, [gameMode, loading, shareCode, scorecardId, isLocalGuestScorecard]);
 
   const handleGameModeChange = useCallback(async (mode: "shared" | "live") => {
     setGameMode(mode);
     const sharingMode = mode === "live" ? "slots" : "shared";
-    if (scorecardId.startsWith("guest-")) {
+    if (isLocalGuestScorecard) {
       guestUpdateScorecard(scorecardId, { sharing_mode: sharingMode } as any);
       return;
     }
@@ -368,7 +367,7 @@ export default function ScorecardDetailPage() {
     } catch {
       toast.error("Could not update collaboration mode");
     }
-  }, [scorecardId]);
+  }, [scorecardId, isLocalGuestScorecard]);
 
   const updateEditingSettings = useCallback(async (nextHostOnlyEditing: boolean, nextIsLocked: boolean, nextPrivatePlayerScores: boolean) => {
     const previousHostOnlyEditing = hostOnlyEditing;
@@ -379,7 +378,7 @@ export default function ScorecardDetailPage() {
     setPrivatePlayerScores(nextPrivatePlayerScores);
 
     try {
-      if (scorecardId.startsWith("guest-")) {
+      if (isLocalGuestScorecard) {
         guestUpdateScorecard(scorecardId, {
           host_only_editing: nextHostOnlyEditing,
           is_locked: nextIsLocked,
@@ -398,12 +397,12 @@ export default function ScorecardDetailPage() {
       setPrivatePlayerScores(previousPrivatePlayerScores);
       toast.error("Could not update editing settings");
     }
-  }, [hostOnlyEditing, isLocked, privatePlayerScores, scorecardId]);
+  }, [hostOnlyEditing, isLocked, privatePlayerScores, scorecardId, isLocalGuestScorecard]);
 
   const saveModules = useCallback(async (nextKeys: string[]) => {
     setUpdatingModules(true);
     try {
-      if (scorecardId.startsWith("guest-")) {
+      if (isLocalGuestScorecard) {
         const layout = resolveLayout(moduleBaseCells, moduleRules, nextKeys);
         guestUpdateScorecardLayout(scorecardId, layout.cells, nextKeys);
         setCells(layout.cells);
@@ -418,7 +417,7 @@ export default function ScorecardDetailPage() {
     } finally {
       setUpdatingModules(false);
     }
-  }, [moduleBaseCells, moduleRules, scorecardId]);
+  }, [moduleBaseCells, moduleRules, scorecardId, isLocalGuestScorecard]);
 
   const persistMetadata = useCallback(async () => {
     if (liveModeRef.current && !isOwnerRef.current) return;
@@ -426,7 +425,7 @@ export default function ScorecardDetailPage() {
     metadataPersistTimerRef.current = setTimeout(async () => {
       const latestPlayers = playersRef.current;
       const latestTitle = scorecardTitleRef.current;
-      if (scorecardId.startsWith("guest-")) {
+      if (isLocalGuestScorecard) {
         guestUpdateScorecard(scorecardId, { title: latestTitle, players: latestPlayers } as any);
       } else {
         try {
@@ -436,11 +435,11 @@ export default function ScorecardDetailPage() {
         } catch { /* silent */ }
       }
     }, 250);
-  }, [scorecardId, liveMode, isOwner]);
+  }, [scorecardId, liveMode, isOwner, isLocalGuestScorecard]);
 
   const handleDelete = async () => {
     try {
-      if (scorecardId.startsWith("guest-")) { guestDeleteScorecard(scorecardId); }
+      if (isLocalGuestScorecard) { guestDeleteScorecard(scorecardId); }
       else { await deleteScorecard(scorecardId); }
       toast.success("Deleted"); router.push("/scores");
     } catch { toast.error("Failed to delete"); }
