@@ -6,6 +6,7 @@ import { listTemplates, listScorecards, Template, Scorecard } from "@/lib/api-cl
 import { guestGetTemplates, guestGetScorecards } from "@/lib/guest-store";
 import Link from "next/link";
 import { HiOutlineTemplate, HiOutlineClipboardList, HiOutlinePlus, HiOutlineArrowRight } from "react-icons/hi";
+import { scorecardDisplayTitle } from "@/lib/scorecard-title";
 
 export default function DashboardPage() {
   const { user, loading: authLoading, isGuest } = useAuth();
@@ -118,7 +119,7 @@ export default function DashboardPage() {
                     🎲
                   </div>
                   <div>
-                    <div className="font-semibold text-slate-900 text-sm">{sc.title || "Untitled Game"}</div>
+                    <div className="font-semibold text-slate-900 text-sm">{scorecardDisplayTitle(sc.title, sc.template_name, sc.game_date)}</div>
                     <div className="text-xs text-slate-400">{sc.template_name} · {formatDate(sc.game_date)}</div>
                   </div>
                 </div>
@@ -245,7 +246,7 @@ function GuestDashboard({ templates, scorecards }: { templates: Template[]; scor
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center text-sm group-hover:bg-indigo-50 transition-colors">🎲</div>
                   <div>
-                    <div className="font-semibold text-slate-900 text-sm">{sc.title || "Untitled Game"}</div>
+                    <div className="font-semibold text-slate-900 text-sm">{scorecardDisplayTitle(sc.title, sc.template_name, sc.game_date)}</div>
                     <div className="text-xs text-slate-400">{sc.template_name || "Custom"} · {formatDate(sc.game_date)}</div>
                   </div>
                 </div>

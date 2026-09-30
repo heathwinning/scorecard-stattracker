@@ -8,6 +8,7 @@ import { HiOutlineClipboardList, HiOutlineArrowRight, HiOutlineTrash } from "rea
 import { guestDeleteScorecard, guestGetScorecards } from "@/lib/guest-store";
 import ConfirmModal from "@/components/ConfirmModal";
 import toast from "react-hot-toast";
+import { scorecardDisplayTitle } from "@/lib/scorecard-title";
 
 export default function ScorecardsPage() {
   const { user, loading: authLoading, isGuest } = useAuth();
@@ -150,7 +151,7 @@ export default function ScorecardsPage() {
                   type="checkbox"
                   checked={selectedIds.has(sc.id)}
                   onChange={() => toggleSelection(sc.id)}
-                  aria-label={`Select ${sc.title || "Untitled Game"}`}
+                  aria-label={`Select ${scorecardDisplayTitle(sc.title, sc.template_name, sc.game_date)}`}
                   className="h-4 w-4 shrink-0 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
                 />
               )}
@@ -159,7 +160,7 @@ export default function ScorecardsPage() {
                 <div className="flex min-w-0 items-center gap-3">
                 <div className="w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center text-sm group-hover:bg-violet-50 transition-colors">🎲</div>
                 <div className="min-w-0">
-                  <div className="font-semibold text-slate-900 text-sm">{sc.title || "Untitled Game"}</div>
+                  <div className="font-semibold text-slate-900 text-sm">{scorecardDisplayTitle(sc.title, sc.template_name, sc.game_date)}</div>
                   <div className="text-xs text-slate-400">{sc.template_name} · {formatDate(sc.game_date)}</div>
                 </div>
               </div>

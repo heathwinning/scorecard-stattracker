@@ -6,6 +6,7 @@ import { useAuth } from "@/components/AuthProvider";
 import { getTemplate, createScorecard, updateScorecard, type TemplateCell, type ScorecardPlayer, type CellValue, type TemplateRule } from "@/lib/api-client";
 import { guestGetTemplate, guestCreateScorecard, guestUpdateScorecard } from "@/lib/guest-store";
 import { resolveLayout } from "@/lib/layout-rules";
+import { defaultScorecardTitle } from "@/lib/scorecard-title";
 import ScorecardGrid from "@/components/ScorecardGrid";
 import Modal from "@/components/Modal";
 import Link from "next/link";
@@ -73,8 +74,11 @@ function NewScorecardPageInner() {
   useEffect(() => {
     if (!templateId || loading || cells.length === 0 || !creationStarted) return;
     const create = async () => {
+      const gameDate = new Date().toISOString();
+      const scorecardTitle = defaultScorecardTitle(templateName, gameDate);
+      setTitle(scorecardTitle);
       if (isGuest) {
-        const sc = guestCreateScorecard({ template_id: templateId, template_name: templateName, title: "", cells, rule_keys: selectedRuleKeys });
+        const sc = guestCreateScorecard({ template_id: templateId, template_name: templateName, title: scorecardTitle, game_date: gameDate, cells, rule_keys: selectedRuleKeys });
         const initialPlayers = makeInitialPlayers(requestedPlayers, isGuest ? "Player 1" : user?.name || "Player 1");
         guestUpdateScorecard(sc.id, { players: initialPlayers });
         setPlayers(initialPlayers);
@@ -86,7 +90,7 @@ function NewScorecardPageInner() {
         router.replace(`/scores/${code}`);
       } else {
         try {
-          const result = await createScorecard({ template_id: templateId, rule_keys: selectedRuleKeys });
+          const result = await createScorecard({ template_id: templateId, title: scorecardTitle, game_date: gameDate, rule_keys: selectedRuleKeys });
           const initialPlayers = makeInitialPlayers(requestedPlayers, user?.name || "Player 1");
           await updateScorecard(result.scorecard.id, { players: initialPlayers });
           setPlayers(initialPlayers);
@@ -101,7 +105,7 @@ function NewScorecardPageInner() {
       }
     };
     create();
-  }, [templateId, cells.length, loading, isGuest, creationStarted, selectedRuleKeys, requestedPlayers, user?.name]);
+  }, [templateId, templateName, cells.length, loading, isGuest, creationStarted, selectedRuleKeys, requestedPlayers, user?.name]);
 
   const handleSave = useCallback(async () => {
     setSaving(true);

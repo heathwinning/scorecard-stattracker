@@ -2,6 +2,7 @@
 // Mirrors the server API so pages don't need to change much
 
 import type { Template, TemplateCell, TemplateRule, Scorecard, ScorecardPlayer, CellValue } from "./api-client";
+import { defaultScorecardTitle } from "./scorecard-title";
 
 const KEYS = {
   templates: "guest_templates",
@@ -126,13 +127,14 @@ export function guestCreateScorecard(data: {
     if (tpl) templateName = tpl.name;
   }
 
+  const gameDate = data.game_date || new Date().toISOString();
   const sc: Scorecard = {
     id: `guest-${uid()}`,
     template_id: data.template_id,
     template_name: templateName,
     created_by: "guest",
-    title: data.title || "",
-    game_date: data.game_date || new Date().toISOString(),
+    title: data.title?.trim() || defaultScorecardTitle(templateName || "Game", gameDate),
+    game_date: gameDate,
     notes: "",
     share_code: null,
     sharing_mode: "shared",

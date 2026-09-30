@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getUserFromCookies } from "@/lib/auth";
-import { getDB, queryAll, uuid, execute } from "@/lib/db";
+import { getDB, queryAll, queryFirst, uuid, execute } from "@/lib/db";
 import { resolveLayout } from "@/lib/layout-rules";
+import { defaultScorecardTitle } from "@/lib/scorecard-title";
 
 export const runtime = "edge";
 
@@ -41,6 +42,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "template_id is required" }, { status: 400 });
   }
 
+  const template = await queryFirst<{ name: string }>(db, "SELECT name FROM templates WHERE id = ?1", [template_id]);
+  if (!template) return NextResponse.json({ error: "Template not found" }, { status: 404 });
+  const resolvedGameDate = game_date || new Date().toISOString();
+  const resolvedTitle = typeof title === "string" && title.trim()
+    ? title.trim()
+    : defaultScorecardTitle(template.name, resolvedGameDate);
+
   // Ensure the user exists in the DB (guest sessions may predate a DB reset)
   if (user) {
     await db
@@ -60,8 +68,8 @@ export async function POST(request: NextRequest) {
       scorecardId,
       template_id,
       user?.id || null,
-      (title || "").trim(),
-      game_date || new Date().toISOString(),
+      resolvedTitle,
+      resolvedGameDate,
       (notes || "").trim()
     )
     .run();
@@ -81,5 +89,5 @@ export async function POST(request: NextRequest) {
     [scorecardId, JSON.stringify(resolved.cells), JSON.stringify(resolved.selectedRules.map(rule => rule.rule_key))]
   );
 
-  return NextResponse.json({ scorecard: { id: scorecardId, ...body } }, { status: 201 });
+  return NextResponse.json({ scorecard: { id: scorecardId, ...body, title: resolvedTitle, game_date: resolvedGameDate } }, { status: 201 });
 }
