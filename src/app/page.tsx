@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { listTemplates, type Template } from "@/lib/api-client";
+import { useAuth } from "@/components/AuthProvider";
 
 function QuickPickTemplates() {
   const [templates, setTemplates] = useState<Template[]>([]);
@@ -28,7 +29,9 @@ function QuickPickTemplates() {
 
 export default function Home() {
   const router = useRouter();
+  const { user, loading: authLoading, isGuest } = useAuth();
   const [joinCode, setJoinCode] = useState("");
+  const signedIn = !authLoading && !!user && !isGuest;
 
   const handleJoinGame = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -56,9 +59,15 @@ export default function Home() {
             <Link href="/scorecards" className="btn-primary text-base px-6 py-3 rounded-xl shadow-lg shadow-indigo-200">
               Browse Scorecards
             </Link>
-            <Link href="/login" className="btn-secondary text-base px-6 py-3 rounded-xl">
-              Sign in with Google
-            </Link>
+            {!authLoading && (signedIn ? (
+              <Link href="/dashboard" className="btn-secondary text-base px-6 py-3 rounded-xl">
+                My Dashboard
+              </Link>
+            ) : (
+              <Link href="/login" className="btn-secondary text-base px-6 py-3 rounded-xl">
+                Sign in with Google
+              </Link>
+            ))}
           </div>
 
           <form
@@ -125,7 +134,7 @@ export default function Home() {
       </section>
 
       {/* SEO: visually hidden but crawlable */}
-      <Link href="/login" className="sr-only">Get Started Free — free online scorecard maker for any game</Link>
+      {!authLoading && !signedIn && <Link href="/login" className="sr-only">Get Started Free — free online scorecard maker for any game</Link>}
     </div>
   );
 }
