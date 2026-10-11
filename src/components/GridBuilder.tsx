@@ -45,9 +45,10 @@ function SortableRow({ row, isSelected, onClick, onDelete }: {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: row.original.cell_key });
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1 };
   const isHeading = row.original.cell_type === "heading";
+  const isSection = !!(row.original.config_json as Record<string, unknown>).section;
   return (
     <tr ref={setNodeRef} style={style}
-      className={`border-b border-slate-100 cursor-pointer transition-colors ${isSelected ? "bg-indigo-50/60" : isHeading ? "bg-indigo-50/30" : "hover:bg-slate-50"}`}
+      className={`border-b border-slate-100 cursor-pointer transition-colors ${isSelected ? "bg-indigo-50/60" : (isHeading || isSection) ? "bg-indigo-50/30" : "hover:bg-slate-50"}`}
       onClick={onClick}>
       <td className="w-8 shrink-0 align-middle">
         <div {...attributes} {...listeners} className="flex items-center justify-center cursor-grab text-slate-300 hover:text-slate-500 select-none text-xs">⠿</div>
@@ -79,6 +80,7 @@ function RowProperties({ cell, allFields, modules, onChange, onDelete }: {
   cell: TemplateCell; allFields: TemplateCell[]; modules: TemplateRule[]; onChange: (u: TemplateCell) => void; onDelete: () => void;
 }) {
   const [formulaError, setFormulaError] = useState<string | null>(null);
+  const variationKey = String((cell.config_json as Record<string, unknown>)?.rule_key || "");
   const [formulaMode, setFormulaMode] = useState<"sum" | "running" | "advanced">("sum");
   const [fieldSearch, setFieldSearch] = useState("");
   const [functionSearch, setFunctionSearch] = useState("");
@@ -200,7 +202,7 @@ function RowProperties({ cell, allFields, modules, onChange, onDelete }: {
           <p className="text-[11px] text-slate-400 mt-0.5 ml-6">Lists let players add and remove numeric entries, such as completed bonus cards.</p>
         </div>
       )}
-      {cell.cell_type !== "heading" && cell.cell_type !== "formula" && (
+      {cell.cell_type !== "heading" && (
         <div className="space-y-2">
           <label className="flex items-center gap-2 cursor-pointer">
             <input type="checkbox"
@@ -234,34 +236,36 @@ function RowProperties({ cell, allFields, modules, onChange, onDelete }: {
               <p className="text-[11px] text-slate-400">Choose a heading or a score field styled as a section. The relationship remains intact if rows are reordered.</p>
             </>
           )}
-          <div className="grid grid-cols-2 gap-2 pt-1">
-            <label className="text-[11px] font-semibold text-slate-500 tracking-wider">
-              Repeatable group
-              <input
-                value={String((cell.config_json as Record<string, unknown>)?.repeatable_group || "")}
-                onChange={e => onChange({ ...cell, config_json: { ...cell.config_json, repeatable_group: e.target.value || undefined, inline_group: e.target.value || undefined } })}
-                className="input-field mt-1 text-xs"
-                placeholder="e.g. rounds"
-              />
+          {cell.cell_type !== "formula" && <>
+            <div className="grid grid-cols-2 gap-2 pt-1">
+              <label className="text-[11px] font-semibold text-slate-500 tracking-wider">
+                Repeatable group
+                <input
+                  value={String((cell.config_json as Record<string, unknown>)?.repeatable_group || "")}
+                  onChange={e => onChange({ ...cell, config_json: { ...cell.config_json, repeatable_group: e.target.value || undefined, inline_group: e.target.value || undefined } })}
+                  className="input-field mt-1 text-xs"
+                  placeholder="e.g. rounds"
+                />
+              </label>
+              <label className="text-[11px] font-semibold text-slate-500 tracking-wider">
+                Inline label
+                <input
+                  value={String((cell.config_json as Record<string, unknown>)?.inline_label || "")}
+                  onChange={e => onChange({ ...cell, config_json: { ...cell.config_json, inline_label: e.target.value || undefined } })}
+                  className="input-field mt-1 text-xs"
+                  placeholder="e.g. Score"
+                />
+              </label>
+            </div>
+            <label className="block text-[11px] font-semibold text-slate-500 tracking-wider">Show with variation
+              <select value={variationKey} onChange={event => onChange({ ...cell, config_json: { ...cell.config_json, rule_key: event.target.value || undefined } })} className="input-field mt-1 text-xs">
+                <option value="">Always show</option>
+                {modules.map((module, index) => <option key={module.rule_key} value={module.rule_key}>{module.label || `Variation ${index + 1}`}</option>)}
+              </select>
             </label>
-            <label className="text-[11px] font-semibold text-slate-500 tracking-wider">
-              Inline label
-              <input
-                value={String((cell.config_json as Record<string, unknown>)?.inline_label || "")}
-                onChange={e => onChange({ ...cell, config_json: { ...cell.config_json, inline_label: e.target.value || undefined } })}
-                className="input-field mt-1 text-xs"
-                placeholder="e.g. Score"
-              />
-            </label>
-          </div>
-          <label className="block text-[11px] font-semibold text-slate-500 tracking-wider">Show with variation
-            <select value={String((cell.config_json as Record<string, unknown>)?.rule_key || "")} onChange={event => onChange({ ...cell, config_json: { ...cell.config_json, rule_key: event.target.value || undefined } })} className="input-field mt-1 text-xs">
-              <option value="">Always show</option>
-              {modules.map(module => <option key={module.rule_key} value={module.rule_key}>{module.label || "Untitled variation"}</option>)}
-            </select>
-          </label>
-          <p className="text-[11px] text-slate-400">{modules.length ? "This row appears only when the selected variation is enabled for a new game." : "Add a variation above to make this row optional."}</p>
-          <p className="text-[11px] text-slate-400">Give related fields the same group name to create addable rows.</p>
+            <p className="text-[11px] text-slate-400">{variationKey ? (modules.some(module => module.rule_key === variationKey) ? "This row appears only when the selected variation is enabled for a new game." : "The selected variation was removed. This row will show in every game until you choose another.") : modules.length ? "Choose a variation to make this row optional." : "Add a variation above to make this row optional."}</p>
+            <p className="text-[11px] text-slate-400">Give related fields the same group name to create addable rows.</p>
+          </>}
         </div>
       )}
       {cell.cell_type === "formula" && (
