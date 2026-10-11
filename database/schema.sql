@@ -150,3 +150,12 @@ CREATE TABLE IF NOT EXISTS sessions (
 );
 
 CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
+
+-- Signed-in user's chosen quick-start scorecards, in display order.
+-- When a user has no rows here, the home page shows their most-used templates.
+CREATE TABLE IF NOT EXISTS user_quick_access (
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  template_id TEXT NOT NULL REFERENCES templates(id) ON DELETE CASCADE,
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (user_id, template_id)
+);

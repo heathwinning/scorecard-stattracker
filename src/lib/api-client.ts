@@ -298,3 +298,28 @@ export async function assignSlot(scorecardId: string, playerSlotId: string, play
     body: JSON.stringify({ player_slot_id: playerSlotId, player_name: playerName || undefined }),
   });
 }
+
+// Home page quick-access cards
+export interface QuickAccessTemplate {
+  id: string;
+  name: string;
+  game_icon: string | null;
+  game_name: string | null;
+  uses?: number;
+}
+
+export async function getQuickAccess() {
+  return api<{
+    preferred: QuickAccessTemplate[] | null;
+    frequent: QuickAccessTemplate[];
+    options: QuickAccessTemplate[];
+    max: number;
+  }>("/api/quick-access");
+}
+
+export async function saveQuickAccess(templateIds: string[]) {
+  return api<{ success: boolean }>("/api/quick-access", {
+    method: "PUT",
+    body: JSON.stringify({ template_ids: templateIds }),
+  });
+}

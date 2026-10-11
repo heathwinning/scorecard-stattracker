@@ -175,6 +175,7 @@ export default function DashboardPage() {
 
 // Guest dashboard — same layout with sign-in prompt
 function GuestDashboard({ templates, scorecards }: { templates: Template[]; scorecards: Scorecard[] }) {
+  const { signIn } = useAuth();
   const formatDate = (d?: string) => {
     if (!d) return "";
     const date = new Date(d);
@@ -212,7 +213,7 @@ function GuestDashboard({ templates, scorecards }: { templates: Template[]; scor
             <p className="text-xs text-amber-600">Your data is saved in this browser only. Sign in to keep it forever.</p>
           </div>
         </div>
-        <Link href="/login" className="btn-primary text-sm shrink-0">Sign in</Link>
+        <button type="button" onClick={signIn} className="btn-primary text-sm shrink-0">Sign in</button>
       </div>
 
       <div className="grid grid-cols-2 gap-4 mb-8">

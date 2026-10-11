@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
-import { getTemplate, createScorecard, updateScorecard, type TemplateCell, type ScorecardPlayer, type CellValue, type TemplateRule } from "@/lib/api-client";
+import { getTemplate, createScorecard, updateScorecard, shareScorecard, type TemplateCell, type ScorecardPlayer, type CellValue, type TemplateRule } from "@/lib/api-client";
 import { guestGetTemplate, guestCreateScorecard, guestUpdateScorecard } from "@/lib/guest-store";
 import { resolveLayout } from "@/lib/layout-rules";
 import { defaultScorecardTitle } from "@/lib/scorecard-title";
@@ -96,11 +96,9 @@ function NewScorecardPageInner() {
           setPlayers(initialPlayers);
           setScorecardId(result.scorecard.id);
           // Auto-share
-          const shareResult = await fetch(`/api/scorecards/${result.scorecard.id}/share`, { method: "POST" }).then(r => r.json());
-          if (shareResult.share_code) {
-            setShareCode(shareResult.share_code);
-            router.replace(`/scores/${shareResult.share_code}`);
-          }
+          const shareResult = await shareScorecard(result.scorecard.id);
+          setShareCode(shareResult.share_code);
+          router.replace(`/scores/${shareResult.share_code}`);
         } catch { toast.error("Failed to create game"); }
       }
     };
@@ -164,6 +162,19 @@ function NewScorecardPageInner() {
           <div className="flex items-center gap-2">
             <h1 className="text-lg font-bold tracking-tight text-slate-900 truncate">{title || templateName || "New Game"}</h1>
           </div>
+          {templateId && (
+            <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs">
+              <Link href={`/scorecards/${templateId}`} className="text-indigo-600 hover:text-indigo-800 hover:underline">
+                View scorecard
+              </Link>
+              <Link href={`/history/new?template=${encodeURIComponent(templateId)}&players=${encodeURIComponent(players.map(player => player.player_name).join("|"))}`} className="text-indigo-600 hover:text-indigo-800 hover:underline">
+                New game with this scorecard
+              </Link>
+              <Link href={`/history/new?template=${encodeURIComponent(templateId)}`} className="text-slate-500 hover:text-slate-700 hover:underline">
+                New game, clear players
+              </Link>
+            </div>
+          )}
         </div>
         <div className="flex w-full items-center justify-between gap-2 sm:w-auto sm:justify-end">
           {shareCode && (

@@ -1,10 +1,12 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { listTemplates, type Template } from "@/lib/api-client";
+import { getQuickAccess, listTemplates, saveQuickAccess, type QuickAccessTemplate, type Template } from "@/lib/api-client";
 import { useAuth } from "@/components/AuthProvider";
+import Modal from "@/components/Modal";
+import toast from "react-hot-toast";
 
 function QuickPickTemplates() {
   const [templates, setTemplates] = useState<Template[]>([]);
@@ -27,9 +29,106 @@ function QuickPickTemplates() {
   );
 }
 
+function QuickAccessCards() {
+  const [data, setData] = useState<Awaited<ReturnType<typeof getQuickAccess>> | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [saving, setSaving] = useState(false);
+
+  const load = useCallback(() => {
+    getQuickAccess().then(setData).catch(() => {});
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  if (!data) return null;
+
+  const cards: QuickAccessTemplate[] = data.preferred ?? data.frequent;
+  const max = data.max;
+
+  const openEditor = () => {
+    setSelectedIds((data.preferred ?? data.frequent).map(card => card.id));
+    setEditing(true);
+  };
+
+  const toggle = (id: string) => {
+    setSelectedIds(current => current.includes(id)
+      ? current.filter(item => item !== id)
+      : current.length < max ? [...current, id] : current);
+  };
+
+  const save = async (templateIds: string[]) => {
+    setSaving(true);
+    try {
+      await saveQuickAccess(templateIds);
+      setEditing(false);
+      load();
+    } catch {
+      toast.error("Could not save quick access cards");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <section className="max-w-5xl mx-auto px-4 pt-8">
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-sm font-semibold text-slate-700">
+          {data.preferred ? "Your quick access" : "Your most used"}
+        </h2>
+        <button type="button" onClick={openEditor} className="text-xs font-medium text-indigo-600 hover:text-indigo-800">
+          Customise
+        </button>
+      </div>
+      {cards.length === 0 ? (
+        <p className="text-sm text-slate-500">
+          Scorecards you use will appear here. <button type="button" onClick={openEditor} className="text-indigo-600 hover:underline">Pick your own</button>
+        </p>
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {cards.map(card => (
+            <Link key={card.id} href={`/history/new?template=${encodeURIComponent(card.id)}`}
+              className="card-hover p-4 flex items-center gap-3">
+              <span className="text-2xl">{card.game_icon || "🎲"}</span>
+              <span className="min-w-0">
+                <span className="block text-sm font-semibold text-slate-900 truncate">{card.name}</span>
+                {card.game_name && <span className="block text-xs text-slate-400 truncate">{card.game_name}</span>}
+              </span>
+            </Link>
+          ))}
+        </div>
+      )}
+
+      <Modal open={editing} onClose={() => setEditing(false)} title="Quick access cards">
+        <div className="p-5 space-y-4">
+          <p className="text-xs text-slate-500">Choose up to {max} scorecards to show on your home page. Leave all unchecked to show your most used instead.</p>
+          <div className="max-h-72 overflow-y-auto space-y-1">
+            {data.options.map(option => {
+              const checked = selectedIds.includes(option.id);
+              const disabled = !checked && selectedIds.length >= max;
+              return (
+                <label key={option.id} className={`flex items-center gap-3 rounded-lg px-2 py-1.5 text-sm ${disabled ? "opacity-50" : "hover:bg-slate-50 cursor-pointer"}`}>
+                  <input type="checkbox" checked={checked} disabled={disabled} onChange={() => toggle(option.id)} />
+                  <span>{option.game_icon || "🎲"} {option.name}</span>
+                </label>
+              );
+            })}
+          </div>
+          <div className="flex justify-between gap-2 pt-2">
+            <button type="button" onClick={() => save([])} disabled={saving} className="btn-secondary text-sm">Use most used</button>
+            <button type="button" onClick={() => save(selectedIds)} disabled={saving} className="btn-primary text-sm">
+              {saving ? "Saving..." : "Save"}
+            </button>
+          </div>
+        </div>
+      </Modal>
+    </section>
+  );
+}
+
 export default function Home() {
   const router = useRouter();
-  const { user, loading: authLoading, isGuest } = useAuth();
+  const { user, loading: authLoading, isGuest, signIn } = useAuth();
   const [joinCode, setJoinCode] = useState("");
   const signedIn = !authLoading && !!user && !isGuest;
 
@@ -64,9 +163,9 @@ export default function Home() {
                 My Dashboard
               </Link>
             ) : (
-              <Link href="/login" className="btn-secondary text-base px-6 py-3 rounded-xl">
+              <button type="button" onClick={signIn} className="btn-secondary text-base px-6 py-3 rounded-xl">
                 Sign in with Google
-              </Link>
+              </button>
             ))}
           </div>
 
@@ -100,6 +199,8 @@ export default function Home() {
           </form>
         </div>
       </section>
+
+      {signedIn && <QuickAccessCards />}
 
       {/* How it works */}
       <section className="max-w-5xl mx-auto px-4 py-14">

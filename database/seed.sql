@@ -324,7 +324,7 @@ INSERT OR IGNORE INTO templates (id, name, description, game_id, is_public, crea
   ('wingspan', 'Wingspan', 'Track Wingspan scores. Bird card points, bonus cards, end-of-round goals, eggs, cached food, and tucked cards. Auto-calculates grand total.', 'game-wingspan', 1, 'system');
 
 INSERT OR IGNORE INTO template_cells (id, template_id, row_pos, col_pos, row_span, col_span, cell_type, cell_key, label, formula_expr, per_player, config_json, sort_order) VALUES
-('ws-bi', 'wingspan', 4, 0, 1, 1, 'input:number', 'bird_points', 'Bird Points', NULL, 1, '{"default":0,"section":true}', 1),
+('ws-bi', 'wingspan', 4, 0, 1, 1, 'input:list', 'bird_points', 'Bird Cards', NULL, 1, '{"default":0,"default_entries":1,"show_entry_total":true,"section":true,"help":"Add one entry per bird card. The total of all entries is the bird score."}', 1),
 ('ws-bi2', 'wingspan', 6, 0, 1, 1, 'input:list', 'bonus', 'Bonus Cards', NULL, 1, '{"default":0,"default_entries":1,"show_entry_total":true,"section":true}', 2),
 ('ws-rh', 'wingspan', 7, 0, 1, 2, 'formula', 'round_total', 'End-of-Round Goals', 'SUM(round_1, round_2, round_3, round_4)', 1, '{"help":"Calculated automatically from the four end-of-round goal scores."}', 3),
 ('ws-r1i', 'wingspan', 8, 0, 1, 1, 'input:number', 'round_1', 'Round 1', NULL, 1, '{"default":0,"child":true}', 4),
@@ -413,7 +413,7 @@ SET config_json = json_set(COALESCE(config_json, '{}'), '$.help', CASE id
   WHEN 'pk-fh' THEN 'Calculated automatically: total buy-ins minus total cash-outs.'
   WHEN 'ttr-h-score' THEN 'Track routes, destination tickets, the longest-path bonus, and trains remaining.'
   WHEN 'ttr-iuf' THEN 'Enter the absolute value of points lost for unfinished destination tickets.'
-  WHEN 'ws-bi' THEN 'Enter the total point value shown on bird cards.'
+  WHEN 'ws-bi' THEN 'Add one entry per bird card. The total of all entries is the bird score.'
   WHEN 'ws-bi2' THEN 'Add each completed bonus-card score as a separate entry.'
   WHEN 'ws-rh' THEN 'Calculated automatically from the four end-of-round goal scores.'
   WHEN 'ws-ft' THEN 'Calculated automatically from all Wingspan scoring categories.'
@@ -431,12 +431,16 @@ WHERE id = 'ws-bi2';
 INSERT OR IGNORE INTO template_cells
   (id, template_id, row_pos, col_pos, row_span, col_span, cell_type, cell_key, label, formula_expr, per_player, config_json, sort_order)
 VALUES
-  ('ws-oceania-nectar', 'wingspan', 0, 0, 1, 1, 'input:number', 'nectar', 'Nectar', NULL, 1, '{"default":0,"section":true,"rule_key":"oceania","help":"Enter the end-game nectar score from the Oceania player mat."}', 10),
+  ('ws-nectar-h', 'wingspan', 12, 0, 1, 1, 'heading', 'nectar_heading', 'Nectar', NULL, 0, '{"section":true,"rule_key":"oceania","help":"Enter nectar points for each habitat. The subtotal is calculated automatically."}', 11),
+  ('ws-nectar-forest', 'wingspan', 12, 0, 1, 1, 'input:number', 'forest_nectar', 'Forest', NULL, 1, '{"default":0,"child":true,"rule_key":"oceania"}', 12),
+  ('ws-nectar-grassland', 'wingspan', 12, 0, 1, 1, 'input:number', 'grassland_nectar', 'Grassland', NULL, 1, '{"default":0,"child":true,"rule_key":"oceania"}', 13),
+  ('ws-nectar-wetland', 'wingspan', 12, 0, 1, 1, 'input:number', 'wetland_nectar', 'Wetland', NULL, 1, '{"default":0,"child":true,"rule_key":"oceania"}', 14),
+  ('ws-nectar-total', 'wingspan', 12, 0, 1, 1, 'formula', 'nectar_total', 'Nectar Total', 'forest_nectar + grassland_nectar + wetland_nectar', 1, '{"rule_key":"oceania","help":"Calculated automatically from the forest, grassland, and wetland nectar scores."}', 15),
   ('ws-americas-hummingbirds', 'wingspan', 0, 0, 1, 1, 'input:number', 'hummingbirds', 'Hummingbirds', NULL, 1, '{"default":0,"section":true,"rule_key":"americas","help":"Enter points from the Hummingbirds expansion scoring rules."}', 10),
   ('ws-asia-duet-map', 'wingspan', 0, 0, 1, 1, 'input:number', 'duet_map_bonus', 'Duet Map Bonus', NULL, 1, '{"default":0,"section":true,"rule_key":"asia_duet","help":"Enter the bonus scored from the Asia Duet map."}', 10);
 
 UPDATE template_cells
-SET formula_expr = 'bird_points + SUM(bonus) + round_1 + round_2 + round_3 + round_4 + eggs + cached_food + tucked_cards + nectar + hummingbirds + duet_map_bonus',
+SET formula_expr = 'bird_points + SUM(bonus) + round_1 + round_2 + round_3 + round_4 + eggs + cached_food + tucked_cards + nectar_total + hummingbirds + duet_map_bonus',
     sort_order = 100
 WHERE id = 'ws-ft';
 
@@ -447,12 +451,11 @@ INSERT OR IGNORE INTO template_rule_sets (id, template_id, rule_key, label, help
 
 UPDATE template_cells
 SET sort_order = CASE id
-  WHEN 'ws-oceania-nectar' THEN 11
-  WHEN 'ws-americas-hummingbirds' THEN 12
-  WHEN 'ws-asia-duet-map' THEN 13
+  WHEN 'ws-americas-hummingbirds' THEN 16
+  WHEN 'ws-asia-duet-map' THEN 17
   ELSE sort_order
 END
-WHERE id IN ('ws-oceania-nectar', 'ws-americas-hummingbirds', 'ws-asia-duet-map');
+WHERE id IN ('ws-americas-hummingbirds', 'ws-asia-duet-map');
 
 -- ============================================================
 -- Round layouts: keep a round's related fields together inside each player

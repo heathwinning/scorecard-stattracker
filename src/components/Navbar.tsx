@@ -13,7 +13,7 @@ const navLinks = [
 ];
 
 export default function Navbar() {
-  const { user, loading, isGuest, logout } = useAuth();
+  const { user, loading, isGuest, signIn, logout } = useAuth();
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
@@ -67,7 +67,7 @@ export default function Navbar() {
             <div className="w-8 h-8 rounded-full bg-slate-200 animate-pulse" />
           ) : isGuest ? (
             <div className="flex items-center gap-2">
-              <Link href="/login" className="btn-primary text-sm">Sign in</Link>
+              <button type="button" onClick={signIn} className="btn-primary text-sm">Sign in</button>
             </div>
           ) : user ? (
             <div className="relative">
@@ -101,7 +101,7 @@ export default function Navbar() {
               )}
             </div>
           ) : (
-            <Link href="/login" className="btn-primary text-sm">Sign in</Link>
+            <button type="button" onClick={signIn} className="btn-primary text-sm">Sign in</button>
           )}
         </div>
       </div>
