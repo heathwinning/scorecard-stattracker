@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import { AuthProvider } from "@/components/AuthProvider";
 import Navbar from "@/components/Navbar";
+import { FirstPlayerProvider } from "@/components/first-player/FirstPlayerProvider";
+import FirstPlayerButton from "@/components/first-player/FirstPlayerButton";
+import FirstPlayerOverlay from "@/components/first-player/FirstPlayerOverlay";
 import { Toaster } from "react-hot-toast";
 import "./globals.css";
 
@@ -47,8 +50,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         <AuthProvider>
-          <Navbar />
-          <main className="min-h-[calc(100vh-3.5rem)]">{children}</main>
+          <FirstPlayerProvider>
+            <Navbar />
+            <main className="min-h-[calc(100vh-3.5rem)]">{children}</main>
+            <FirstPlayerButton />
+            <FirstPlayerOverlay />
+          </FirstPlayerProvider>
           <Toaster
             position="bottom-right"
             toastOptions={{

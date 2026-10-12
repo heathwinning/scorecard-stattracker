@@ -14,6 +14,7 @@ import { guestGetScorecard, guestUpdateScorecard, guestUpdateScorecardLayout, gu
 import { resolveLayout } from "@/lib/layout-rules";
 import ScorecardGrid, { type SaveState } from "@/components/ScorecardGrid";
 import Modal from "@/components/Modal";
+import { useScorecardPlayerNames } from "@/components/first-player/FirstPlayerProvider";
 import ConfirmModal from "@/components/ConfirmModal";
 import Link from "next/link";
 import toast from "react-hot-toast";
@@ -459,6 +460,8 @@ export default function ScorecardDetailPage() {
     toast.success("Link copied!");
     setTimeout(() => setCopied(false), 2000);
   };
+
+  useScorecardPlayerNames(players.map((player) => player.player_name));
 
   if (loading) {
     return (
