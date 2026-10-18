@@ -294,7 +294,7 @@ export default function ScorecardGrid({
   const entriesFor = useCallback((cellId: string, playerId: string) =>
     values
       .filter(v => v.template_cell_id === cellId && (v.player_id || "") === playerId)
-      .sort((a, b) => (a.entry_key || "").localeCompare(b.entry_key || "")),
+      .sort((a, b) => Number(a.entry_key || "0") - Number(b.entry_key || "0")),
   [values]);
 
   const canManagePlayers = !readOnly && !isPreview && !playersLocked && (isOwner || !isMultiplayer);
