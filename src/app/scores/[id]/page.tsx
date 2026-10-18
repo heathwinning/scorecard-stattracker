@@ -474,7 +474,7 @@ export default function ScorecardDetailPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 pb-6 pt-3 sm:pt-4 page-enter">
+    <div className="max-w-6xl mx-auto px-2 sm:px-4 pb-6 pt-3 sm:pt-4 page-enter">
       {/* Top bar: game name + share code + settings */}
       <div className="flex flex-wrap items-start gap-3 mb-4">
         <div className="basis-full min-w-0 sm:flex-1 sm:basis-auto">
