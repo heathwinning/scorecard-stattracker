@@ -12,7 +12,7 @@ INSERT OR IGNORE INTO games (id, name, slug, category, player_count, icon) VALUE
   ('game-catan', 'Catan', 'catan', 'board', '3-4', '🏝️'),
   ('game-spades', 'Spades', 'spades', 'card', '4', '♠️'),
   ('game-scrabble', 'Scrabble', 'scrabble', 'tile', '2-4', '📝'),
-  ('game-cornhole', 'Cornhole', 'cornhole', 'sport', '2-4', 'Hole'),
+  ('game-cornhole', 'Cornhole', 'cornhole', 'sport', '2-4', '🌽'),
   ('game-poker', 'Poker', 'poker', 'card', '2-10', '♦️'),
   ('game-phase10', 'Phase 10', 'phase-10', 'card', '2-6', '🔟'),
   ('game-golf-card', 'Golf (Card Game)', 'golf-card', 'card', '2-6', '⛳'),

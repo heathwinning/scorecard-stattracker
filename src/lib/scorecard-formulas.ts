@@ -10,6 +10,11 @@ const num = (v?: string) => {
   return Number.isFinite(n) ? n : 0;
 };
 
+const unsetValue = (cell: TemplateCell) => {
+  const config = cell.config_json as Record<string, unknown>;
+  return cell.cell_type === "tally" && typeof config.default === "number" ? String(config.default) : "";
+};
+
 /**
  * Compute all formula/heading-formula results for a scorecard.
  *
@@ -57,13 +62,13 @@ export function computeFormulaResults(
       const multipleEntries = hasMultipleEntries(cell);
       players.forEach((p, playerIndex) => {
         const entries = entriesFor(cell.id!, p.id!);
-        const items = multipleEntries ? entries.map(entry => num(entry.value)) : [num(entries[0]?.value)];
+        const items = multipleEntries ? entries.map(entry => num(entry.value)) : [num(entries[0]?.value || unsetValue(cell))];
         const value = items.reduce((sum, item) => sum + item, 0);
         base.push({ key: `player_${playerIndex + 1}_${cell.cell_key}`, value, items, aggregate: false });
       });
     });
     staticInputs.forEach(cell =>
-      base.push({ key: cell.cell_key, value: num(entriesFor(cell.id!, null)[0]?.value) })
+      base.push({ key: cell.cell_key, value: num(entriesFor(cell.id!, null)[0]?.value || unsetValue(cell)) })
     );
     // Previously-computed formula results under qualified keys.
     formulaCells.forEach(fc => {
@@ -94,7 +99,7 @@ export function computeFormulaResults(
               );
               ctx.push({ key: cell.cell_key, value: entries.reduce((s, e) => s + num(e.value), 0) });
             } else {
-              ctx.push({ key: cell.cell_key, value: num(entries[0]?.value) });
+              ctx.push({ key: cell.cell_key, value: num(entries[0]?.value || unsetValue(cell)) });
             }
           });
           // Other per-player formulas, resolved for this player.

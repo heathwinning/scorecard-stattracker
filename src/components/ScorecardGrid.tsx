@@ -739,17 +739,19 @@ function GridCell(props: GridCellProps) {
   }
 
   if (cell.cell_type === "tally") {
-    if (!canEdit) return <span className={`sg-value ${faded ? "is-faded" : ""}`}>{value || "0"}</span>;
+    const shown = value || String(config.default ?? 0);
+    if (!canEdit) return <span className={`sg-value ${faded ? "is-faded" : ""}`}>{shown}</span>;
     const min = (config.min as number) ?? 0;
+    const max = (config.max as number) ?? Infinity;
     const step = (config.step as number) ?? 1;
-    const current = parseInt(value, 10) || 0;
+    const current = parseInt(shown, 10) || 0;
     return (
       <span className="sg-tally">
         <button type="button" className="sg-tally-btn" aria-label={`Decrease ${cell.label || cell.cell_key}`}
           onClick={() => onCommit(cell, player.id!, String(Math.max(min, current - step)), repeatableEntryKey || "", hidden ? 1 : 0)}>−</button>
-        <span className="sg-tally-value">{value || "0"}</span>
+        <span className="sg-tally-value">{shown}</span>
         <button type="button" className="sg-tally-btn" aria-label={`Increase ${cell.label || cell.cell_key}`}
-          onClick={() => onCommit(cell, player.id!, String(current + step), repeatableEntryKey || "", hidden ? 1 : 0)}>+</button>
+          onClick={() => onCommit(cell, player.id!, String(Math.min(max, current + step)), repeatableEntryKey || "", hidden ? 1 : 0)}>+</button>
       </span>
     );
   }
