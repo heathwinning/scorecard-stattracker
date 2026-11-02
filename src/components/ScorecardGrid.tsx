@@ -14,7 +14,7 @@
 //   (used by draft/new-scorecard pages).
 // - Remote value changes flash briefly so live players can see scores land.
 
-import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { createPortal } from "react-dom";
 import type { TemplateCell, ScorecardPlayer, CellValue } from "@/lib/api-client";
 import { computeFormulaResults } from "@/lib/scorecard-formulas";
@@ -581,10 +581,43 @@ function PlayerHeaderCell({ player, canEdit, canRemove, onCommit, onRemove, onEd
   onEditingChange?: (editing: boolean) => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const listboxId = useId();
   const [local, setLocal] = useState(player.player_name);
+  const [savedNames, setSavedNames] = useState<string[]>([]);
+  const [isOpen, setIsOpen] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(-1);
+  const filteredNames = savedNames.filter(name => name.toLocaleLowerCase().includes(local.trim().toLocaleLowerCase()));
+
   useEffect(() => {
     if (document.activeElement !== inputRef.current) setLocal(player.player_name);
   }, [player.player_name]);
+
+  const selectName = (name: string) => {
+    setLocal(name);
+    setIsOpen(false);
+    setActiveIndex(-1);
+  };
+
+  const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "ArrowDown" && isOpen && filteredNames.length > 0) {
+      event.preventDefault();
+      setActiveIndex(index => (index + 1) % filteredNames.length);
+    } else if (event.key === "ArrowUp" && isOpen && filteredNames.length > 0) {
+      event.preventDefault();
+      setActiveIndex(index => index <= 0 ? filteredNames.length - 1 : index - 1);
+    } else if (event.key === "Enter") {
+      if (isOpen && activeIndex >= 0 && filteredNames[activeIndex]) {
+        event.preventDefault();
+        selectName(filteredNames[activeIndex]);
+      } else {
+        event.currentTarget.blur();
+      }
+    } else if (event.key === "Escape" && isOpen) {
+      event.preventDefault();
+      setIsOpen(false);
+      setActiveIndex(-1);
+    }
+  };
 
   if (!canEdit) return <span className="sg-player-name">{player.player_name}</span>;
   return (
@@ -592,28 +625,55 @@ function PlayerHeaderCell({ player, canEdit, canRemove, onCommit, onRemove, onEd
       <input
         ref={inputRef}
         value={local}
-        list="scorecard-player-name-options"
         aria-label="Player name"
+        role="combobox"
+        aria-autocomplete="list"
+        aria-expanded={isOpen}
+        aria-controls={listboxId}
+        aria-activedescendant={isOpen && activeIndex >= 0 ? `${listboxId}-option-${activeIndex}` : undefined}
         data-player-name-input=""
         className="sg-player-input"
-        onFocus={() => { onEditingChange?.(true); inputRef.current?.select(); }}
-        onChange={e => setLocal(e.target.value)}
+        onFocus={() => {
+          setSavedNames(getSavedPlayerNames());
+          setActiveIndex(-1);
+          setIsOpen(true);
+          onEditingChange?.(true);
+          inputRef.current?.select();
+        }}
+        onChange={e => { setLocal(e.target.value); setActiveIndex(-1); setIsOpen(true); }}
         onBlur={e => {
           const name = e.currentTarget.value.trim();
-          if (name && typeof window !== "undefined") {
-            const names = getSavedPlayerNames();
-            if (!names.some(saved => saved.toLocaleLowerCase() === name.toLocaleLowerCase())) {
-              localStorage.setItem("scorecard_player_names", JSON.stringify([...names, name].slice(-100)));
-            }
+          if (name) {
+            saveRecentPlayerName(name);
+            onCommit(name);
+          } else {
+            setLocal(player.player_name);
           }
-          onCommit(name);
+          setIsOpen(false);
+          setActiveIndex(-1);
           onEditingChange?.(false);
         }}
-        onKeyDown={e => { if (e.key === "Enter") e.currentTarget.blur(); }}
+        onKeyDown={handleKeyDown}
       />
-      <datalist id="scorecard-player-name-options">
-        {getSavedPlayerNames().map(name => <option key={name} value={name} />)}
-      </datalist>
+      {isOpen && (
+        <ul id={listboxId} role="listbox" aria-label="Recent player names" className="sg-player-options">
+          {filteredNames.length > 0 ? filteredNames.map((name, index) => (
+            <li
+              id={`${listboxId}-option-${index}`}
+              key={name}
+              role="option"
+              aria-selected={index === activeIndex}
+              className={`sg-player-option ${index === activeIndex ? "is-active" : ""}`}
+              onPointerDown={event => event.preventDefault()}
+              onClick={() => selectName(name)}
+            >
+              {name}
+            </li>
+          )) : (
+            <li className="sg-player-empty">No recent names match</li>
+          )}
+        </ul>
+      )}
       {canRemove && (
         <button type="button" onClick={onRemove} className="sg-player-remove" aria-label={`Remove ${player.player_name}`} title="Remove player">
           <HiOutlineX className="h-3 w-3" />
@@ -621,6 +681,13 @@ function PlayerHeaderCell({ player, canEdit, canRemove, onCommit, onRemove, onEd
       )}
     </span>
   );
+}
+
+function saveRecentPlayerName(name: string) {
+  if (typeof window === "undefined") return;
+  const names = getSavedPlayerNames();
+  const withoutDuplicate = names.filter(saved => saved.toLocaleLowerCase() !== name.toLocaleLowerCase());
+  localStorage.setItem("scorecard_player_names", JSON.stringify([...withoutDuplicate, name].slice(-100)));
 }
 
 function getSavedPlayerNames(): string[] {

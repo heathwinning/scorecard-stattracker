@@ -71,9 +71,13 @@
   .sg-th-player.is-mine { @apply text-indigo-700; }
   .sg-th-player.is-faded { @apply text-slate-300; }
 
-  .sg-player-header { @apply flex items-center justify-center gap-0.5; }
+  .sg-player-header { @apply relative flex items-center justify-center gap-0.5; }
   .sg-player-name { @apply block max-w-[110px] truncate text-[11px] font-bold text-slate-700; }
   .sg-player-input { @apply w-12 min-w-0 max-w-full rounded-md border border-transparent bg-transparent px-0.5 py-0.5 text-center text-[11px] font-bold text-slate-700 outline-none transition hover:border-slate-200 focus:border-indigo-300 focus:bg-white focus:ring-2 focus:ring-indigo-100 sm:w-full sm:max-w-[110px] sm:px-1; }
+  .sg-player-options { @apply absolute left-1/2 top-full z-50 mt-1 max-h-48 w-40 -translate-x-1/2 overflow-y-auto rounded-lg border border-slate-200 bg-white py-1 text-left shadow-lg; }
+  .sg-player-option { @apply cursor-pointer truncate px-3 py-2 text-xs font-medium text-slate-700 hover:bg-indigo-50; }
+  .sg-player-option.is-active { @apply bg-indigo-50 text-indigo-700; }
+  .sg-player-empty { @apply px-3 py-2 text-xs text-slate-400; }
   .sg-player-remove { @apply flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-slate-300 transition hover:bg-rose-50 hover:text-rose-500; }
 
   .sg-row { @apply border-b border-slate-100; }
