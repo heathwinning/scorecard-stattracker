@@ -4,10 +4,23 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { HiOutlineChartBar } from "react-icons/hi";
 import { useAuth } from "@/components/AuthProvider";
+import PlayerNameGroups from "@/components/PlayerNameGroups";
 import { formatScore, formatWinRate, ScoreTrend, WinsChart } from "@/components/StatisticsCharts";
-import { getStatisticsHistory, getTemplate } from "@/lib/api-client";
+import { deletePlayerNameGroup, getStatisticsHistory, getTemplate, savePlayerNameGroup } from "@/lib/api-client";
 import { getAllGuestData } from "@/lib/guest-store";
-import { buildStatistics, summarizePlayers, summarizeScores, type ScoredGame, type StatisticsHistory } from "@/lib/statistics";
+import type { PlayerNameGroup } from "@/lib/player-names";
+import { applyPlayerNameGroups, buildStatistics, summarizePlayers, summarizeScores, type ScoredGame, type StatisticsHistory } from "@/lib/statistics";
+
+const guestGroupsKey = "guest_player_name_groups";
+
+function guestNameGroups(): PlayerNameGroup[] {
+  try {
+    const value = JSON.parse(localStorage.getItem(guestGroupsKey) || "[]");
+    return Array.isArray(value) ? value : [];
+  } catch {
+    return [];
+  }
+}
 
 async function guestStatisticsHistory(): Promise<StatisticsHistory> {
   const { scorecards, scores, templates } = getAllGuestData();
@@ -175,30 +188,59 @@ function Statistics({ games }: { games: ScoredGame[] }) {
           </div>
         </section>
       )}
-      <p className="text-xs leading-relaxed text-slate-500">Player history is grouped by name. Results use saved scores once every player has a score and may include games in progress. Ties for first count as ties in the win rate.</p>
+      <p className="text-xs leading-relaxed text-slate-500">Player history uses your name groups, linked accounts, and recorded names. Results use visible saved scores and may include games in progress. Ties for first count as ties in the win rate.</p>
     </div>
   );
 }
 
 export default function StatisticsPage() {
   const { user, isGuest, loading } = useAuth();
-  const source = loading ? null : isGuest || !user ? "guest" : user.id;
+  const source = loading ? null : user?.id || "guest";
+  const guest = isGuest || !user;
   const [attempt, setAttempt] = useState(0);
-  const [history, setHistory] = useState<{ source: string; attempt: number; games?: ScoredGame[] }>();
+  const [managing, setManaging] = useState(false);
+  const [history, setHistory] = useState<{ source: string; attempt: number; games?: ScoredGame[]; groups: PlayerNameGroup[] }>();
 
   useEffect(() => {
     if (!source) return;
     const controller = new AbortController();
-    const request = source === "guest" ? guestStatisticsHistory() : getStatisticsHistory(controller.signal);
-    request.then(buildStatistics).then(games => {
-      if (!controller.signal.aborted) setHistory({ source, attempt, games });
+    const request = guest ? Promise.all([
+      guestStatisticsHistory(),
+      source !== "guest" ? getStatisticsHistory(controller.signal).catch(() => undefined) : undefined,
+    ]).then(([local, shared]) => ({
+      games: [...buildStatistics(local), ...(shared ? buildStatistics(shared) : [])]
+        .sort((a, b) => Date.parse(a.date) - Date.parse(b.date) || a.id.localeCompare(b.id)),
+      groups: guestNameGroups(),
+    })) : getStatisticsHistory(controller.signal).then(data => ({
+      games: buildStatistics(data), groups: data.nameGroups ?? [],
+    }));
+    request.then(result => {
+      if (!controller.signal.aborted) setHistory({ source, attempt, ...result });
     }).catch(() => {
-      if (!controller.signal.aborted) setHistory({ source, attempt });
+      if (!controller.signal.aborted) setHistory({ source, attempt, groups: [] });
     });
     return () => controller.abort();
-  }, [source, attempt]);
+  }, [source, attempt, guest]);
 
   const result = history?.source === source && history.attempt === attempt ? history : undefined;
+  const games = useMemo(() => result?.games ? applyPlayerNameGroups(result.games, result.groups) : undefined, [result]);
+
+  async function saveGroup(group: PlayerNameGroup) {
+    if (!result) return;
+    const saved = guest ? group : (await savePlayerNameGroup(group)).group;
+    const groups = [...result.groups.filter(existing => existing.id !== saved.id), saved];
+    if (guest) localStorage.setItem(guestGroupsKey, JSON.stringify(groups));
+    setHistory(current => current === result ? { ...result, groups } : current);
+  }
+
+  async function removeGroup(id: string) {
+    if (!result) return;
+    if (!guest) await deletePlayerNameGroup(id);
+    const groups = result.groups.filter(group => group.id !== id);
+    if (guest) localStorage.setItem(guestGroupsKey, JSON.stringify(groups));
+    setHistory(current => current === result ? { ...result, groups } : current);
+  }
+
   return (
     <div className="mx-auto max-w-6xl px-4 py-6 sm:py-8">
       <header className="page-header">
@@ -206,7 +248,12 @@ export default function StatisticsPage() {
           <h1 className="page-title">Statistics</h1>
           <p className="page-subtitle">Explore scores and wins from your saved games.</p>
         </div>
-        <Link href="/scores" className="btn-secondary self-start sm:self-auto">My Scores</Link>
+        <div className="flex flex-wrap items-center gap-2">
+          {(!!result?.games?.length || !!result?.groups.length) && (
+            <button type="button" className="btn-primary" onClick={() => setManaging(true)}>Manage player names</button>
+          )}
+          <Link href="/scores" className="btn-secondary">My Scores</Link>
+        </div>
       </header>
       {!result ? (
         <div role="status" className="card p-8 text-center text-sm text-slate-500">Loading statistics…</div>
@@ -215,13 +262,17 @@ export default function StatisticsPage() {
           <p className="empty-state-title">Couldn’t load statistics</p>
           <button type="button" className="btn-secondary mt-2" onClick={() => setAttempt(attempt + 1)}>Try again</button>
         </div>
-      ) : result.games.length ? <Statistics key={source} games={result.games} /> : (
+      ) : games?.length ? <Statistics key={source} games={games} /> : (
         <div className="empty-state">
           <div className="empty-state-icon"><HiOutlineChartBar className="h-6 w-6 text-indigo-600" /></div>
           <p className="empty-state-title">No scores to chart yet</p>
           <p className="empty-state-desc">Record a score in a saved game to start tracking results.</p>
           <Link href="/scorecards" className="btn-primary mt-2">Browse Scorecards</Link>
         </div>
+      )}
+      {managing && result?.games && (
+        <PlayerNameGroups games={result.games} groups={result.groups} guest={guest}
+          onClose={() => setManaging(false)} onSave={saveGroup} onDelete={removeGroup} />
       )}
     </div>
   );

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getUserFromCookies, createGuestSession, sessionCookie } from "@/lib/auth";
 import { getDB, execute } from "@/lib/db";
+import { readUserProfile } from "@/lib/player-profile";
 
 export const runtime = "edge";
 
@@ -16,14 +17,7 @@ export async function GET(request: NextRequest) {
       `INSERT OR IGNORE INTO users (id, email, name, avatar_url) VALUES (?1, ?2, ?3, ?4)`,
       [user.id, user.email, user.name, user.avatar_url]
     );
-    return NextResponse.json({
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        avatar_url: user.avatar_url,
-      },
-    });
+    return NextResponse.json({ user: await readUserProfile(user) }, { headers: { "Cache-Control": "private, no-store" } });
   }
 
   // Create a silent guest account
@@ -38,13 +32,8 @@ export async function GET(request: NextRequest) {
   );
 
   const response = NextResponse.json({
-    user: {
-      id: guest.user.id,
-      email: guest.user.email,
-      name: guest.user.name,
-      avatar_url: null,
-    },
-  });
+    user: await readUserProfile(guest.user),
+  }, { headers: { "Cache-Control": "private, no-store" } });
 
   response.headers.set("Set-Cookie", sessionCookie(guest.token));
   return response;

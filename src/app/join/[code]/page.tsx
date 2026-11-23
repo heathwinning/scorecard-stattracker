@@ -71,7 +71,7 @@ export default function JoinPage() {
     if (!scorecardId || !code || !seat.id) return;
     setJoining(true);
     try {
-      if (isGuest || scorecardId.startsWith("guest-")) {
+      if (scorecardId.startsWith("guest-")) {
         // Guest scorecards are local-only; use the existing seat in this tab.
         setPlayerSlotId(seat.id);
         setPlayerName(customName.trim() || seat.player_name);
@@ -81,28 +81,48 @@ export default function JoinPage() {
         setPlayerName(result.player_name);
         setTakenSlots(result.taken_slot_ids || []);
       }
-      toast.success("Seat claimed!");
+      toast.success(sharingMode === "shared" ? "Player linked to your account." : "Seat claimed!");
     } catch (err: any) {
       toast.error(err.message || "Could not claim that seat");
     } finally {
       setJoining(false);
     }
-  }, [scorecardId, code, customName, isGuest]);
+  }, [scorecardId, code, customName, sharingMode]);
 
   const goToScorecard = () => router.push(`/scores/${code}`);
 
   if (authLoading || loading) return <div className="max-w-md mx-auto px-4 py-20 animate-pulse"><div className="h-8 w-32 bg-slate-200 rounded mb-4" /><div className="h-32 bg-slate-100 rounded-2xl" /></div>;
   if (error) return <div className="max-w-md mx-auto px-4 py-20 text-center"><div className="empty-state-icon mx-auto mb-4">🔗</div><h1 className="text-xl font-bold text-slate-900 mb-2">Invalid Link</h1><p className="text-sm text-slate-500 mb-4">{error}</p><Link href="/dashboard" className="btn-primary text-sm">Go to Dashboard</Link></div>;
 
+  const availableSeats = players.filter(player => player.id && !takenSlots.includes(player.id));
   if (sharingMode === "shared") {
-    return <div className="max-w-md mx-auto px-4 py-20 text-center page-enter"><div className="empty-state-icon mx-auto mb-4">🤝</div><p className="text-sm font-semibold text-indigo-600 mb-2">{gameName}</p><h1 className="text-xl font-bold text-slate-900 mb-2">Shared Scorecard</h1><p className="text-sm text-slate-500 mb-6">You’re in. Everyone with this link can enter and update all scores together.</p><button onClick={goToScorecard} className="btn-primary">Open Scorecard</button></div>;
+    return (
+      <div className="mx-auto max-w-md px-4 py-12 text-center page-enter">
+        <div className="empty-state-icon mx-auto mb-4">🤝</div>
+        <p className="mb-2 text-sm font-semibold text-indigo-600">{gameName}</p>
+        <h1 className="mb-2 text-xl font-bold text-slate-900">Shared Scorecard</h1>
+        <p className="mb-6 text-sm text-slate-500">You’re in. Everyone with this link can enter and update all scores together.</p>
+        {playerName && <p className="mb-4 text-sm text-slate-700">Playing as <strong>{playerName}</strong></p>}
+        {!isGuest && !playerSlotId && availableSeats.length > 0 && (
+          <section className="card mb-4 space-y-3 p-4 text-left">
+            <h2 className="text-sm font-semibold text-slate-900">Link my player</h2>
+            <p className="text-sm text-slate-500">Choose your name on this scorecard to connect it to your account for statistics. You can also open the scorecard without choosing.</p>
+            <div className="flex flex-wrap gap-2">
+              {availableSeats.map(seat => (
+                <button key={seat.id} type="button" className="btn-secondary" disabled={joining} onClick={() => claimSeat(seat)}>{seat.player_name}</button>
+              ))}
+            </div>
+          </section>
+        )}
+        <button type="button" onClick={goToScorecard} className="btn-primary" disabled={joining}>Open Scorecard</button>
+      </div>
+    );
   }
 
   if (playerSlotId && playerName) {
     return <div className="max-w-md mx-auto px-4 py-20 text-center page-enter"><div className="empty-state-icon mx-auto mb-4">✅</div><h1 className="text-xl font-bold text-slate-900 mb-2">Seat claimed</h1><p className="text-sm text-slate-500 mb-2">Playing as <strong>{playerName}</strong></p><p className="text-xs text-slate-400 mb-6">You can now enter scores for your seat only.</p><button onClick={goToScorecard} className="btn-primary">Open Scorecard</button></div>;
   }
 
-  const availableSeats = players.filter(player => player.id && !takenSlots.includes(player.id));
   return (
     <div className="max-w-md mx-auto px-4 py-12 page-enter">
       <div className="text-center mb-8"><div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-indigo-200 mx-auto mb-4 tracking-wider">{code}</div><p className="text-sm font-semibold text-indigo-600 mb-1">{gameName}</p><h1 className="text-xl font-bold text-slate-900">Choose Your Seat</h1><p className="text-sm text-slate-500 mt-1">The host has enabled player slots. Pick an available seat to enter your own scores.</p></div>

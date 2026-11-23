@@ -16,6 +16,7 @@ export interface SessionUser {
   email: string;
   name: string;
   avatar_url: string | null;
+  google_given_name?: string;
 }
 
 // Create a session JWT (valid for 30 days)
@@ -75,6 +76,7 @@ export async function verifyGoogleToken(
       email: payload.email as string,
       name: (payload.name as string) || "Unknown",
       avatar_url: (payload.picture as string) || null,
+      google_given_name: typeof payload.given_name === "string" ? payload.given_name : undefined,
     };
   } catch (err) {
     console.error("Google token verification failed:", err);

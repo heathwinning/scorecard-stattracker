@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getUserFromCookies } from "@/lib/auth";
-import { getDB, queryFirst, execute } from "@/lib/db";
+import { getDB, queryFirst } from "@/lib/db";
+import { claimPlayerSlot } from "@/lib/scorecard-participation";
 
 export const runtime = "edge";
 
@@ -34,42 +35,9 @@ export async function POST(
     return NextResponse.json({ error: "Not a participant" }, { status: 403 });
   }
 
-  // Check slot isn't already taken by someone else
-  const existing = await queryFirst<{ user_id: string }>(
-    db,
-    "SELECT user_id FROM scorecard_participants WHERE scorecard_id = ?1 AND player_slot_id = ?2 AND user_id != ?3",
-    [params.id, player_slot_id, user.id]
-  );
-
-  if (existing) {
-    return NextResponse.json({ error: "Slot already taken" }, { status: 409 });
-  }
-
-  // Verify the slot exists
-  const slot = await queryFirst(
-    db,
-    "SELECT id FROM scorecard_players WHERE id = ?1 AND scorecard_id = ?2",
-    [player_slot_id, params.id]
-  );
-
-  if (!slot) {
-    return NextResponse.json({ error: "Invalid player slot" }, { status: 400 });
-  }
-
-  await execute(
-    db,
-    "UPDATE scorecard_participants SET player_slot_id = ?1 WHERE id = ?2",
-    [player_slot_id, participant.id]
-  );
-
-  // Update player name if provided
-  if (player_name && player_name.trim()) {
-    await execute(
-      db,
-      "UPDATE scorecard_players SET player_name = ?1 WHERE id = ?2",
-      [player_name.trim(), player_slot_id]
-    );
-  }
-
-  return NextResponse.json({ success: true, player_name: player_name?.trim() });
+  const name = typeof player_name === "string" ? player_name.trim() : undefined;
+  const result = await claimPlayerSlot(db, params.id, user.id, player_slot_id, name);
+  if (result === "missing") return NextResponse.json({ error: "Invalid player slot" }, { status: 400 });
+  if (result === "taken") return NextResponse.json({ error: "Slot already taken" }, { status: 409 });
+  return NextResponse.json({ success: true, player_name: name });
 }

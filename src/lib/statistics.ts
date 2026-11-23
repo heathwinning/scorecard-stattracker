@@ -1,15 +1,20 @@
 import type { CellValue, Scorecard, ScorecardPlayer, TemplateCell } from "./api-client";
 import { computeFormulaResults } from "./scorecard-formulas";
+import { cleanPlayerName, type PlayerNameGroup } from "./player-names";
 
 export interface StatisticsHistory {
   scorecards: StatisticsScorecard[];
-  players: (ScorecardPlayer & { scorecard_id: string })[];
+  players: (StatisticsPlayer & { scorecard_id: string })[];
   values: (CellValue & { scorecard_id: string })[];
   templateCells: Record<string, TemplateCell[]>;
+  nameGroups?: PlayerNameGroup[];
 }
+
+type StatisticsPlayer = ScorecardPlayer & { account_id?: string | null };
 
 type StatisticsScorecard = Pick<Scorecard, "id" | "title" | "template_id" | "template_name" | "game_date"> & {
   cells?: TemplateCell[];
+  restricted_results?: number;
 };
 
 export type Outcome = "win" | "loss" | "tie";
@@ -80,7 +85,7 @@ function numeric(value: CellValue) {
   return value.value.trim() !== "" && Number.isFinite(Number(value.value));
 }
 
-function scoreGame(card: StatisticsScorecard, players: ScorecardPlayer[], values: CellValue[], defaults: TemplateCell[]): ScoredGame | undefined {
+function scoreGame(card: StatisticsScorecard, players: StatisticsPlayer[], values: CellValue[], defaults: TemplateCell[]): ScoredGame | undefined {
   let cells = card.cells?.length ? card.cells : defaults.filter(cell => cell.sort_order >= 0);
   // These templates switched from fixed rows to repeatable entries.
   if (!card.cells?.length && (card.template_id === "scrabble" || card.template_id === "cribbage")) {
@@ -99,24 +104,24 @@ function scoreGame(card: StatisticsScorecard, players: ScorecardPlayer[], values
   const nameCounts = new Map<string, number>();
   const results: PlayerResult[] = [];
   for (const player of players) {
-    const name = player.player_name.trim().replace(/\s+/g, " ") || `Player ${player.sort_order + 1}`;
+    const name = cleanPlayerName(player.player_name) || `Player ${player.sort_order + 1}`;
     const nameKey = name.toLowerCase();
-    const occurrence = (nameCounts.get(nameKey) ?? 0) + 1;
-    nameCounts.set(nameKey, occurrence);
+    const occurrence = player.account_id ? 1 : (nameCounts.get(nameKey) ?? 0) + 1;
+    if (!player.account_id) nameCounts.set(nameKey, occurrence);
     const entries = (valuesByPlayer.get(player.id!) ?? []).filter(value => inputIds.has(value.template_cell_id));
     if (!entries.length) continue;
     const score = field.formula_expr
       ? formulaResults[`${field.id}:${player.id}`]
       : entries.reduce((sum, entry) => sum + Number(entry.value), 0);
     if (Number.isFinite(score)) results.push({
-      key: JSON.stringify([nameKey, occurrence]),
+      key: JSON.stringify(player.account_id ? ["account", player.account_id] : ["name", nameKey, occurrence]),
       name: occurrence === 1 ? name : `${name} (${occurrence})`,
       score,
     });
   }
   if (!results.length) return;
 
-  if (results.length > 1 && results.length === players.length && card.template_id !== "poker") {
+  if (!card.restricted_results && results.length > 1 && results.length === players.length && card.template_id !== "poker") {
     const best = results.reduce((best, player) => lowScoreGames.has(card.template_id)
       ? Math.min(best, player.score) : Math.max(best, player.score), results[0].score);
     if (best >= (winningTargets.get(card.template_id) ?? -Infinity)) {
@@ -132,6 +137,26 @@ function scoreGame(card: StatisticsScorecard, players: ScorecardPlayer[], values
     date: card.game_date,
     players: results,
   };
+}
+
+export function applyPlayerNameGroups(games: ScoredGame[], groups: PlayerNameGroup[]): ScoredGame[] {
+  if (!groups.length) return games;
+  const bySource = new Map(groups.flatMap(group => group.sources.map(source => [source, group] as const)));
+  return games.map(game => {
+    const counts = new Map<string, number>();
+    for (const { key } of game.players) {
+      const group = bySource.get(key);
+      if (group) counts.set(group.id, (counts.get(group.id) ?? 0) + 1);
+    }
+    return {
+      ...game,
+      players: game.players.map(player => {
+        const group = bySource.get(player.key);
+        // Separate seats in the same game retain their own records.
+        return group && counts.get(group.id) === 1 ? { ...player, key: `group:${group.id}`, name: group.name } : player;
+      }),
+    };
+  });
 }
 
 export function buildStatistics(history: StatisticsHistory): ScoredGame[] {

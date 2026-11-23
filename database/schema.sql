@@ -10,6 +10,29 @@ CREATE TABLE IF NOT EXISTS users (
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+CREATE TABLE IF NOT EXISTS user_player_profiles (
+  user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  google_given_name TEXT,
+  player_name TEXT
+);
+
+CREATE TABLE IF NOT EXISTS player_name_groups (
+  viewer_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  id TEXT NOT NULL,
+  name TEXT NOT NULL,
+  PRIMARY KEY (viewer_id, id)
+);
+
+CREATE TABLE IF NOT EXISTS player_name_group_members (
+  viewer_id TEXT NOT NULL,
+  source_key TEXT NOT NULL,
+  group_id TEXT NOT NULL,
+  PRIMARY KEY (viewer_id, source_key),
+  FOREIGN KEY (viewer_id, group_id) REFERENCES player_name_groups(viewer_id, id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_player_name_group_members_group ON player_name_group_members(viewer_id, group_id);
+
 -- Games catalog (for filtering templates by game)
 CREATE TABLE IF NOT EXISTS games (
   id TEXT PRIMARY KEY,
@@ -65,6 +88,7 @@ CREATE TABLE IF NOT EXISTS scorecards (
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
+CREATE INDEX IF NOT EXISTS idx_scorecards_created_by ON scorecards(created_by);
 
 -- Players/teams within a scorecard
 CREATE TABLE IF NOT EXISTS scorecard_players (
@@ -140,6 +164,7 @@ CREATE TABLE IF NOT EXISTS scorecard_participants (
 
 CREATE INDEX IF NOT EXISTS idx_participants_scorecard ON scorecard_participants(scorecard_id);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_participants_unique ON scorecard_participants(scorecard_id, user_id);
+CREATE INDEX IF NOT EXISTS idx_participants_user ON scorecard_participants(user_id, scorecard_id);
 
 -- Session store (for auth cookies)
 CREATE TABLE IF NOT EXISTS sessions (

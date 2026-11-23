@@ -5,7 +5,9 @@ import {
   sessionCookie,
   getUserFromCookies,
 } from "@/lib/auth";
-import { getDB, execute, uuid } from "@/lib/db";
+import { getDB, execute } from "@/lib/db";
+import { readUserProfile } from "@/lib/player-profile";
+import { cleanPlayerName } from "@/lib/player-names";
 
 export const runtime = "edge";
 
@@ -70,16 +72,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const token = await createSessionToken(googleUser);
+    const givenName = cleanPlayerName(googleUser.google_given_name || "");
+    if (givenName) {
+      await execute(db, `INSERT INTO user_player_profiles (user_id, google_given_name) VALUES (?1, ?2)
+        ON CONFLICT(user_id) DO UPDATE SET google_given_name = excluded.google_given_name`, [googleUser.id, givenName]);
+    }
 
-    const response = NextResponse.json({
-      user: {
-        id: googleUser.id,
-        email: googleUser.email,
-        name: googleUser.name,
-        avatar_url: googleUser.avatar_url,
-      },
-    });
+    const token = await createSessionToken(googleUser);
+    const response = NextResponse.json({ user: await readUserProfile(googleUser) });
 
     response.headers.set("Set-Cookie", sessionCookie(token));
     return response;

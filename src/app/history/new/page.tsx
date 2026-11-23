@@ -91,19 +91,20 @@ function NewScorecardPageInner() {
       } else {
         try {
           const result = await createScorecard({ template_id: templateId, title: scorecardTitle, game_date: gameDate, rule_keys: selectedRuleKeys });
-          const initialPlayers = makeInitialPlayers(requestedPlayers, user?.name || "Player 1");
+          const initialPlayers = makeInitialPlayers(requestedPlayers, user?.player_name || "Player 1");
           await updateScorecard(result.scorecard.id, { players: initialPlayers });
           setPlayers(initialPlayers);
           setScorecardId(result.scorecard.id);
           // Auto-share
-          const shareResult = await shareScorecard(result.scorecard.id);
+          const ownPlayerId = requestedPlayers?.split("|").some(name => name.trim()) ? undefined : initialPlayers[0].id;
+          const shareResult = await shareScorecard(result.scorecard.id, ownPlayerId);
           setShareCode(shareResult.share_code);
           router.replace(`/scores/${shareResult.share_code}`);
         } catch { toast.error("Failed to create game"); }
       }
     };
     create();
-  }, [templateId, templateName, cells.length, loading, isGuest, creationStarted, selectedRuleKeys, requestedPlayers, user?.name]);
+  }, [templateId, templateName, cells.length, loading, isGuest, creationStarted, selectedRuleKeys, requestedPlayers, user?.player_name]);
 
   const handleSave = useCallback(async () => {
     setSaving(true);

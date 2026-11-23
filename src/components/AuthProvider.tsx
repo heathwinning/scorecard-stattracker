@@ -2,7 +2,8 @@
 
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { getMe, loginWithGoogle, logout as apiLogout, migrateGuestData } from "@/lib/api-client";
+import { getMe, loginWithGoogle, logout as apiLogout, migrateGuestData, saveProfilePlayerName } from "@/lib/api-client";
+import type { UserProfile } from "@/lib/player-profile";
 import { clearGuestData, getAllGuestData, hasGuestData } from "@/lib/guest-store";
 import toast from "react-hot-toast";
 
@@ -20,20 +21,14 @@ declare global {
   }
 }
 
-interface User {
-  id: string;
-  email: string;
-  name: string;
-  avatar_url: string | null;
-}
-
 interface AuthContextType {
-  user: User | null;
+  user: UserProfile | null;
   loading: boolean;
   isGuest: boolean;
   login: (credential: string) => Promise<void>;
   signIn: () => void;
   logout: () => Promise<void>;
+  updatePlayerName: (name: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -43,10 +38,11 @@ const AuthContext = createContext<AuthContextType>({
   login: async () => {},
   signIn: () => {},
   logout: async () => {},
+  updatePlayerName: async () => {},
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const migratingUser = useRef<string | null>(null);
   const router = useRouter();
@@ -110,8 +106,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
   }, []);
 
+  const updatePlayerName = useCallback(async (name: string) => {
+    const { user: updated } = await saveProfilePlayerName(name);
+    setUser(current => current?.id === updated.id ? updated : current);
+  }, []);
+
   return (
-    <AuthContext.Provider value={{ user, loading, isGuest, login, signIn, logout }}>
+    <AuthContext.Provider value={{ user, loading, isGuest, login, signIn, logout, updatePlayerName }}>
       {children}
     </AuthContext.Provider>
   );

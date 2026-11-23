@@ -1,4 +1,6 @@
 // Client-side API helpers — thin wrappers around fetch
+import type { UserProfile } from "./player-profile";
+import type { PlayerNameGroup } from "./player-names";
 
 const BASE = "";
 
@@ -18,7 +20,7 @@ async function api<T>(path: string, options?: RequestInit): Promise<T> {
 
 // Auth
 export async function loginWithGoogle(credential: string) {
-  return api<{ user: { id: string; email: string; name: string; avatar_url: string | null } }>(
+  return api<{ user: UserProfile }>(
     "/api/auth/login",
     { method: "POST", body: JSON.stringify({ credential }) }
   );
@@ -29,9 +31,15 @@ export async function logout() {
 }
 
 export async function getMe() {
-  return api<{ user: { id: string; email: string; name: string; avatar_url: string | null } | null }>(
+  return api<{ user: UserProfile | null }>(
     "/api/auth/me"
   );
+}
+
+export async function saveProfilePlayerName(playerName: string) {
+  return api<{ user: UserProfile }>("/api/profile", {
+    method: "PUT", body: JSON.stringify({ player_name: playerName }),
+  });
 }
 
 export async function migrateGuestData(data: import("./guest-store").GuestData) {
@@ -196,6 +204,16 @@ export async function getStatisticsHistory(signal?: AbortSignal) {
   return api<import("./statistics").StatisticsHistory>("/api/statistics", { signal });
 }
 
+export async function savePlayerNameGroup(group: PlayerNameGroup) {
+  return api<{ group: PlayerNameGroup }>(`/api/statistics/player-names/${encodeURIComponent(group.id)}`, {
+    method: "PUT", body: JSON.stringify(group),
+  });
+}
+
+export async function deletePlayerNameGroup(id: string) {
+  return api<{ success: boolean }>(`/api/statistics/player-names/${encodeURIComponent(id)}`, { method: "DELETE" });
+}
+
 export async function getScorecard(id: string) {
   return api<{
     scorecard: Scorecard;
@@ -249,8 +267,11 @@ export async function deleteScorecard(id: string) {
 }
 
 // Multiplayer: sharing & live sync
-export async function shareScorecard(id: string) {
-  return api<{ share_code: string }>(`/api/scores/${id}/share`, { method: "POST" });
+export async function shareScorecard(id: string, playerSlotId?: string) {
+  return api<{ share_code: string }>(`/api/scores/${id}/share`, {
+    method: "POST",
+    body: playerSlotId ? JSON.stringify({ player_slot_id: playerSlotId }) : undefined,
+  });
 }
 
 export async function joinScorecard(shareCode: string, options?: { playerName?: string; playerSlotId?: string }) {
