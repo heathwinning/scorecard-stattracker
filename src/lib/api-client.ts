@@ -192,6 +192,10 @@ export async function listScorecards() {
   return api<{ scorecards: Scorecard[] }>("/api/scores");
 }
 
+export async function getStatisticsHistory(signal?: AbortSignal) {
+  return api<import("./statistics").StatisticsHistory>("/api/statistics", { signal });
+}
+
 export async function getScorecard(id: string) {
   return api<{
     scorecard: Scorecard;

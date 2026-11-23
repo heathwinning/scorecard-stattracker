@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { deleteScorecard, listScorecards, Scorecard } from "@/lib/api-client";
 import { useAuth } from "@/components/AuthProvider";
 import Link from "next/link";
-import { HiOutlineClipboardList, HiOutlineArrowRight, HiOutlineTrash } from "react-icons/hi";
+import { HiOutlineClipboardList, HiOutlineArrowRight, HiOutlineTrash, HiOutlineChartBar } from "react-icons/hi";
 import { guestDeleteScorecard, guestGetScorecards } from "@/lib/guest-store";
 import ConfirmModal from "@/components/ConfirmModal";
 import toast from "react-hot-toast";
@@ -104,6 +104,7 @@ export default function ScorecardsPage() {
           <p className="page-subtitle">Game sessions you've tracked</p>
         </div>
         <div className="flex items-center gap-2">
+          <Link href="/statistics" className="btn-secondary"><HiOutlineChartBar className="w-4 h-4" /> Statistics</Link>
           {scorecards.length > 0 && (
             <button onClick={selectionMode ? exitSelectionMode : () => setSelectionMode(true)} className="btn-secondary">
               {selectionMode ? "Cancel" : "Select"}

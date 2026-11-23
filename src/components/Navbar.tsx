@@ -4,12 +4,13 @@ import { useAuth } from "./AuthProvider";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { HiOutlineTemplate, HiOutlineClipboardList, HiOutlineViewGrid, HiOutlineMenu, HiOutlineX } from "react-icons/hi";
+import { HiOutlineTemplate, HiOutlineClipboardList, HiOutlineViewGrid, HiOutlineMenu, HiOutlineX, HiOutlineChartBar } from "react-icons/hi";
 
 const navLinks = [
   { href: "/dashboard", label: "Dashboard", icon: HiOutlineViewGrid },
   { href: "/scorecards", label: "Scorecards", icon: HiOutlineTemplate },
   { href: "/scores", label: "My Scores", icon: HiOutlineClipboardList },
+  { href: "/statistics", label: "Statistics", icon: HiOutlineChartBar },
 ];
 
 export default function Navbar() {
@@ -41,7 +42,7 @@ export default function Navbar() {
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white font-bold text-sm shadow-sm shadow-indigo-200 group-hover:shadow-md group-hover:scale-105 transition-all">
               S
             </div>
-            <span className="text-lg font-bold text-slate-900 tracking-tight hidden sm:inline">Scorecard StatTracker</span>
+            <span className="hidden text-lg font-bold tracking-tight text-slate-900 md:inline">Scorecard StatTracker</span>
           </Link>
           {/* Desktop nav links */}
           {hasAccess && (
